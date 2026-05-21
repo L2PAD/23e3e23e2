@@ -67,15 +67,19 @@ const REASON_META = {
   },
 };
 
-function fmtAgo(iso) {
+function fmtAgo(iso, t) {
+  // `t` is the translation function passed from the component (useLang).
+  // It MUST be passed explicitly because this helper lives at module scope
+  // and has no access to the hook.  Falls back to plain english labels.
+  const tr = typeof t === 'function' ? t : (k) => k;
   if (!iso) return '—';
   const ms = new Date(iso).getTime();
   if (!Number.isFinite(ms)) return '—';
   const s = Math.max(0, (Date.now() - ms) / 1000);
-  if (s < 60) return `${Math.round(s)} ${t('r9_seconds_ago')}`;
-  if (s < 3600) return `${Math.round(s / 60)} ${t('r9_minutes_ago')}`;
-  if (s < 86400) return `${Math.round(s / 3600)} ${t('r9_hours_ago')}`;
-  return `${Math.round(s / 86400)} ${t('r9_days_ago')}`;
+  if (s < 60) return `${Math.round(s)} ${tr('r9_seconds_ago') || 'seconds ago'}`;
+  if (s < 3600) return `${Math.round(s / 60)} ${tr('r9_minutes_ago') || 'minutes ago'}`;
+  if (s < 86400) return `${Math.round(s / 3600)} ${tr('r9_hours_ago') || 'hours ago'}`;
+  return `${Math.round(s / 86400)} ${tr('r9_days_ago') || 'days ago'}`;
 }
 
 export default function ExceptionsDashboardPage() {
@@ -473,7 +477,7 @@ export default function ExceptionsDashboardPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-xs text-slate-700">{fmtAgo(it.lastTrackingUpdate)}</div>
+                    <div className="text-xs text-slate-700">{fmtAgo(it.lastTrackingUpdate, t)}</div>
                     {it.ageHours !== null && it.ageHours !== undefined && (
                       <div className="text-[10px] text-slate-400">{it.ageHours} {t('adm3_dd70ac60ce')}</div>
                     )}

@@ -14,7 +14,10 @@
  *   - User-visible note explains "недоступний" ≠ "парсер не працює".
  */
 
-const DEFAULT_API_URL = 'https://code-review-env.preview.emergentagent.com';
+// DEFAULT_API_URL intentionally empty — the operator pastes the CRM URL
+// in the popup on first install. Stored in chrome.storage.local so the
+// extension is portable across staging / preview / production builds.
+const DEFAULT_API_URL = '';
 
 const STORAGE = {
   url:    'bibi_backend_url',

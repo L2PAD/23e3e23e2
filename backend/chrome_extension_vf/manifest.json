@@ -12,8 +12,7 @@
     "https://www.vesselfinder.com/*",
     "https://vesselfinder.com/*",
     "https://*.vesselfinder.com/*",
-    "https://*.emergentagent.com/*",
-    "https://code-review-env.preview.emergentagent.com/*"
+    "https://*/*"
   ],
   "action": {
     "default_popup": "popup.html",

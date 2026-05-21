@@ -1,7 +1,7 @@
 /**
  * PaymentMethodPicker
  * --------------------
- * Emergent-style modal that lets the customer choose how to pay BEFORE
+ * Premium modal that lets the customer choose how to pay BEFORE
  * being redirected to Stripe Checkout.
  *
  * Reads `/api/stripe/public-config` to know which methods the admin enabled

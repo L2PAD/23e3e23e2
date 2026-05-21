@@ -218,7 +218,7 @@ const QuoteHistory = ({ leadId, vin, onScenarioChange, showManagerOverride = tru
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
                         {Object.entries(quote.breakdown || {}).map(([key, value]) => (
                           <div key={key} className="p-2 bg-[#F7F7F8] rounded-lg">
-                            <div className="text-xs text-[#71717A]">{humanize(key)}</div>
+                            <div className="text-xs text-[#71717A]">{humanize(key, t)}</div>
                             <div className="font-medium">${Number(value).toLocaleString()}</div>
                           </div>
                         ))}
@@ -285,22 +285,26 @@ const QuoteHistory = ({ leadId, vin, onScenarioChange, showManagerOverride = tru
   );
 };
 
-// Humanize breakdown keys
-function humanize(key) {
+// Humanize breakdown keys.  `t` is passed in because this helper lives at
+// module scope (outside the React component) and therefore has no access
+// to the `useLang()` hook.  Falls back to the raw key when no translation
+// is provided.
+function humanize(key, t) {
+  const tr = typeof t === 'function' ? t : (k) => k;
   const map = {
-    carPrice: t('adm3_a2ef08d24c'),
-    auctionFee: t('adm3_652f34e38c'),
-    insurance: t('adm3_3b968e9953'),
-    usaInland: t('adm3_70a8e23df1'),
-    ocean: t('adm3_b6a743f168'),
-    usaHandlingFee: t('adm3_235c19fa70'),
-    bankFee: t('adm3_1964a880c6'),
-    euPortHandlingFee: t('adm3_8fcd3fe17e'),
-    euDelivery: t('adm3_51fcc97765'),
-    companyFee: t('adm3_864e0beea8'),
-    customs: t('adm3_88cf39486c'),
-    documentationFee: t('adm3_a0231d4110'),
-    titleFee: t('adm3_968e3bfe40'),
+    carPrice: tr('adm3_a2ef08d24c'),
+    auctionFee: tr('adm3_652f34e38c'),
+    insurance: tr('adm3_3b968e9953'),
+    usaInland: tr('adm3_70a8e23df1'),
+    ocean: tr('adm3_b6a743f168'),
+    usaHandlingFee: tr('adm3_235c19fa70'),
+    bankFee: tr('adm3_1964a880c6'),
+    euPortHandlingFee: tr('adm3_8fcd3fe17e'),
+    euDelivery: tr('adm3_51fcc97765'),
+    companyFee: tr('adm3_864e0beea8'),
+    customs: tr('adm3_88cf39486c'),
+    documentationFee: tr('adm3_a0231d4110'),
+    titleFee: tr('adm3_968e3bfe40'),
   };
   return map[key] || key;
 }

@@ -11,7 +11,7 @@
  *   4. We POST { credential } to /api/customer-auth/google/verify, which
  *      validates the token server-side and returns our customer + sessionToken.
  *
- * No Emergent intermediate screen. No extra redirect.
+ * No third-party intermediate screen. No extra redirect.
  */
 
 import React, {
@@ -262,7 +262,7 @@ export const CustomerProtectedRoute = ({ children }) => {
 };
 
 // ============================================================================
-// AUTH CALLBACK — Emergent flow is removed; this route redirects to /cabinet/login
+// AUTH CALLBACK — legacy third-party flow is removed; this route redirects to /cabinet/login
 // (kept for any old bookmarks / external links).
 // ============================================================================
 

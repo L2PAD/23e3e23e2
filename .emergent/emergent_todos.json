@@ -1,14 +1,18 @@
 [
   {
-    "content": "Найти Contact Us кнопку и Reach Out To Us модалку, связать их",
+    "content": "Убрать hardcoded preview URL в инструкции VesselFinder → \"your CRM URL\"",
     "status": "completed"
   },
   {
-    "content": "Собрать Chrome Extension в готовый пакет (loadable)",
+    "content": "Найти все другие hardcoded code-review-env.preview в коде",
     "status": "completed"
   },
   {
-    "content": "Валидация API всех 4 кабинетов (smoke-тест)",
+    "content": "Добавить блок Ext-Client Keys в админку (clientId + secret для расширения)",
+    "status": "completed"
+  },
+  {
+    "content": "Запустить парсинг 500+ авто в базу (реальные карточки)",
     "status": "completed"
   }
 ]

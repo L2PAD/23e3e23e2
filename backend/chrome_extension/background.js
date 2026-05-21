@@ -17,7 +17,11 @@ const BACKEND_BASE_KEY = 'bibi_backend_url';
 const CLIENT_ID_KEY = 'bibi_ext_client_id';
 const CLIENT_SECRET_KEY = 'bibi_ext_client_secret';
 const CLIENT_LABEL_KEY = 'bibi_ext_client_label';
-const DEFAULT_BACKEND = 'https://code-review-env.preview.emergentagent.com';
+// DEFAULT_BACKEND intentionally empty — the operator MUST paste the CRM
+// URL into the popup ("Backend URL" field) on first install.  Storing the
+// URL in chrome.storage.local keeps the extension portable across
+// staging / preview / production deployments.
+const DEFAULT_BACKEND = '';
 const POLL_INTERVAL_SEC = 8;
 const JOB_TAB_LIFETIME_MS = 8000;
 const HEARTBEAT_INTERVAL_SEC = 60;

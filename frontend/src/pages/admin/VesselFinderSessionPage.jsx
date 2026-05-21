@@ -119,6 +119,13 @@ export default function VesselFinderSessionPage() {
   // help modal
   const [showHelp, setShowHelp] = useState(false);
 
+  // ext-clients (BIBI Cars / auction parser extension keys)
+  const [extClients, setExtClients] = useState([]);
+  const [extLoading, setExtLoading] = useState(false);
+  const [extError, setExtError] = useState(null);
+  const [newSecret, setNewSecret] = useState(null);     // last secret returned by bootstrap/rotate
+  const [copiedField, setCopiedField] = useState(null);
+
   // ---- data loaders ----
   const loadStatus = useCallback(async () => {
     try {
@@ -139,15 +146,88 @@ export default function VesselFinderSessionPage() {
     } catch { /* silent */ }
   }, []);
 
+  // ── Extension keys (clientId + HMAC secret) ─────────────────────────
+  // The auction-parser extension (BIBI Cars / Poctra etc.) needs an
+  // ext-client pair to sign requests with HMAC.  The Vessel Sync extension
+  // already bakes the shared secret at build time, so the keys block is
+  // shown here purely so the operator can copy them into the browser
+  // extension popup when prompted for "missing keys".
+  const authHeaders = () => {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const loadExtClients = useCallback(async () => {
+    setExtError(null);
+    try {
+      const r = await axios.get(`${API_URL}/api/admin/ext-clients`, { headers: authHeaders() });
+      setExtClients(r.data?.items || []);
+    } catch (e) {
+      setExtError(e?.response?.data?.detail || e.message);
+    }
+  }, []);
+
   useEffect(() => {
     loadStatus();
     loadShipments();
+    loadExtClients();
     const t1 = setInterval(loadStatus, 10000);
     const t2 = setInterval(loadShipments, 30000);
     return () => { clearInterval(t1); clearInterval(t2); };
-  }, [loadStatus, loadShipments]);
+  }, [loadStatus, loadShipments, loadExtClients]);
 
   // ---- actions ----
+  const bootstrapExtClient = async () => {
+    setExtLoading(true);
+    setExtError(null);
+    try {
+      const r = await axios.post(
+        `${API_URL}/api/admin/ext-clients/bootstrap`,
+        { label: 'Browser extension', note: 'Created from Vessel Sync admin page' },
+        { headers: authHeaders() },
+      );
+      const created = (r.data?.created || [])[0];
+      if (created?.secret) {
+        // Bootstrap returned a NEW client → secret is shown ONLY this once
+        setNewSecret({ clientId: created.clientId, secret: created.secret, name: created.name });
+      }
+      await loadExtClients();
+    } catch (e) {
+      setExtError(e?.response?.data?.detail || e.message);
+    } finally {
+      setExtLoading(false);
+    }
+  };
+
+  const rotateExtClient = async (clientId) => {
+    if (!window.confirm(`Rotate secret for ${clientId}? The old secret stops working immediately.`)) return;
+    setExtLoading(true);
+    setExtError(null);
+    try {
+      const r = await axios.post(
+        `${API_URL}/api/admin/ext-clients/${clientId}/rotate`,
+        {},
+        { headers: authHeaders() },
+      );
+      if (r.data?.secret) {
+        setNewSecret({ clientId, secret: r.data.secret, name: r.data.name });
+      }
+      await loadExtClients();
+    } catch (e) {
+      setExtError(e?.response?.data?.detail || e.message);
+    } finally {
+      setExtLoading(false);
+    }
+  };
+
+  const copyToClipboard = async (value, field) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 1500);
+    } catch {}
+  };
+
   const downloadExtension = async () => {
     // The extension ZIP is behind `require_admin`, so we can't use a plain
     // <a href> / window.location — the browser does NOT attach the JWT
@@ -485,13 +565,170 @@ export default function VesselFinderSessionPage() {
           <ol className="list-decimal ml-5 space-y-1.5">
             <li>{t('vfStep1')}</li>
             <li>{t('vfStep2')}</li>
-            <li>{t('vfStep3prefix')}<b>{t('bibiVesselSync')}</b>{t('vfStep3middle')}<code className="bg-white border border-[#E4E4E7] rounded px-1.5 py-0.5 text-[12px]">{typeof window !== 'undefined' ? window.location.origin : ''}</code>{t('vfStep3suffix')}</li>
+            <li>{t('vfStep3prefix')}<b>{t('bibiVesselSync')}</b>{t('vfStep3middle')}<code className="bg-white border border-[#E4E4E7] rounded px-1.5 py-0.5 text-[12px]">{t('vfStep3yourSiteUrl')}</code>{t('vfStep3suffix')}</li>
             <li>{t('vfStep4prefix')}<a className="text-[#18181B] underline underline-offset-2" href="https://www.vesselfinder.com" target="_blank" rel="noreferrer">{t('adm_vesselfindercom')}</a>{t('vfStep4suffix')}</li>
             <li>{t('vfStep5prefix')}<b>{t('vfStep5connect')}</b>{t('vfStep5suffix')}<b>{t('vfStep5online')}</b>{t('vfStep5dot')}</li>
             <li>{t('vfStep6')}</li>
           </ol>
+          <div className="mt-4 pt-3 border-t border-[#E4E4E7] text-[12.5px] text-[#52525B]">
+            <b className="text-[#18181B]">BIBI Cars (auction parser) extension — required keys:</b>
+            <ol className="list-decimal ml-5 mt-1.5 space-y-1">
+              <li>Scroll down to the <b>“Extension keys”</b> block on this page and click <b>“Generate new client”</b>.</li>
+              <li>Copy <code className="bg-white border border-[#E4E4E7] rounded px-1 text-[11px]">Client ID</code> and <code className="bg-white border border-[#E4E4E7] rounded px-1 text-[11px]">Client Secret</code> (secret is shown ONCE).</li>
+              <li>Open the BIBI Cars extension popup → paste your CRM URL → paste the keys into <b>Client ID</b> / <b>Client Secret</b> fields → <b>Save</b>.</li>
+              <li>The “missing keys” warning will disappear and the extension starts sending HMAC-signed observations.</li>
+            </ol>
+          </div>
         </div>
       )}
+
+      {/* ================ EXTENSION KEYS ================
+          The auction-parser extension (BIBI Cars) needs a `clientId` and a
+          `secret` to HMAC-sign its requests.  This panel:
+            • Lists every active ext-client (created via /bootstrap).
+            • Lets the operator copy the clientId for that machine.
+            • Lets the operator generate / rotate a secret — secrets are
+              shown ONCE (we only store the salted hash on the server).
+          The Vessel Sync extension has its secret baked at build time and
+          does NOT need anything from here. */}
+      <section className="rounded-2xl border border-[#E4E4E7] bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-[15px] font-semibold text-[#18181B]">Extension keys (BIBI Cars parser)</h3>
+            <p className="mt-1 text-[12.5px] text-[#71717A] max-w-2xl">
+              Paste these into the BIBI Cars extension popup → fields
+              <b className="text-[#18181B]"> Client ID </b> and
+              <b className="text-[#18181B]"> Client Secret</b>.
+              The Vessel Sync extension does <b>NOT</b> need anything here —
+              its secret is baked at build time.
+            </p>
+          </div>
+          <button
+            onClick={bootstrapExtClient}
+            disabled={extLoading}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#18181B] px-3 py-2 text-[12px] font-semibold text-white hover:bg-[#3F3F46] disabled:opacity-40"
+            data-testid="vf-ext-bootstrap"
+          >
+            + Generate new client
+          </button>
+        </div>
+
+        {extError && (
+          <div className="mb-3 rounded-lg bg-[#FEE2E2] border border-[#FCA5A5] text-[#7F1D1D] text-[12px] px-3 py-2">
+            {extError}
+          </div>
+        )}
+
+        {/* "One-time" reveal banner — secret is shown ONLY right after
+            bootstrap/rotate; copying is the only way to keep it. */}
+        {newSecret && (
+          <div className="mb-3 rounded-xl border border-[#FBBF24] bg-[#FFFBEB] p-4 text-[13px] text-[#78350F]">
+            <div className="flex items-center justify-between mb-2">
+              <b>✅ New keys for: {newSecret.name || newSecret.clientId}</b>
+              <button
+                onClick={() => setNewSecret(null)}
+                className="text-[#78350F] hover:text-[#451A03] text-[12px] underline"
+              >
+                Dismiss
+              </button>
+            </div>
+            <div className="text-[11.5px] mb-3">
+              ⚠️  <b>Copy the secret NOW.</b> It is hashed on the server and cannot be shown again.
+              Rotate to issue a new one.
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <div className="text-[10.5px] uppercase tracking-wider text-[#92400E] font-semibold mb-1">Client ID</div>
+                <div className="flex items-center gap-2 bg-white rounded border border-[#FBBF24] px-2 py-1.5">
+                  <code className="text-[12px] text-[#18181B] flex-1 break-all" data-testid="vf-ext-new-client-id">{newSecret.clientId}</code>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(newSecret.clientId, `new-${newSecret.clientId}-id`)}
+                    className="text-[11px] text-[#18181B] underline hover:no-underline"
+                  >
+                    {copiedField === `new-${newSecret.clientId}-id` ? 'copied' : 'copy'}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <div className="text-[10.5px] uppercase tracking-wider text-[#92400E] font-semibold mb-1">Client Secret (shown ONCE)</div>
+                <div className="flex items-center gap-2 bg-white rounded border border-[#FBBF24] px-2 py-1.5">
+                  <code className="text-[12px] text-[#18181B] flex-1 break-all" data-testid="vf-ext-new-client-secret">{newSecret.secret}</code>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(newSecret.secret, `new-${newSecret.clientId}-secret`)}
+                    className="text-[11px] text-[#18181B] underline hover:no-underline"
+                  >
+                    {copiedField === `new-${newSecret.clientId}-secret` ? 'copied' : 'copy'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* List of existing clients */}
+        {extClients.length === 0 ? (
+          <div className="text-[12.5px] text-[#71717A] py-2">
+            No extension clients yet. Click <b>Generate new client</b> above to create one.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px]">
+              <thead>
+                <tr className="text-left text-[10.5px] uppercase tracking-wider text-[#71717A] border-b border-[#E4E4E7]">
+                  <th className="py-2 pr-3 font-semibold">Client ID</th>
+                  <th className="py-2 pr-3 font-semibold">Name</th>
+                  <th className="py-2 pr-3 font-semibold">Manager email</th>
+                  <th className="py-2 pr-3 font-semibold">Status</th>
+                  <th className="py-2 pr-3 font-semibold">Created</th>
+                  <th className="py-2 pr-3 font-semibold text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {extClients.map((c) => (
+                  <tr key={c.clientId} className="border-b border-[#F4F4F5]">
+                    <td className="py-2 pr-3">
+                      <div className="flex items-center gap-2">
+                        <code className="text-[12px] text-[#18181B] break-all">{c.clientId}</code>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(c.clientId, `list-${c.clientId}-id`)}
+                          className="text-[11px] text-[#18181B] underline hover:no-underline"
+                        >
+                          {copiedField === `list-${c.clientId}-id` ? 'copied' : 'copy'}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-2 pr-3 text-[#18181B]">{c.name || '—'}</td>
+                    <td className="py-2 pr-3 text-[#71717A]">{c.managerEmail || '—'}</td>
+                    <td className="py-2 pr-3">
+                      {c.active ? (
+                        <span className="inline-block px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#166534] text-[10.5px] font-semibold">active</span>
+                      ) : (
+                        <span className="inline-block px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#7F1D1D] text-[10.5px] font-semibold">revoked</span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3 text-[#71717A] text-[11.5px]">
+                      {c.createdAt ? new Date(c.createdAt).toLocaleString() : '—'}
+                    </td>
+                    <td className="py-2 pr-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => rotateExtClient(c.clientId)}
+                        disabled={extLoading}
+                        className="inline-flex items-center gap-1 rounded border border-[#E4E4E7] bg-white px-2 py-1 text-[11px] font-semibold text-[#18181B] hover:bg-[#FAFAFA] disabled:opacity-40"
+                      >
+                        Rotate secret
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {/* ================ STATUS STRIP ================ */}
       <section className="rounded-2xl border border-[#E4E4E7] bg-white p-5">

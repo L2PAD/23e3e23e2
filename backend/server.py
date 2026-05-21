@@ -16410,24 +16410,29 @@ async def bidcars_session_status():
     status = await get_bidcars_proxy().get_session_status()
     
     if not status.get("active"):
-        status["import_instruction"] = """
+        # Use the configured public site URL (env: PUBLIC_SITE_URL) so the
+        # instruction stays valid across redeploys / different environments.
+        # Falls back to "<your website URL>" placeholder so the operator sees
+        # exactly what needs to be filled in.
+        base = (os.environ.get("PUBLIC_SITE_URL") or "<your website URL>").rstrip("/")
+        status["import_instruction"] = f"""
 Чтобы активировать автоматический парсинг bid.cars:
 
 1. Откройте bid.cars в браузере
 2. Откройте DevTools (F12) → Console
 3. Выполните этот код:
 
-fetch('https://dev-ready-8.preview.emergentagent.com/api/bidcars/session/import', {
+fetch('{base}/api/bidcars/session/import', {{
   method: 'POST',
-  headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify({
-    cookies: document.cookie.split(';').map(c => {
+  headers: {{'Content-Type': 'application/json'}},
+  body: JSON.stringify({{
+    cookies: document.cookie.split(';').map(c => {{
       const [name, ...v] = c.trim().split('=');
-      return {name, value: v.join('=')};
-    }),
+      return {{name, value: v.join('=')}};
+    }}),
     userAgent: navigator.userAgent
-  })
-}).then(r => r.json()).then(d => console.log('✅ Cookies imported!', d));
+  }})
+}}).then(r => r.json()).then(d => console.log('✅ Cookies imported!', d));
 
 После этого парсинг будет работать автоматически!
 """

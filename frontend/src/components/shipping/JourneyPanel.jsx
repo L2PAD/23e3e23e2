@@ -62,11 +62,12 @@ function isRealSource(src) {
   return typeof src === 'string' && src.startsWith('real');
 }
 
-function sourceLabel(src) {
-  if (!src) return t('adm3_dd2d85a1bf');
-  if (isRealSource(src)) return t('adm3_e987627403');
-  if (src === 'interpolated') return t('adm3_c92c766780');
-  if (src === 'simulated') return t('adm3_01bf527899');
+function sourceLabel(src, t) {
+  const tr = typeof t === 'function' ? t : (k) => k;
+  if (!src) return tr('adm3_dd2d85a1bf');
+  if (isRealSource(src)) return tr('adm3_e987627403');
+  if (src === 'interpolated') return tr('adm3_c92c766780');
+  if (src === 'simulated') return tr('adm3_01bf527899');
   return src;
 }
 
@@ -92,20 +93,21 @@ function fmtTime(iso) {
  * Humanised "X хвилин тому" / "just now" / "X год тому" / fallback to absolute.
  * Ukrainian with proper plural forms.
  */
-function fmtRelative(iso) {
+function fmtRelative(iso, t) {
+  const tr = typeof t === 'function' ? t : (k) => k;
   if (!iso) return '';
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
     const sec = Math.max(0, Math.round((Date.now() - d.getTime()) / 1000));
-    if (sec < 15) return t('adm3_12453cb1a8');
-    if (sec < 60) return `${sec}${t('r9_s_ago')}`;
+    if (sec < 15) return tr('adm3_12453cb1a8');
+    if (sec < 60) return `${sec}${tr('r9_s_ago')}`;
     const min = Math.round(sec / 60);
-    if (min < 60) return `${min} ${t('r9_min_ago')}`;
+    if (min < 60) return `${min} ${tr('r9_min_ago')}`;
     const h = Math.round(min / 60);
-    if (h < 24) return `${h} ${t('r9_h_ago')}`;
+    if (h < 24) return `${h} ${tr('r9_h_ago')}`;
     const days = Math.round(h / 24);
-    if (days < 7) return `${days} ${t('r9_days_ago')}`;
+    if (days < 7) return `${days} ${tr('r9_days_ago')}`;
     return fmtTime(iso);
   } catch { return ''; }
 }
@@ -279,7 +281,7 @@ export default function JourneyPanel({ shipmentId, initialJourney = null, liveUp
                 )}
                 {updatedAt && (
                   <div className="text-[10px] text-zinc-400 mt-0.5" title={fmtTime(updatedAt)}>
-                    ⏱ {t('r9_updated')} {fmtRelative(updatedAt)}
+                    ⏱ {t('r9_updated')} {fmtRelative(updatedAt, t)}
                   </div>
                 )}
               </div>
@@ -461,14 +463,14 @@ export default function JourneyPanel({ shipmentId, initialJourney = null, liveUp
               {health === 'stale' ? (
                 <>🔴 <span>{t('adm3_dfadd96167')}</span></>
               ) : isRealSource(src) ? (
-                <><WifiHigh size={12} weight="fill" /> {sourceLabel(src)}</>
+                <><WifiHigh size={12} weight="fill" /> {sourceLabel(src, t)}</>
               ) : (
-                <><WifiSlash size={12} /> {sourceLabel(src)}</>
+                <><WifiSlash size={12} /> {sourceLabel(src, t)}</>
               )}
             </span>
             {updatedAt && (
               <span className="text-xs text-zinc-400" title={fmtTime(updatedAt)}>
-                {t('r9_updated')} {fmtRelative(updatedAt)}
+                {t('r9_updated')} {fmtRelative(updatedAt, t)}
               </span>
             )}
             {regionLabel && (
@@ -576,7 +578,7 @@ export default function JourneyPanel({ shipmentId, initialJourney = null, liveUp
                 <div className="flex-1 min-w-0">
                   <div className="text-zinc-800 truncate">{ev.label || ev.type}</div>
                   <div className="text-[11px] text-zinc-400" title={fmtTime(ev.createdAt)}>
-                    {fmtRelative(ev.createdAt)}
+                    {fmtRelative(ev.createdAt, t)}
                   </div>
                 </div>
               </div>
