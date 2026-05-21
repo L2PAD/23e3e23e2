@@ -7042,6 +7042,35 @@ async def customer_google_verify(data: Dict[str, Any] = Body(...)):
     if not email or not idinfo.get("email_verified", False):
         raise HTTPException(status_code=400, detail="Google account email not verified")
 
+    # ── Allowed-domains gate (optional B2B whitelist) ─────────────────────
+    # When the admin populates `app_settings.auth.google.allowedDomains` —
+    # a comma-separated string or list of domain suffixes (e.g.
+    # "bibi.cars,partner.com") — only Google accounts whose verified email
+    # ends with one of those domains are allowed to sign in. Empty / unset
+    # means "any verified Google account" (the default).
+    try:
+        auth_cfg = await get_settings_service().get_auth()
+        gcfg = auth_cfg.get("google") or {}
+        raw_allowed = gcfg.get("allowedDomains") or gcfg.get("allowed_domains") or ""
+        if isinstance(raw_allowed, list):
+            allowed_list = [str(d).strip().lstrip("@").lower() for d in raw_allowed if str(d or "").strip()]
+        else:
+            allowed_list = [d.strip().lstrip("@").lower() for d in str(raw_allowed).split(",") if d.strip()]
+        if allowed_list:
+            domain = email.split("@", 1)[1] if "@" in email else ""
+            if not any(domain == d or domain.endswith("." + d) for d in allowed_list):
+                logger.info(f"[google/verify] domain rejected: {domain} not in allowedDomains")
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Sign-in restricted to specific domains. {domain} is not allowed.",
+                )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        # Defensive — never block sign-in due to settings lookup failure;
+        # log and fall through (allowed_list empty ⇒ no restriction).
+        logger.warning(f"[google/verify] allowedDomains lookup failed: {exc}")
+
     name = idinfo.get("name") or ""
     picture = idinfo.get("picture") or ""
     google_sub = idinfo.get("sub") or ""

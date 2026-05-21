@@ -333,7 +333,14 @@ export const CustomerLoginPage = () => {
   const [agreed, setAgreed] = useState(false);
 
   // Google Sign-In state
-  const [clientId, setClientId] = useState('');
+  // Public Google config — `clientId` + `enabled` flag. When the admin
+  // disables Google sign-in (via Admin → Settings → Auth), we want to
+  // hide the Google CTA entirely (button + divider + GIS init) and let
+  // email-only login carry the page. The local `clientId` mirror is
+  // kept for backwards-compat with the rest of the file.
+  const [googleConfig, setGoogleConfig] = useState({ clientId: '', enabled: false });
+  const clientId = googleConfig.clientId;
+  const googleEnabled = googleConfig.enabled && !!googleConfig.clientId;
   const [googleReady, setGoogleReady] = useState(false);
   const [googleAuthorizing, setGoogleAuthorizing] = useState(false);
   // Hidden GIS button — we click it programmatically from our own styled button
@@ -359,11 +366,19 @@ export const CustomerLoginPage = () => {
     }
   }, [customer, staffAuth?.user, navigate]);
 
-  // Fetch Client ID once
+  // Fetch Client ID + enabled flag once. When `enabled` is false (admin
+  // toggle) we skip GIS initialisation entirely — the page falls back to
+  // email-only login automatically.
   useEffect(() => {
     let cancelled = false;
     axios.get(`${API_URL}/api/auth/google-client-id`)
-      .then((r) => { if (!cancelled) setClientId(r.data?.clientId || ''); })
+      .then((r) => {
+        if (cancelled) return;
+        setGoogleConfig({
+          clientId: r.data?.clientId || '',
+          enabled: r.data?.enabled !== false,
+        });
+      })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -386,27 +401,43 @@ export const CustomerLoginPage = () => {
   // Initialise GIS once we have Client ID. The native button is hidden, so we
   // don't need to re-init on language change anymore.
   useEffect(() => {
-    if (!clientId) return;
+    if (!googleEnabled || !clientId) return;
     let cancelled = false;
     setGoogleReady(false);
     loadGsiWithLocale('en')
       .then(() => {
         if (cancelled || !window.google?.accounts?.id) return;
         try {
+          /* `auto_select: true` enables silent re-authentication on
+           * return visits — when GIS has a cached account from a
+           * previous successful sign-in (and the user hasn't explicitly
+           * logged out via `disableAutoSelect()`), the callback fires
+           * automatically without a popup. This is the auto-login
+           * restore polish item from the post-launch checklist. */
           window.google.accounts.id.initialize({
             client_id: clientId,
             callback: handleGoogleCredential,
-            auto_select: false,
+            auto_select: true,
             ux_mode: 'popup',
+            // Light tap suggests sign-in but doesn't block the UI; only
+            // fires when the user previously consented (otherwise it's a
+            // no-op). One-Tap respects `disableAutoSelect()` from logout.
+            itp_support: true,
           });
           setGoogleReady(true);
+          // Trigger silent re-auth attempt — fully optional. Failures
+          // are silent (no UI surface) and we keep our custom button as
+          // the primary CTA regardless.
+          try {
+            window.google.accounts.id.prompt();
+          } catch (_) { /* swallow */ }
         } catch (e) {
           console.warn('[gsi] initialize failed', e);
         }
       })
       .catch((e) => console.warn('[gsi] load failed', e));
     return () => { cancelled = true; };
-  }, [clientId, handleGoogleCredential]);
+  }, [clientId, googleEnabled, handleGoogleCredential]);
 
   // Render the hidden, native Google button — we never show this to the user.
   // It exists only so that our visible custom button can programmatically
@@ -568,7 +599,13 @@ export const CustomerLoginPage = () => {
                 in the user's chosen language (EN/BG). The native GIS button is
                 rendered hidden off-screen and clicked programmatically when the
                 user taps our button. This bypasses the GIS limitation where the
-                native button text follows browser Accept-Language (e.g. Russian). */}
+                native button text follows browser Accept-Language (e.g. Russian).
+
+                The entire Google block (button + divider) is conditionally
+                rendered: when the admin disables Google sign-in in Admin →
+                Settings → Auth (`features.googleEnabled = false`), this whole
+                section collapses and the page falls back to email-only auth. */}
+            {googleEnabled && (
             <div className="relative" data-testid="google-signin-wrap">
               {/* Hidden native GIS button (mounted only when ready) */}
               <div
@@ -628,8 +665,10 @@ export const CustomerLoginPage = () => {
                 </button>
               )}
             </div>
+            )}
 
-            {/* Divider */}
+            {/* Divider — only shown when both auth methods are present */}
+            {googleEnabled && (
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-[#3A3A37]" />
@@ -640,6 +679,7 @@ export const CustomerLoginPage = () => {
                 </span>
               </div>
             </div>
+            )}
 
             {!showEmailForm ? (
               <button

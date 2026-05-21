@@ -1,26 +1,26 @@
 [
   {
-    "content": "Backend: collection + service + endpoints + multi-place sync",
+    "content": "#1 google.accounts.id.disableAutoSelect() в logout",
     "status": "completed"
   },
   {
-    "content": "Initial sync — 32 reviews, 4.9★, 10 live",
+    "content": "#2 Auto-login restore (auto_select=true + One Tap prompt)",
     "status": "completed"
   },
   {
-    "content": "Frontend mobile: MobileOurClientsSay — подключить к /api/public/google-reviews",
+    "content": "#3 Allowed Google domains (B2B whitelist) — backend gate + admin UI field",
     "status": "completed"
   },
   {
-    "content": "Frontend desktop: reviews carousel (figma ReviewsArea1) — фикс рассынки site-info поверх живых данных",
+    "content": "#4 Hide Google block (кнопка + divider) когда googleEnabled=false",
     "status": "completed"
   },
   {
-    "content": "Frontend admin: GoogleReviewsEditor — поддержка place_ids[]",
+    "content": "#5 Email fallback visual consistency — проверено визуально",
     "status": "completed"
   },
   {
-    "content": "Initial sync + визуальная проверка (4.9★ 32 Google reviews, Martin Parvanov в DOM)",
+    "content": "Lint + screenshot + deploy ready",
     "status": "completed"
   }
 ]

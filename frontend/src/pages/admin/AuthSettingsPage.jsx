@@ -124,7 +124,7 @@ export default function AuthSettingsPage({ embedded = false }) {
 
   // local draft state for editable fields
   const [urls, setUrls] = useState({ baseUrl: '', frontendUrl: '' });
-  const [google, setGoogle] = useState({ clientId: '' });
+  const [google, setGoogle] = useState({ clientId: '', allowedDomains: '' });
   const [jwt, setJwt] = useState({ secret: '', accessExpires: '15m', refreshExpires: '7d' });
   const [features, setFeatures] = useState({
     googleEnabled: true,
@@ -143,7 +143,15 @@ export default function AuthSettingsPage({ embedded = false }) {
       const data = res.data || {};
       setDoc(data);
       setUrls({ baseUrl: data.baseUrl || '', frontendUrl: data.frontendUrl || '' });
-      setGoogle({ clientId: (data.google && data.google.clientId) || '' });
+      setGoogle({
+        clientId: (data.google && data.google.clientId) || '',
+        // Stored as comma-separated string in the UI (`bibi.cars, partner.com`)
+        // for friction-free typing; server-side `customer_google_verify`
+        // accepts BOTH list and CSV. Empty string => no restriction.
+        allowedDomains: Array.isArray(data.google?.allowedDomains)
+          ? data.google.allowedDomains.join(', ')
+          : (data.google?.allowedDomains || ''),
+      });
       setJwt({
         secret: (data.jwt && data.jwt.secret) || '',
         accessExpires: (data.jwt && data.jwt.accessExpires) || '15m',
@@ -304,7 +312,16 @@ export default function AuthSettingsPage({ embedded = false }) {
           description={t('adm_google_identity_services_popup_id_token_verificati')}
           testId="auth-google-block"
           saving={saving === 'google'}
-          onSave={() => patch({ google: { clientId: google.clientId.trim() } }, 'google')}
+          onSave={() => patch({
+            google: {
+              clientId: google.clientId.trim(),
+              // CSV → list of clean lowercase domains; empty list = no restriction
+              allowedDomains: google.allowedDomains
+                .split(/[,\n]/)
+                .map((d) => d.trim().replace(/^@/, '').toLowerCase())
+                .filter(Boolean),
+            },
+          }, 'google')}
         >
           <Field
             label={t('clientId')}
@@ -312,9 +329,24 @@ export default function AuthSettingsPage({ embedded = false }) {
           >
             <Input
               value={google.clientId}
-              onChange={(e) => setGoogle({ clientId: e.target.value })}
+              onChange={(e) => setGoogle({ ...google, clientId: e.target.value })}
               placeholder={t('adm_123456789abcappsgoogleusercontentcom')}
               data-testid="auth-input-googleClientId"
+            />
+          </Field>
+          {/* Allowed-domains whitelist (B2B mode). Empty = any verified
+              Gmail. Comma- OR newline-separated. Server validates after
+              token verification — rejects with 403 if email's domain is
+              not in the list. */}
+          <Field
+            label="Allowed Domains"
+            hint="Comma-separated list of allowed email domains (e.g. bibi.cars, partner.com). Leave empty to allow any verified Google account."
+          >
+            <Input
+              value={google.allowedDomains}
+              onChange={(e) => setGoogle({ ...google, allowedDomains: e.target.value })}
+              placeholder="bibi.cars, partner.com"
+              data-testid="auth-input-googleAllowedDomains"
             />
           </Field>
           <div className="flex items-center justify-between py-2">
