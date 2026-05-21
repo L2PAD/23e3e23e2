@@ -14,7 +14,7 @@
  *   - User-visible note explains "недоступний" ≠ "парсер не працює".
  */
 
-const DEFAULT_API_URL = 'https://dev-ready-8.preview.emergentagent.com';
+const DEFAULT_API_URL = 'https://code-review-env.preview.emergentagent.com';
 
 const STORAGE = {
   url:    'bibi_backend_url',

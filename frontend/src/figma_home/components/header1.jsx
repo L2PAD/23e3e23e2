@@ -6,6 +6,7 @@ import FrameComponent17 from "./frame-component17";
 import { useCustomerAuth } from "../../pages/public/CustomerAuth";
 import { useLang } from "../../i18n";
 import VinSearchDropdown from "../../components/public/VinSearchDropdown";
+import { useGetInTouch } from "../../components/public/GetInTouchModal";
 import styles from "./header1.module.css";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || "";
@@ -36,12 +37,14 @@ function fetchSiteInfo() {
  *   • Phones          → tel: links
  *   • ENG dropdown    → switches public language (handled inside FrameComponent17)
  *   • Profile icon    → /cabinet/login (or cabinet root if customer is signed in)
- *   • CONTACT US      → /contacts#phone
+ *   • CONTACT US      → opens the global "Reach Out To Us" modal
+ *                       (GetInTouchModal), matching the contacts page CTA.
  */
 const Header1 = ({ className = "" }) => {
   const navigate = useNavigate();
   const { customer } = useCustomerAuth();
   const { lang } = useLang();
+  const { open: openGetInTouch } = useGetInTouch();
   const [siteInfo, setSiteInfo] = useState(null);
 
   useEffect(() => {
@@ -100,7 +103,16 @@ const Header1 = ({ className = "" }) => {
     navigate(id ? `/cabinet/${id}` : "/cabinet/login");
   };
 
-  const handleContactClick = () => navigate("/contacts#phone");
+  // CONTACT US (header) — single click opens the same "Reach Out To Us"
+  // modal that lives under the map on the Contacts page. Falls back to the
+  // contacts page anchor if the provider is, for any reason, not mounted.
+  const handleContactClick = () => {
+    if (typeof openGetInTouch === "function") {
+      openGetInTouch();
+      return;
+    }
+    navigate("/contacts#reach-out");
+  };
 
   return (
     <header className={[styles.header, className].join(" ")}>

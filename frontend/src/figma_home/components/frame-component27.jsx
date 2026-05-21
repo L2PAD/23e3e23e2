@@ -3,6 +3,7 @@ import { useLang } from "../../i18n";
 import BUTTON1 from "./b-u-t-t-o-n1";
 import AnimatedHeading from "../../components/AnimatedHeading";
 import useInView from "../../components/useInView";
+import { useGetInTouch } from "../../components/public/GetInTouchModal";
 import styles from "./frame-component27.module.css";
 
 const T = {
@@ -28,10 +29,18 @@ const FrameComponent27 = ({ className = "" }) => {
   const navigate = useNavigate();
   const { lang } = useLang();
   const t = lang === "bg" ? T.bg : T.en;
+  const { open: openGetInTouch } = useGetInTouch();
 
-  // Same logic as Header1 → handleContactClick.
-  // Goes to /contacts and scrolls to id="phone" inside ContactsPage.
-  const handleContactClick = () => navigate("/contacts#phone");
+  // CONTACT US — opens the global "Reach Out To Us" modal (same one that
+  // sits under the map on the Contacts page). Falls back to the dedicated
+  // contacts page if the provider isn't in scope.
+  const handleContactClick = () => {
+    if (typeof openGetInTouch === "function") {
+      openGetInTouch();
+      return;
+    }
+    navigate("/contacts#reach-out");
+  };
   const [formColRef, formColInView] = useInView();
 
   return (

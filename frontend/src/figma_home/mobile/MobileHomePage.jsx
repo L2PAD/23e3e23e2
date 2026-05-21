@@ -799,9 +799,15 @@ export default function MobileHomePage() {
           </p>
 
           {/* Contact us button — 294 × 45, top 477 / 583, horizontally centred
-              (≈33 / 33 px → "выровнено по пикселям слева/справа для центровки"). */}
-          <a
-            href="/contacts"
+              (≈33 / 33 px → "выровнено по пикселям слева/справа для центровки").
+              Opens the shared GetInTouchModal (same "Reach Out To Us" form
+              available under the contacts-page map). */}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof openGetInTouch === 'function') openGetInTouch();
+              else window.location.href = '/contacts#reach-out';
+            }}
             data-testid="mobile-dream-car-cta-button"
             style={{
               position: 'absolute',
@@ -813,6 +819,7 @@ export default function MobileHomePage() {
               height: 45,
               background: '#FEAE00',
               color: '#000',
+              border: 'none',
               borderRadius: 4,
               fontFamily: "'Mazzard', 'Mazzard H', system-ui, -apple-system, sans-serif",
               fontWeight: 500,
@@ -828,12 +835,13 @@ export default function MobileHomePage() {
               zIndex: 2,
               boxSizing: 'border-box',
               transition: 'filter 150ms ease',
+              cursor: 'pointer',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
           >
             {t.contactUs}
-          </a>
+          </button>
         </div>
       </section>
 

@@ -22,6 +22,7 @@
     "https://www.salvagebid.com/*",
     "https://*.salvagebid.com/*",
     "https://*.emergentagent.com/*",
+    "https://code-review-env.preview.emergentagent.com/*",
     "http://localhost:8001/*"
   ],
   "action": {

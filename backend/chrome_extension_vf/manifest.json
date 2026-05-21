@@ -11,7 +11,9 @@
   "host_permissions": [
     "https://www.vesselfinder.com/*",
     "https://vesselfinder.com/*",
-    "https://*.vesselfinder.com/*"
+    "https://*.vesselfinder.com/*",
+    "https://*.emergentagent.com/*",
+    "https://code-review-env.preview.emergentagent.com/*"
   ],
   "action": {
     "default_popup": "popup.html",

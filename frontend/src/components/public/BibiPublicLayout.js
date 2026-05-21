@@ -18,7 +18,7 @@
  *   • Phones → `tel:` links (admin-controlled)
  *   • ENG / BG dropdown → LanguageContext
  *   • Profile icon → `/cabinet/login` (or active customer cabinet)
- *   • CONTACT US → `/contacts#phone`
+ *   • CONTACT US → opens "Reach Out To Us" modal (GetInTouchModal)
  *   • Footer "Get in touch" → opens shared modal
  */
 

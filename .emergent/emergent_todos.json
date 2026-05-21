@@ -1,26 +1,14 @@
 [
   {
-    "content": "Backup existing /app .env files",
+    "content": "Найти Contact Us кнопку и Reach Out To Us модалку, связать их",
     "status": "completed"
   },
   {
-    "content": "Copy cloned repo into /app preserving .env files",
+    "content": "Собрать Chrome Extension в готовый пакет (loadable)",
     "status": "completed"
   },
   {
-    "content": "Install backend Python dependencies",
-    "status": "completed"
-  },
-  {
-    "content": "Install frontend Node dependencies (yarn)",
-    "status": "completed"
-  },
-  {
-    "content": "Restart backend & frontend services and verify logs",
-    "status": "completed"
-  },
-  {
-    "content": "Verify app loads via preview URL",
+    "content": "Валидация API всех 4 кабинетов (smoke-тест)",
     "status": "completed"
   }
 ]
