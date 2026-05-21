@@ -160,6 +160,11 @@ async function sha256Hex(s) {
   const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s || ""));
   return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+async function getClientId() {
+  const { extClientId } = await chrome.storage.local.get(["extClientId"]);
+  return (extClientId || "bibi-vf-ext").trim();
+}
+
 async function buildHmacHeaders(method, fullUrl, bodyStr) {
   const secret = await getExtSharedSecret();
   if (!secret) return {};
@@ -174,7 +179,7 @@ async function buildHmacHeaders(method, fullUrl, bodyStr) {
   return {
     "X-Ext-Timestamp": ts,
     "X-Ext-Signature": sig,
-    "X-Ext-Client": "bibi-vf-ext",
+    "X-Ext-Client": await getClientId(),
     "X-Ext-Nonce": nonce,
   };
 }
@@ -296,22 +301,83 @@ async function refresh() {
   });
 })();
 
-// Dev-only: allow entering secret in popup when build-time secret is not set
-(function initSecretField() {
-  const input = $("ext-secret");
-  if (!input) return;
+// ─── Auth-keys panel ─────────────────────────────────────────────────
+//   • #ext-client-id  — string identifier sent in X-Ext-Client header.
+//   • #ext-secret     — HMAC shared secret used to sign every request.
+//   • #ext-secret-toggle — show/hide eye-icon for the secret input.
+//   • #secret-mode    — small hint in the card title showing whether the
+//                       secret is "вшит при сборке" or "введён вручную".
+// All values persist in chrome.storage.local immediately on input/blur.
+(function initAuthKeysPanel() {
+  const secretInput = $("ext-secret");
+  const clientIdInput = $("ext-client-id");
+  const toggleBtn = $("ext-secret-toggle");
+  const modeLabel = $("secret-mode");
+  if (!secretInput || !clientIdInput) return;
+  const PLACEHOLDER = "__INJ" + "ECTED_AT_BUILD__";
+  const isBaked = BUILD_SECRET && BUILD_SECRET !== PLACEHOLDER;
+
   (async () => {
-    const { extSharedSecret } = await chrome.storage.local.get(["extSharedSecret"]);
-    if (extSharedSecret) input.value = extSharedSecret;
-    const PLACEHOLDER = "__INJ" + "ECTED_AT_BUILD__";
-    if (BUILD_SECRET && BUILD_SECRET !== PLACEHOLDER) {
-      input.disabled = true;
-      input.placeholder = "вшит на этапе сборки";
+    // Load persisted values
+    const { extSharedSecret, extClientId } = await chrome.storage.local.get([
+      "extSharedSecret", "extClientId",
+    ]);
+    if (extClientId) clientIdInput.value = extClientId;
+    else clientIdInput.value = "bibi-vf-ext"; // sensible default for VF
+    // Secret: prefer baked, fall back to local storage
+    if (isBaked) {
+      secretInput.value = "•".repeat(48);
+      secretInput.disabled = true;
+      secretInput.placeholder = "вшит на этапе сборки";
+      if (modeLabel) modeLabel.textContent = "вшит при сборке";
+      if (toggleBtn) toggleBtn.disabled = true;
+    } else if (extSharedSecret) {
+      secretInput.value = extSharedSecret;
+      if (modeLabel) modeLabel.textContent = "сохранён локально";
+    } else if (modeLabel) {
+      modeLabel.textContent = "не настроен";
+      modeLabel.style.color = "#B91C1C";
     }
   })();
-  input.addEventListener("change", async () => {
-    await chrome.storage.local.set({ extSharedSecret: input.value.trim() });
+
+  // Persist Client ID on every input (so it survives the popup close)
+  clientIdInput.addEventListener("input", async () => {
+    const v = clientIdInput.value.trim();
+    await chrome.storage.local.set({ extClientId: v || "bibi-vf-ext" });
   });
+  clientIdInput.addEventListener("blur", async () => {
+    if (!clientIdInput.value.trim()) clientIdInput.value = "bibi-vf-ext";
+  });
+
+  // Persist HMAC secret (only when NOT baked)
+  if (!isBaked) {
+    const saveSecret = async () => {
+      const v = secretInput.value.trim();
+      await chrome.storage.local.set({ extSharedSecret: v });
+      if (modeLabel) {
+        if (v) {
+          modeLabel.textContent = "сохранён локально";
+          modeLabel.style.color = "";
+        } else {
+          modeLabel.textContent = "не настроен";
+          modeLabel.style.color = "#B91C1C";
+        }
+      }
+    };
+    secretInput.addEventListener("input", saveSecret);
+    secretInput.addEventListener("paste", () => setTimeout(saveSecret, 50));
+    secretInput.addEventListener("blur", saveSecret);
+  }
+
+  // Show / hide the secret value
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      if (toggleBtn.disabled) return;
+      const showing = secretInput.type === "text";
+      secretInput.type = showing ? "password" : "text";
+      toggleBtn.textContent = showing ? "Show" : "Hide";
+    });
+  }
 })();
 
 if ($("sync")) {

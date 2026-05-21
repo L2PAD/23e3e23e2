@@ -95,6 +95,10 @@ async function _bgSha256Hex(s) {
   const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s || ""));
   return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+async function _bgGetClientId() {
+  const { extClientId } = await chrome.storage.local.get(["extClientId"]);
+  return (extClientId || "bibi-vf-ext").trim();
+}
 async function _bgHmacHeaders(method, fullUrl, bodyStr) {
   const secret = await _bgGetExtSecret();
   if (!secret) return {};
@@ -109,7 +113,7 @@ async function _bgHmacHeaders(method, fullUrl, bodyStr) {
   return {
     "X-Ext-Timestamp": ts,
     "X-Ext-Signature": sig,
-    "X-Ext-Client": "bibi-vf-ext",
+    "X-Ext-Client": await _bgGetClientId(),
     "X-Ext-Nonce": nonce,
   };
 }

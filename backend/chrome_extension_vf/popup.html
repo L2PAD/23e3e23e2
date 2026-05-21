@@ -210,6 +210,47 @@
     </div>
   </div>
 
+  <!-- ─── Authentication keys ─── -->
+  <div class="card">
+    <div class="card-title">
+      <span>Ключи подключения</span>
+      <span class="hint" id="secret-mode">проверяю…</span>
+    </div>
+    <!-- Client ID — identifier that goes into X-Ext-Client header. -->
+    <div class="url-wrap" style="margin-bottom: 8px;">
+      <input
+        id="ext-client-id"
+        class="url-input"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="Client ID (например: bibi-vf-ext)"
+      />
+    </div>
+    <!-- HMAC shared secret.  Auto-disabled when baked into the build, but
+         still visible so the operator can confirm it is set. -->
+    <div class="url-wrap">
+      <input
+        id="ext-secret"
+        class="url-input"
+        type="password"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="HMAC Secret (paste from админка → Extension keys)"
+      />
+      <button id="ext-secret-toggle" type="button"
+              style="width: auto; padding: 6px 9px; border-radius: 8px; background:#FFFFFF; color:#52525B; border:1px solid #E4E4E7; font-size:11px; font-weight:600; box-shadow:none;"
+              title="Показать / скрыть секрет">
+        Show
+      </button>
+    </div>
+    <div class="url-hint">
+      Откройте <b>Settings → Tracking → VesselFinder</b> в админке, в блоке <b>Extension keys</b>
+      нажмите «Generate new client» и скопируйте сюда <b>Client&nbsp;ID</b> и <b>Client Secret</b>
+      (секрет показывается ОДИН раз). Поля сохраняются автоматически.
+    </div>
+  </div>
+
   <!-- ─── Status ─── -->
   <div class="card">
     <div class="card-title"><span>Состояние</span></div>

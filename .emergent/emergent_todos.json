@@ -1,18 +1,18 @@
 [
   {
-    "content": "Убрать hardcoded preview URL в инструкции VesselFinder → \"your CRM URL\"",
+    "content": "Добавить поля Client ID + HMAC Secret в popup Vessel Sync расширения",
     "status": "completed"
   },
   {
-    "content": "Найти все другие hardcoded code-review-env.preview в коде",
+    "content": "Пересобрать ZIP расширения",
     "status": "completed"
   },
   {
-    "content": "Добавить блок Ext-Client Keys в админку (clientId + secret для расширения)",
+    "content": "Спарсить 500+ авто в базу (BitMotors live-first)",
     "status": "completed"
   },
   {
-    "content": "Запустить парсинг 500+ авто в базу (реальные карточки)",
+    "content": "Проверить витрину (catalog и home) отображает авто",
     "status": "completed"
   }
 ]
