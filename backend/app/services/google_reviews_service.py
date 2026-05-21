@@ -91,7 +91,13 @@ def _default_config() -> Dict[str, Any]:
         # `api_key` is stored server-side and NEVER returned to the public
         # endpoint. The admin endpoint returns a masked preview.
         "api_key": "",
+        # Legacy single-place field kept for backwards compatibility with
+        # earlier deployments. New deployments should populate `place_ids`
+        # (an ordered list of Google Place IDs — e.g. for a chain of
+        # stores). When BOTH fields are present, `place_ids` wins and the
+        # legacy `place_id` is treated as element 0.
         "place_id": "",
+        "place_ids": [],
         "min_rating_filter": DEFAULT_MIN_RATING,
         "max_reviews_to_show": DEFAULT_MAX_REVIEWS,
         "auto_sync_enabled": False,
@@ -108,6 +114,32 @@ def _default_config() -> Dict[str, Any]:
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
     }
+
+
+def _resolve_place_ids(cfg: Dict[str, Any]) -> List[str]:
+    """Return the effective list of Place IDs to fetch.
+
+    Priority:
+      1. `place_ids` (new multi-location field) — if non-empty
+      2. `place_id`  (legacy single-location field) — wrapped in a list
+    Returns an empty list when nothing is configured.
+    """
+    ids_raw = cfg.get("place_ids") or []
+    if isinstance(ids_raw, str):
+        # Tolerate someone storing a comma-separated string instead of a list
+        ids_raw = [s.strip() for s in ids_raw.split(",") if s.strip()]
+    cleaned = [str(p).strip() for p in ids_raw if str(p or "").strip()]
+    if cleaned:
+        # Deduplicate while preserving order
+        seen = set()
+        out: List[str] = []
+        for p in cleaned:
+            if p not in seen:
+                seen.add(p)
+                out.append(p)
+        return out
+    legacy = (cfg.get("place_id") or "").strip()
+    return [legacy] if legacy else []
 
 
 def _mask_key(api_key: Optional[str]) -> str:
@@ -142,7 +174,7 @@ async def get_config_for_admin(db) -> Dict[str, Any]:
 async def update_config(db, patch: Dict[str, Any]) -> Dict[str, Any]:
     """Apply an admin patch and return the updated public view."""
     allowed_fields = {
-        "enabled", "api_key", "place_id",
+        "enabled", "api_key", "place_id", "place_ids",
         "min_rating_filter", "max_reviews_to_show",
         "auto_sync_enabled", "sync_interval_hours",
         "fallback_rating", "fallback_count", "fallback_url",
@@ -154,6 +186,21 @@ async def update_config(db, patch: Dict[str, Any]) -> Dict[str, Any]:
             # showing the key". An explicit `null` clears it.
             if k == "api_key" and v == "":
                 continue
+            # Normalise `place_ids`: accept list OR comma-separated string,
+            # strip blanks, dedupe.
+            if k == "place_ids":
+                if isinstance(v, str):
+                    v = [s.strip() for s in v.split(",")]
+                if not isinstance(v, list):
+                    v = []
+                seen = set()
+                out: List[str] = []
+                for p in v:
+                    p = str(p or "").strip()
+                    if p and p not in seen:
+                        seen.add(p)
+                        out.append(p)
+                v = out
             update[k] = v
     if not update:
         return await get_config_for_admin(db)
@@ -241,24 +288,123 @@ async def add_manual_review(db, payload: Dict[str, Any]) -> Dict[str, Any]:
 async def sync_from_google(db) -> Dict[str, Any]:
     """Pull latest reviews from Google Places API v1 and upsert the cache.
 
-    Returns a summary dict with counts of created/updated reviews and the
-    aggregate rating reported by Google.
+    Supports multiple Place IDs (multi-location accounts) — every Place ID
+    is fetched in turn and its reviews are upserted into the same
+    `google_reviews_cache` collection. The aggregate rating across all
+    locations is later recomputed from the cache by `public_feed()`.
+
+    Returns a summary dict with counts per location plus a global total.
     """
     cfg = await get_config(db)
     api_key = (cfg.get("api_key") or "").strip()
-    place_id = (cfg.get("place_id") or "").strip()
-    if not api_key or not place_id:
-        raise RuntimeError("Google Places API key and Place ID must be set in admin → Google Reviews")
+    place_ids = _resolve_place_ids(cfg)
+    if not api_key or not place_ids:
+        raise RuntimeError("Google Places API key and at least one Place ID must be set in admin → Google Reviews")
 
-    url = f"{GOOGLE_PLACES_BASE}/{place_id}"
-    field_mask = "id,displayName,rating,userRatingCount,reviews"
     headers = {
         "X-Goog-Api-Key": api_key,
-        "X-Goog-FieldMask": field_mask,
+        "X-Goog-FieldMask": "id,displayName,rating,userRatingCount,reviews",
     }
+
+    total_created = 0
+    total_updated = 0
+    total_pulled = 0
+    # Per-location aggregates so the admin can verify how many reviews each
+    # Place ID contributed during a sync.
+    per_location: List[Dict[str, Any]] = []
+    # Weighted sum for cross-location average — `Σ(rating × count)` / `Σ count`.
+    weighted_rating_sum = 0.0
+    aggregate_count = 0
+    first_error: Optional[str] = None
+
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(url, headers=headers)
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            for place_id in place_ids:
+                url = f"{GOOGLE_PLACES_BASE}/{place_id}"
+                try:
+                    resp = await client.get(url, headers=headers)
+                except httpx.HTTPError as e:
+                    first_error = first_error or f"{place_id}: HTTP error {e}"
+                    per_location.append({"place_id": place_id, "error": str(e), "created": 0, "updated": 0})
+                    continue
+
+                if resp.status_code != 200:
+                    snippet = (resp.text or "")[:200]
+                    first_error = first_error or f"{place_id}: HTTP {resp.status_code}: {snippet}"
+                    per_location.append({
+                        "place_id": place_id,
+                        "error": f"HTTP {resp.status_code}: {snippet}",
+                        "created": 0,
+                        "updated": 0,
+                    })
+                    continue
+
+                data = resp.json() or {}
+                google_rating = float(data.get("rating") or 0.0)
+                google_count = int(data.get("userRatingCount") or 0)
+                raw_reviews = data.get("reviews") or []
+                aggregate_count += google_count
+                weighted_rating_sum += google_rating * google_count
+
+                created_here = 0
+                updated_here = 0
+                for r in raw_reviews:
+                    name = r.get("name") or ""
+                    if not name:
+                        continue
+                    rating_n = int(r.get("rating") or 0)
+                    text_obj = r.get("text") or {}
+                    original_obj = r.get("originalText") or {}
+                    author_attr = r.get("authorAttribution") or {}
+                    publish_time = r.get("publishTime") or _now_iso()
+
+                    existing = await db.google_reviews_cache.find_one({"google_review_id": name})
+                    if existing:
+                        await db.google_reviews_cache.update_one(
+                            {"google_review_id": name},
+                            {"$set": {
+                                "rating": rating_n,
+                                "text": text_obj.get("text") or original_obj.get("text") or "",
+                                "language": (text_obj.get("languageCode") or original_obj.get("languageCode") or "en").lower(),
+                                "author_name": author_attr.get("displayName") or "Anonymous",
+                                "author_avatar_url": author_attr.get("photoUri") or "",
+                                "time": publish_time,
+                                "place_id": place_id,
+                                "updated_at": _now_iso(),
+                            }},
+                        )
+                        updated_here += 1
+                    else:
+                        rid = _new_id("gr")
+                        await db.google_reviews_cache.insert_one({
+                            "id": rid,
+                            "google_review_id": name,
+                            "place_id": place_id,
+                            "rating": rating_n,
+                            "text": text_obj.get("text") or original_obj.get("text") or "",
+                            "language": (text_obj.get("languageCode") or original_obj.get("languageCode") or "en").lower(),
+                            "author_name": author_attr.get("displayName") or "Anonymous",
+                            "author_avatar_url": author_attr.get("photoUri") or "",
+                            "time": publish_time,
+                            "source": "google",
+                            "hidden": False,
+                            "pinned": False,
+                            "created_at": _now_iso(),
+                            "updated_at": _now_iso(),
+                        })
+                        created_here += 1
+
+                total_created += created_here
+                total_updated += updated_here
+                total_pulled += len(raw_reviews)
+                per_location.append({
+                    "place_id": place_id,
+                    "display_name": (data.get("displayName") or {}).get("text", ""),
+                    "google_rating": google_rating,
+                    "google_count": google_count,
+                    "created": created_here,
+                    "updated": updated_here,
+                })
     except httpx.HTTPError as e:
         await db.google_reviews_config.update_one(
             {"_id": CONFIG_DOC_ID},
@@ -266,89 +412,39 @@ async def sync_from_google(db) -> Dict[str, Any]:
         )
         raise RuntimeError(f"Google Places API request failed: {e}") from e
 
-    if resp.status_code != 200:
-        snippet = (resp.text or "")[:300]
+    # If EVERY location errored out, surface that as a hard sync failure
+    # so the admin can see what went wrong.
+    successful = [p for p in per_location if not p.get("error")]
+    if not successful:
+        msg = first_error or "All locations failed to sync"
         await db.google_reviews_config.update_one(
             {"_id": CONFIG_DOC_ID},
-            {"$set": {
-                "last_sync_error": f"HTTP {resp.status_code}: {snippet}",
-                "updated_at": _now_iso(),
-            }},
+            {"$set": {"last_sync_error": msg, "updated_at": _now_iso()}},
         )
-        raise RuntimeError(f"Google Places API returned {resp.status_code}: {snippet}")
+        raise RuntimeError(msg)
 
-    data = resp.json() or {}
-    google_rating = float(data.get("rating") or 0.0)
-    google_count = int(data.get("userRatingCount") or 0)
-    raw_reviews = data.get("reviews") or []
-
-    created = 0
-    updated = 0
-    for r in raw_reviews:
-        # Each review has a unique `name` (e.g. "places/XXX/reviews/YYY") that
-        # we use as the canonical id for upsert.
-        name = r.get("name") or ""
-        if not name:
-            continue
-        rating_n = int(r.get("rating") or 0)
-        text_obj = r.get("text") or {}
-        original_obj = r.get("originalText") or {}
-        author_attr = r.get("authorAttribution") or {}
-
-        publish_time = r.get("publishTime") or _now_iso()
-
-        existing = await db.google_reviews_cache.find_one({"google_review_id": name})
-        if existing:
-            await db.google_reviews_cache.update_one(
-                {"google_review_id": name},
-                {"$set": {
-                    "rating": rating_n,
-                    "text": text_obj.get("text") or original_obj.get("text") or "",
-                    "language": (text_obj.get("languageCode") or original_obj.get("languageCode") or "en").lower(),
-                    "author_name": author_attr.get("displayName") or "Anonymous",
-                    "author_avatar_url": author_attr.get("photoUri") or "",
-                    "time": publish_time,
-                    "updated_at": _now_iso(),
-                }},
-            )
-            updated += 1
-        else:
-            rid = _new_id("gr")
-            await db.google_reviews_cache.insert_one({
-                "id": rid,
-                "google_review_id": name,
-                "rating": rating_n,
-                "text": text_obj.get("text") or original_obj.get("text") or "",
-                "language": (text_obj.get("languageCode") or original_obj.get("languageCode") or "en").lower(),
-                "author_name": author_attr.get("displayName") or "Anonymous",
-                "author_avatar_url": author_attr.get("photoUri") or "",
-                "time": publish_time,
-                "source": "google",
-                "hidden": False,
-                "pinned": False,
-                "created_at": _now_iso(),
-                "updated_at": _now_iso(),
-            })
-            created += 1
+    weighted_avg = (weighted_rating_sum / aggregate_count) if aggregate_count else 0.0
 
     await db.google_reviews_config.update_one(
         {"_id": CONFIG_DOC_ID},
         {"$set": {
             "last_synced_at": _now_iso(),
-            "last_sync_error": None,
-            "last_google_rating": google_rating,
-            "last_google_count": google_count,
+            "last_sync_error": first_error,  # may be None when all OK
+            "last_google_rating": round(weighted_avg, 2),
+            "last_google_count": aggregate_count,
+            "last_locations": per_location,
             "updated_at": _now_iso(),
         }},
         upsert=True,
     )
 
     return {
-        "created": created,
-        "updated": updated,
-        "total_pulled": len(raw_reviews),
-        "google_rating": google_rating,
-        "google_count": google_count,
+        "created": total_created,
+        "updated": total_updated,
+        "total_pulled": total_pulled,
+        "google_rating": round(weighted_avg, 2),
+        "google_count": aggregate_count,
+        "locations": per_location,
     }
 
 
@@ -379,18 +475,29 @@ async def public_feed(db) -> Dict[str, Any]:
 
     all_cached = await list_reviews(db, include_hidden=False)
 
-    # Aggregate rating + count are derived from ALL non-hidden cached
-    # reviews; this matches the operator's mental model (1× ★ + 1× ★★★★★
-    # → avg 3.0, count 2).
-    ratings = [int(r.get("rating") or 0) for r in all_cached if r.get("rating")]
-    if ratings:
-        avg_rating = round(sum(ratings) / len(ratings), 1)
-        count = len(ratings)
+    # Aggregate rating + count: prefer Google's CANONICAL totals from the
+    # last sync (weighted across all configured Place IDs) because they
+    # include ALL reviews on Google — not just the 5 latest per location
+    # that the Places API ever ships in the `reviews` array. This matches
+    # the operator's mental model: "show the public the SAME number of
+    # reviews / SAME average that they'd see on Google Maps itself".
+    #
+    # Fallback chain when Google totals are missing (first deploy / API
+    # not yet wired in): use the average of cached non-hidden reviews,
+    # else the admin-configured fallback (e.g. "4.9★ — 31 reviews").
+    google_rating = cfg.get("last_google_rating")
+    google_count = cfg.get("last_google_count")
+    if isinstance(google_count, int) and google_count > 0 and isinstance(google_rating, (int, float)):
+        avg_rating = round(float(google_rating), 1)
+        count = int(google_count)
     else:
-        # No cached reviews yet — honour the admin fallback so the
-        # block isn't blank during bootstrap.
-        avg_rating = float(cfg.get("fallback_rating") or 0)
-        count = int(cfg.get("fallback_count") or 0)
+        ratings = [int(r.get("rating") or 0) for r in all_cached if r.get("rating")]
+        if ratings:
+            avg_rating = round(sum(ratings) / len(ratings), 1)
+            count = len(ratings)
+        else:
+            avg_rating = float(cfg.get("fallback_rating") or 0)
+            count = int(cfg.get("fallback_count") or 0)
 
     # Display list: only reviews ≥ min_rating_filter, pinned first, then by
     # most recent, capped to max_reviews_to_show.

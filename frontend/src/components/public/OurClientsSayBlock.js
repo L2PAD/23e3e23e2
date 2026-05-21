@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { ArrowUpRight, Star } from 'lucide-react';
 
-const TESTIMONIALS = [
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+const FALLBACK_TESTIMONIALS = [
   {
     name: 'Georgi',
     text:
@@ -14,8 +17,8 @@ const TESTIMONIALS = [
   },
 ];
 
-const GoogleBadge = () => (
-  <div className="inline-flex items-center gap-3 bg-black/60 border border-[#1E1E1E] rounded-md px-4 py-3">
+const GoogleBadge = ({ rating, count }) => (
+  <div className="inline-flex items-center gap-3 bg-black/60 border border-[#1E1E1E] rounded-md px-4 py-3" data-testid="google-badge">
     {/* Inline Google "G" logo */}
     <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
       <path
@@ -37,19 +40,52 @@ const GoogleBadge = () => (
     </svg>
     <div className="leading-tight">
       <div className="flex items-center gap-2">
-        <span className="text-white text-[18px] font-bold">4.9</span>
+        <span className="text-white text-[18px] font-bold" data-testid="google-rating">{rating}</span>
         <div className="flex items-center gap-0.5 text-[#FEAE00]">
           {[0, 1, 2, 3, 4].map((s) => (
             <Star key={s} size={12} fill="#FEAE00" strokeWidth={0} />
           ))}
         </div>
       </div>
-      <div className="text-[11px] text-[#9A9A9A] uppercase tracking-wider">31 Google reviews</div>
+      <div className="text-[11px] text-[#9A9A9A] uppercase tracking-wider" data-testid="google-count">{count} Google reviews</div>
     </div>
   </div>
 );
 
 export default function OurClientsSayBlock() {
+  /* Live Google Reviews — pulled from /api/public/google-reviews on mount.
+   * The endpoint returns BOTH the aggregate (rating, count) and the list
+   * of moderated reviews (≥ min_rating + non-hidden). Falls back to the
+   * static testimonials only if the API fails or returns 0 items, so the
+   * block never looks empty during boot. */
+  const [rating, setRating] = useState(4.9);
+  const [count, setCount] = useState(31);
+  const [items, setItems] = useState(FALLBACK_TESTIMONIALS);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await axios.get(`${API_URL}/api/public/google-reviews`, { timeout: 12000 });
+        if (cancelled) return;
+        const data = r.data || {};
+        if (data.enabled === false) return;
+        if (typeof data.rating === 'number' && data.rating > 0) setRating(data.rating);
+        if (typeof data.count === 'number' && data.count > 0) setCount(data.count);
+        const liveItems = Array.isArray(data.reviews) ? data.reviews : [];
+        if (liveItems.length) {
+          setItems(liveItems.map((x) => ({
+            name: x.author_name || 'Customer',
+            text: x.text || '',
+            avatar: x.author_avatar_url || '',
+            rating: x.rating,
+          })));
+        }
+      } catch (_) { /* swallow — keep fallback */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <section className="bg-black py-24 relative overflow-hidden" data-testid="our-clients-say-section">
       {/* Centered ghost number 460+ */}
@@ -91,7 +127,7 @@ export default function OurClientsSayBlock() {
 
         {/* Top row: Google + Tagline */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-10 items-end mb-12">
-          <GoogleBadge />
+          <GoogleBadge rating={rating} count={count} />
           <div className="flex items-end gap-6">
             <h3
               className="font-bold uppercase text-[#FEAE00] leading-[1.02] flex-1"
@@ -107,20 +143,29 @@ export default function OurClientsSayBlock() {
           </div>
         </div>
 
-        {/* Testimonial cards */}
+        {/* Testimonial cards — show first 2 (per Figma layout) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {TESTIMONIALS.map((t, i) => (
+          {items.slice(0, 2).map((t, i) => (
             <div
               key={i}
               className="bg-[#141414] border border-[#1E1E1E] rounded-md p-8 md:p-10"
               data-testid={`testimonial-${i}`}
             >
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3A3A3A] to-[#1D1D1B] border border-[#2A2A2A] flex items-center justify-center">
-                  <span className="text-[#FEAE00] font-bold text-[16px]">
-                    {t.name.charAt(0)}
-                  </span>
-                </div>
+                {t.avatar ? (
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    className="w-12 h-12 rounded-full object-cover border border-[#2A2A2A]"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3A3A3A] to-[#1D1D1B] border border-[#2A2A2A] flex items-center justify-center">
+                    <span className="text-[#FEAE00] font-bold text-[16px]">
+                      {(t.name || 'C').charAt(0)}
+                    </span>
+                  </div>
+                )}
                 <span className="text-[20px] font-bold text-[#FEAE00]">{t.name}</span>
               </div>
               <p className="text-[15px] md:text-[16px] text-[#C8C8C8] leading-relaxed">{t.text}</p>

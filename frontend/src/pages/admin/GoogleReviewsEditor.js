@@ -140,9 +140,23 @@ export default function GoogleReviewsEditor() {
   const saveConfig = async (patch = null) => {
     setSavingCfg(true);
     try {
+      // Normalise place IDs — accept newline OR comma separated input in the
+      // textarea. Trim, drop blanks, dedupe while preserving order.
+      const rawIds = Array.isArray(config?.place_ids)
+        ? config.place_ids
+        : String(config?.place_ids || '').split(/[\n,]/);
+      const placeIds = [];
+      const seen = new Set();
+      for (const raw of rawIds) {
+        const p = String(raw || '').trim();
+        if (p && !seen.has(p)) { seen.add(p); placeIds.push(p); }
+      }
       const body = patch || {
         enabled: !!config?.enabled,
-        place_id: config?.place_id || '',
+        place_ids: placeIds,
+        // Send empty `place_id` to clear the legacy single-place field once
+        // multi-place is in use; service tolerates both keys.
+        place_id: placeIds.length ? '' : (config?.place_id || ''),
         min_rating_filter: parseInt(config?.min_rating_filter, 10) || 4,
         max_reviews_to_show: parseInt(config?.max_reviews_to_show, 10) || 6,
         auto_sync_enabled: !!config?.auto_sync_enabled,
@@ -323,14 +337,21 @@ export default function GoogleReviewsEditor() {
             </div>
           </Field>
 
-          <Field label="Place ID" hint='Find at https://developers.google.com/maps/documentation/places/web-service/place-id'>
-            <input
-              type="text"
-              className={inputCls()}
-              value={config?.place_id || ''}
-              onChange={(e) => updateCfg('place_id', e.target.value)}
-              placeholder="ChIJ…"
-              data-testid="grev-place-id"
+          <Field
+            label="Place IDs"
+            hint='One Place ID per line. Add multiple if your business has more than one location on Google Maps. Find IDs at https://developers.google.com/maps/documentation/places/web-service/place-id'
+          >
+            <textarea
+              className={inputCls() + ' min-h-[88px] py-2 leading-relaxed'}
+              value={
+                Array.isArray(config?.place_ids)
+                  ? config.place_ids.join('\n')
+                  : (config?.place_ids || config?.place_id || '')
+              }
+              onChange={(e) => updateCfg('place_ids', e.target.value.split(/\n+/))}
+              placeholder={'ChIJB-guEIiFqkAR8GNK_oYqkVQ\nChIJJcLGTmKDqkARGJsv5IyZEvI'}
+              data-testid="grev-place-ids"
+              rows={3}
             />
           </Field>
 
@@ -422,9 +443,9 @@ export default function GoogleReviewsEditor() {
             type="button"
             onClick={syncNow}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#18181B] text-white rounded-lg text-[13px] font-semibold hover:bg-[#3F3F46] disabled:opacity-50"
-            disabled={syncing || !config?.has_api_key || !config?.place_id}
+            disabled={syncing || !config?.has_api_key || !(config?.place_ids?.length || config?.place_id)}
             data-testid="grev-sync-now"
-            title={!config?.has_api_key || !config?.place_id ? 'API key and Place ID required first' : 'Pull latest reviews from Google'}
+            title={!config?.has_api_key || !(config?.place_ids?.length || config?.place_id) ? 'API key and at least one Place ID required first' : 'Pull latest reviews from Google'}
           >
             <ArrowsClockwise size={14} className={syncing ? 'animate-spin' : ''} /> Sync now
           </button>

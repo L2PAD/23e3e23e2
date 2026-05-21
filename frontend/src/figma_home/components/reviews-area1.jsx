@@ -91,18 +91,46 @@ const ReviewsArea1 = ({ className = "" }) => {
   const lang = ctxLang === "bg" ? "bg" : "en";
 
   // Fetch admin-managed CMS headings AND real Google reviews on mount.
-  // The two endpoints run in parallel; whichever resolves first updates
-  // the relevant slice. Failures degrade silently to the fallback.
+  //
+  // Race-condition note: both endpoints run in parallel, but the live
+  // Google feed is the SOURCE OF TRUTH for `items`, `google_rating`,
+  // `google_reviews_count` and `google_reviews_url`. The CMS site-info
+  // only owns the localized text (`title_*`, `subtitle_*`) and the
+  // happy-customers baseline. We use a ref-backed `googleApplied` flag
+  // so that if site-info resolves AFTER Google, it does NOT clobber
+  // the live aggregate (which used to give back the stale "31 Google
+  // reviews" / "Georgi" CMS fallback).
+  const googleAppliedRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
-    // 1) CMS site-info (title / subtitle / fallback rating-count if no Google sync yet)
+    // 1) CMS site-info (title / subtitle / fallback aggregate when no Google
+    //    sync has run yet). Carefully OMITS Google-owned fields when the
+    //    live feed has already populated them.
     (async () => {
       try {
         const r = await axios.get(`${API_URL}/api/site-info`);
         if (cancelled) return;
         const reviews = r?.data?.reviews;
         if (reviews && typeof reviews === "object") {
-          setCfg((prev) => ({ ...prev, ...reviews, items: Array.isArray(reviews.items) ? reviews.items : prev.items }));
+          setCfg((prev) => {
+            // Strip Google-owned keys if live feed already applied them.
+            const safe = { ...reviews };
+            if (googleAppliedRef.current) {
+              delete safe.items;
+              delete safe.google_rating;
+              delete safe.google_reviews_count;
+              delete safe.google_reviews_url;
+            }
+            // Preserve `items` array shape (only honour the CMS items when
+            // we still don't have live Google items yet).
+            return {
+              ...prev,
+              ...safe,
+              items: googleAppliedRef.current
+                ? prev.items
+                : (Array.isArray(reviews.items) ? reviews.items : prev.items),
+            };
+          });
         }
       } catch {
         /* keep fallback */
@@ -128,9 +156,11 @@ const ReviewsArea1 = ({ className = "" }) => {
               text_bg: it.text_bg || it.text || "",
             }))
           : [];
+        googleAppliedRef.current = mapped.length > 0
+          || (typeof g.rating === "number" && g.rating > 0)
+          || (typeof g.count === "number" && g.count > 0);
         setCfg((prev) => ({
           ...prev,
-          // Replace items only if we actually got something from Google
           items: mapped.length > 0 ? mapped : prev.items,
           google_rating: typeof g.rating === "number" && g.rating > 0 ? g.rating : prev.google_rating,
           google_reviews_count: typeof g.count === "number" && g.count > 0 ? g.count : prev.google_reviews_count,

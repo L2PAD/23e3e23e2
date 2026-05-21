@@ -1,38 +1,26 @@
 [
   {
-    "content": "[блокер] User включает Places API (New) в GCP консоли",
-    "status": "in_progress"
+    "content": "Backend: collection + service + endpoints + multi-place sync",
+    "status": "completed"
   },
   {
-    "content": "Backend: collection google_integration + reviews schema",
-    "status": "pending"
+    "content": "Initial sync — 32 reviews, 4.9★, 10 live",
+    "status": "completed"
   },
   {
-    "content": "Backend: sync logic — fetch Places API (New) × N places, merge в reviews",
-    "status": "pending"
+    "content": "Frontend mobile: MobileOurClientsSay — подключить к /api/public/google-reviews",
+    "status": "completed"
   },
   {
-    "content": "Backend: admin endpoints (CRUD reviews, integration config, sync trigger)",
-    "status": "pending"
+    "content": "Frontend desktop: reviews carousel (figma ReviewsArea1) — фикс рассынки site-info поверх живых данных",
+    "status": "completed"
   },
   {
-    "content": "Backend: public endpoint /api/public/google-reviews + /stats",
-    "status": "pending"
+    "content": "Frontend admin: GoogleReviewsEditor — поддержка place_ids[]",
+    "status": "completed"
   },
   {
-    "content": "Frontend admin: Google Reviews integration block (api_key/place_ids/sync)",
-    "status": "pending"
-  },
-  {
-    "content": "Frontend admin: Reviews Manager (filter/hide/show/delete + add manual)",
-    "status": "pending"
-  },
-  {
-    "content": "Frontend public: заменить статичный carousel на живые отзывы",
-    "status": "pending"
-  },
-  {
-    "content": "Тест: sync реальных отзывов и визуальная проверка",
-    "status": "pending"
+    "content": "Initial sync + визуальная проверка (4.9★ 32 Google reviews, Martin Parvanov в DOM)",
+    "status": "completed"
   }
 ]

@@ -314,6 +314,12 @@ export default function MobileHomePage() {
   const [yearTo, setYearTo] = useState('');
   const [reviewIdx, setReviewIdx] = useState(0);
   const [beforeAfterIdx, setBeforeAfterIdx] = useState(0);
+  // ── Live Google Reviews (see /api/public/google-reviews) ───────────────
+  // We hydrate this on mount in parallel with the rest of siteInfo. When
+  // the backend returns ≥ 1 moderated review the carousel uses these
+  // (real Google data); otherwise the static `siteInfo.reviews.items`
+  // seed is used as a fallback so the section never looks empty.
+  const [googleReviews, setGoogleReviews] = useState(null);
   const { lang, changeLang } = useLang();
   const { open: openGetInTouch } = useGetInTouch();
   const { open: openPolicy } = usePolicyModal();
@@ -324,6 +330,18 @@ export default function MobileHomePage() {
       .get(`${API}/api/site-info`)
       .then((r) => {
         if (!cancelled) setSiteInfo(r.data || null);
+      })
+      .catch(() => {});
+    // Pull live Google Reviews in parallel — independent timeline, never
+    // blocks the rest of the homepage. If it 404s or times out we just
+    // keep the static fallback from siteInfo.
+    axios
+      .get(`${API}/api/public/google-reviews`, { timeout: 12000 })
+      .then((r) => {
+        if (cancelled) return;
+        const data = r.data || {};
+        if (data.enabled === false) return;
+        setGoogleReviews(data);
       })
       .catch(() => {});
     return () => {
@@ -379,27 +397,43 @@ export default function MobileHomePage() {
       }))
     : fallbackFaq.map((f, i) => ({ id: `f-${i}`, question: f.question, answer: '' }));
 
-  // Reviews
+  // Reviews — prefer live Google data when available, fall back to the
+  // static siteInfo seed otherwise. Mapping into the carousel's expected
+  // shape (`name`, `text`, `image_url`, `rating`).
   const reviewsEnabled = siteInfo?.reviews?.enabled !== false;
+  const liveGoogleItems = Array.isArray(googleReviews?.reviews) ? googleReviews.reviews : [];
   const reviewItems = (siteInfo?.reviews?.items || []).filter((r) => r?.enabled !== false);
-  const reviews = reviewItems.length
-    ? reviewItems.map((r) => ({
-        // Prefer locale-specific name (e.g. cyrillic "Георги" on BG) so the
-        // review card matches the surrounding language. Falls back to the
-        // canonical EN-spelled `name` when no localised variant exists.
-        name: (langKey === 'bg' ? (r.name_bg || r.name) : (r.name_en || r.name)) || '',
+  const reviews = liveGoogleItems.length
+    ? liveGoogleItems.map((r) => ({
+        name: r.author_name || 'Customer',
         rating: r.rating || 5,
-        text: fmtLang(r[`text_${langKey}`] || r.text, langKey),
-        image_url: r.image_url || '',
+        text: r.text || '',
+        image_url: r.author_avatar_url || '',
       }))
-    : fallbackReviews;
+    : (reviewItems.length
+      ? reviewItems.map((r) => ({
+          // Prefer locale-specific name (e.g. cyrillic "Георги" on BG) so the
+          // review card matches the surrounding language. Falls back to the
+          // canonical EN-spelled `name` when no localised variant exists.
+          name: (langKey === 'bg' ? (r.name_bg || r.name) : (r.name_en || r.name)) || '',
+          rating: r.rating || 5,
+          text: fmtLang(r[`text_${langKey}`] || r.text, langKey),
+          image_url: r.image_url || '',
+        }))
+      : fallbackReviews);
 
   // Before & after
   const baEnabled = siteInfo?.before_after?.enabled !== false;
   const baItems = (siteInfo?.before_after?.items || []).filter((i) => i?.enabled !== false);
 
-  const googleRating = siteInfo?.reviews?.google_rating ?? 4.9;
-  const googleReviewsCount = siteInfo?.reviews?.google_reviews_count ?? 31;
+  // Google badge numbers — prefer live aggregate from /api/public/google-reviews,
+  // fall back to siteInfo-managed values, then to hardcoded sensible defaults.
+  const googleRating = (typeof googleReviews?.rating === 'number' && googleReviews.rating > 0)
+    ? googleReviews.rating
+    : (siteInfo?.reviews?.google_rating ?? 4.9);
+  const googleReviewsCount = (typeof googleReviews?.count === 'number' && googleReviews.count > 0)
+    ? googleReviews.count
+    : (siteInfo?.reviews?.google_reviews_count ?? 31);
 
   const viberCommunity = siteInfo?.footer?.viber_community || {};
   const viberLabel = fmtLang(viberCommunity[`label_${langKey}`] || viberCommunity.label, langKey) || t.joinOurGroupHottest;
