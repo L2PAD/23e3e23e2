@@ -2046,7 +2046,8 @@ function MobileTopVehicleDeals({ t }) {
       data-testid="mobile-top-vehicles-deals"
       style={{
         backgroundColor: '#000',
-        padding: '40px 12px 48px',              /* user spec: 12 L/R on welcome mobile */
+        /* user spec: bottom +10 px → 48 → 58 */
+        padding: '40px 12px 58px',
         fontFamily: FONT,
         color: '#fff',
       }}
@@ -2082,7 +2083,8 @@ function MobileTopVehicleDeals({ t }) {
       <div
         style={{
           textAlign: 'center',
-          margin: '0 auto 28px',
+          /* user spec: +10 px breathing room between subtitle and sort row */
+          margin: '0 auto 38px',
           width: 258,
           maxWidth: '100%',
           fontFamily: FONT,
@@ -2105,7 +2107,9 @@ function MobileTopVehicleDeals({ t }) {
         style={{
           borderTop: '1px solid #2a2a28',
           borderBottom: '1px solid #2a2a28',
-          padding: '14px 0',
+          /* user spec: +10 px breathing room between icons and the grey
+             divider below (top 14, bottom 14+10=24) */
+          padding: '14px 0 24px',
           marginBottom: 18,
         }}
       >
@@ -2253,7 +2257,10 @@ function MobileTopVehicleDeals({ t }) {
           backgroundColor: '#1d1d1b',
           borderRadius: 8,
           overflow: 'hidden',
-          padding: 12,
+          /* user spec: 12 top / 12 left / 12 right, 24 bottom — doubles the
+             breathing room between the MORE DETAILS button and the bottom
+             edge of the card */
+          padding: '12px 12px 24px',
           width: '100%',
           maxWidth: 336.5,
           margin: '0 auto',
@@ -2547,7 +2554,8 @@ function MobileTopVehicleDeals({ t }) {
       {/* 6 — Pager (130×24) — counter follows real card count 1:1 */}
       <div
         style={{
-          marginTop: 22,
+          /* user spec: 40 px breathing room between the deal card and the pager */
+          marginTop: 40,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -2620,7 +2628,7 @@ function MobileTopVehicleDeals({ t }) {
       </div>
 
       {/* 7 — MORE VEHICLES + (Mazzard H Medium 14) */}
-      <div style={{ marginTop: 26, display: 'flex', justifyContent: 'center' }}>
+      <div style={{ marginTop: 40 /* symmetric to card↔pager gap */, display: 'flex', justifyContent: 'center' }}>
         <a
           href="/catalog"
           data-testid="mobile-deals-more-vehicles"
