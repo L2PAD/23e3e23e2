@@ -1,14 +1,38 @@
 [
   {
-    "content": "Убрать программный scrollToIdx из useEffect + исправить off-by-one из-за <style> child",
-    "status": "completed"
+    "content": "[блокер] User включает Places API (New) в GCP консоли",
+    "status": "in_progress"
   },
   {
-    "content": "Price tabs — +10px сверху (от серой полоски) и +10px снизу (до карточки)",
-    "status": "completed"
+    "content": "Backend: collection google_integration + reviews schema",
+    "status": "pending"
   },
   {
-    "content": "Hint-анимация на стрелках next (chevron + box-shadow pulse, button bbox стабилен)",
-    "status": "completed"
+    "content": "Backend: sync logic — fetch Places API (New) × N places, merge в reviews",
+    "status": "pending"
+  },
+  {
+    "content": "Backend: admin endpoints (CRUD reviews, integration config, sync trigger)",
+    "status": "pending"
+  },
+  {
+    "content": "Backend: public endpoint /api/public/google-reviews + /stats",
+    "status": "pending"
+  },
+  {
+    "content": "Frontend admin: Google Reviews integration block (api_key/place_ids/sync)",
+    "status": "pending"
+  },
+  {
+    "content": "Frontend admin: Reviews Manager (filter/hide/show/delete + add manual)",
+    "status": "pending"
+  },
+  {
+    "content": "Frontend public: заменить статичный carousel на живые отзывы",
+    "status": "pending"
+  },
+  {
+    "content": "Тест: sync реальных отзывов и визуальная проверка",
+    "status": "pending"
   }
 ]
