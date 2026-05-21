@@ -2671,6 +2671,52 @@ async def _main_startup():
     except Exception as e:
         logger.warning(f"[STARTUP] blog seeding (non-fatal): {e}")
 
+    # ── Cold-start vehicle catalogue safety-net ──────────────────────────
+    # If `vin_data` is nearly empty (fewer than 100 documents) we treat the
+    # boot as a fresh deployment and kick off BitmotorsFullSync in the
+    # background.  The check ONLY runs when the catalogue is essentially
+    # empty — once it has been seeded we never re-trigger automatically.
+    #
+    # This is the explicit defence the user asked for:
+    #   "если база не подтянется, парсеры должны запуститься так чтобы
+    #    логика отрабатывала и я мог зайти в кабинеты, а каталог не был
+    #    пустым".
+    try:
+        vin_count = await db.vin_data.estimated_document_count()
+        if vin_count < 100:
+            logger.warning(
+                f"[STARTUP] vin_data has only {vin_count} docs — scheduling "
+                f"BitmotorsFullSync auto-seed (max_pages=60)"
+            )
+
+            async def _cold_start_seed():
+                try:
+                    import bitmotors_scraper as _bms  # local import — heavy
+                    fs = _bms.BitmotorsFullSync(db)
+                    await fs.load_settings()
+                    fs.settings["max_pages"] = 60
+                    fs.settings["concurrency"] = 5
+                    fs.settings["page_delay_ms"] = 200
+                    fs.settings["request_timeout_s"] = 30
+                    # `run_once` checks `self.running` inside its workers,
+                    # so flip it here just like the scheduler would.
+                    fs.running = True
+                    res = await fs.run_once()
+                    logger.info(
+                        f"[STARTUP] ✓ cold-start seed finished: "
+                        f"scraped={res.get('pages_scraped')} "
+                        f"new={res.get('new')} updated={res.get('updated')} "
+                        f"errors={res.get('errors')}"
+                    )
+                except Exception as exc:
+                    logger.warning(f"[STARTUP] cold-start seed failed (non-fatal): {exc}")
+
+            asyncio.create_task(_cold_start_seed())
+        else:
+            logger.info(f"[STARTUP] vin_data already populated ({vin_count} docs) — skipping auto-seed")
+    except Exception as e:
+        logger.warning(f"[STARTUP] cold-start seed check (non-fatal): {e}")
+
     print("[STARTUP] Ready!")
     print("="*80)
     logger.info("BIBI V3.2 - Ready")
