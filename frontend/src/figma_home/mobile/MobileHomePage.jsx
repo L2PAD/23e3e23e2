@@ -2192,7 +2192,11 @@ function MobileTopVehicleDeals({ t }) {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 8,
-          marginBottom: 18,
+          /* user spec: +10 px above price tabs (from the grey divider) and
+             +10 px below (before the card). Original 18 → 28 on bottom,
+             explicit 10 on top. */
+          marginTop: 10,
+          marginBottom: 28,
           fontFamily: FONT,
           fontWeight: 400,
           fontSize: 12,
@@ -2605,6 +2609,7 @@ function MobileTopVehicleDeals({ t }) {
           aria-label="Next"
           onClick={goNext}
           data-testid="mobile-deals-next"
+          className="bibi-swipe-hint"
           disabled={total <= 1 || safeIdx >= total - 1}
           style={{
             width: 32,
@@ -4794,30 +4799,26 @@ function MobileBeforeAndAfter({ items, activeIdx, setActiveIdx, t }) {
 
   const trackRef = useRef(null);
 
-  // Programmatic scroll to the active card — done on the carousel container
-  // directly (not via `scrollIntoView`, which would scroll the WHOLE page in
-  // mobile browsers). Smooth-scrolls the track so the chosen card is centered.
+  // Programmatic scroll to the active card — used ONLY by the prev/next
+  // arrow buttons. We intentionally do NOT mirror this from an effect on
+  // `idx`, because that would fight against native scroll-snap during a
+  // user swipe (the JS scroll would yank the user back to the previous
+  // card mid-gesture). Manual swipes rely on scroll-snap + IO sticky 70 %
+  // to update the counter; arrows call this directly.
+  //
+  // NOTE: the track contains a leading `<style>` tag (for CSS hover rules)
+  // so we MUST resolve the target card via the `data-card-idx` attribute
+  // rather than `track.children[i]` — otherwise idx=0 would point at the
+  // `<style>` node whose offsetLeft is 0, scrolling the track back to the
+  // beginning and clobbering the user's swipe.
   const scrollToIdx = (targetIdx) => {
     const track = trackRef.current;
     if (!track) return;
-    const card = track.children[targetIdx];
+    const card = track.querySelector(`[data-card-idx="${targetIdx}"]`);
     if (!card) return;
     const left = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2;
     track.scrollTo({ left, behavior: 'smooth' });
   };
-
-  // Sync scroll position when an external state change (arrows, init) bumps
-  // the active index. We skip the very first run so the page doesn't jump on
-  // mount — the natural snap will keep card #1 centered automatically.
-  const firstRunRef = useRef(true);
-  useEffect(() => {
-    if (firstRunRef.current) {
-      firstRunRef.current = false;
-      return;
-    }
-    if (total > 0) scrollToIdx(idx);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, total]);
 
   // ── Active-card detection: "STICKY 70 %"
   //
@@ -4873,8 +4874,18 @@ function MobileBeforeAndAfter({ items, activeIdx, setActiveIdx, t }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [total]);
 
-  const prev = () => total > 0 && setActiveIdx((idx - 1 + total) % total);
-  const next = () => total > 0 && setActiveIdx((idx + 1) % total);
+  const prev = () => {
+    if (total <= 0) return;
+    const ni = (idx - 1 + total) % total;
+    setActiveIdx(ni);
+    scrollToIdx(ni);
+  };
+  const next = () => {
+    if (total <= 0) return;
+    const ni = (idx + 1) % total;
+    setActiveIdx(ni);
+    scrollToIdx(ni);
+  };
 
   // Resolve a media URL coming from the backend payload.
   //   • absolute http(s)     → use as-is
@@ -5241,6 +5252,7 @@ function MobileBeforeAndAfter({ items, activeIdx, setActiveIdx, t }) {
           aria-label="Next"
           onClick={next}
           data-testid="mobile-before-and-after-next"
+          className="bibi-swipe-hint"
           style={{
             width: 40,
             height: 40,
@@ -5292,24 +5304,24 @@ function MobileOurClientsSay({ reviews, googleRating, googleReviewsCount, active
 
   const trackRef = useRef(null);
 
+  // Programmatic scroll — ONLY used by the arrow buttons. Mirroring this
+  // from an effect on `idx` would fight against scroll-snap during a user
+  // swipe (the JS scroll would yank the user back). Manual swipes rely on
+  // scroll-snap + IO sticky 70 % to update the counter; arrows call this
+  // directly.
+  //
+  // NOTE: the track contains a leading `<style>` tag (for CSS hover rules)
+  // so we MUST resolve the target via the `data-card-idx` attribute, not
+  // via `track.children[i]` — otherwise idx=0 would map to the `<style>`
+  // node and snap the carousel back to scrollLeft=0, clobbering the user.
   const scrollToIdx = (targetIdx) => {
     const track = trackRef.current;
     if (!track) return;
-    const card = track.children[targetIdx];
+    const card = track.querySelector(`[data-card-idx="${targetIdx}"]`);
     if (!card) return;
     const left = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2;
     track.scrollTo({ left, behavior: 'smooth' });
   };
-
-  const firstRunRef = useRef(true);
-  useEffect(() => {
-    if (firstRunRef.current) {
-      firstRunRef.current = false;
-      return;
-    }
-    if (total > 0) scrollToIdx(idx);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, total]);
 
   // Dominant-card detection — STICKY 70 %: counter stays on the current
   // card while it's ≥ 70 % visible, and only flips when a DIFFERENT card
@@ -5347,8 +5359,18 @@ function MobileOurClientsSay({ reviews, googleRating, googleReviewsCount, active
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [total]);
 
-  const prev = () => total > 0 && setActiveIdx((idx - 1 + total) % total);
-  const next = () => total > 0 && setActiveIdx((idx + 1) % total);
+  const prev = () => {
+    if (total <= 0) return;
+    const ni = (idx - 1 + total) % total;
+    setActiveIdx(ni);
+    scrollToIdx(ni);
+  };
+  const next = () => {
+    if (total <= 0) return;
+    const ni = (idx + 1) % total;
+    setActiveIdx(ni);
+    scrollToIdx(ni);
+  };
 
   // ── 5 yellow stars used in the Google rating block (80 × 16 block) ───
   const Star = ({ size = 16 }) => (
@@ -5697,6 +5719,7 @@ function MobileOurClientsSay({ reviews, googleRating, googleReviewsCount, active
             aria-label="Next"
             onClick={next}
             data-testid="mobile-our-clients-say-next"
+            className="bibi-swipe-hint"
             style={{
               width: 40,
               height: 40,

@@ -364,3 +364,58 @@ body {
   --top-582_2: 582.2px;
   --top-calc50-37_9: calc(50% - 37.9px);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Mobile carousel "swipe hint" — a subtle, design-system-aware nudge on
+ * the next-arrow buttons of Top Vehicles Deals, Before & After, and
+ * Reviews carousels. A soft amber ring pulses outwards every 1.8s while
+ * the chevron inside gently nudges 3px to the right and back — hinting
+ * that a horizontal swipe is possible without dominating the visual
+ * hierarchy or breaking layout stability.
+ *
+ * IMPORTANT: the transform animation is applied ONLY to the inner svg
+ * chevron, NEVER to the button itself. This keeps the button's bounding
+ * box stable for pointer events / Playwright click stability.
+ *
+ * Animation pauses on hover, focus, and when the user prefers reduced
+ * motion (accessibility).
+ * ───────────────────────────────────────────────────────────────────── */
+@keyframes bibi-swipe-hint-ring {
+  0%, 100% { box-shadow: 0 0 0 0    rgba(254, 174, 0, 0);    }
+  50%      { box-shadow: 0 0 0 5px  rgba(254, 174, 0, 0.20); }
+}
+
+@keyframes bibi-swipe-hint-chevron {
+  0%, 100% { transform: translateX(0);   }
+  50%      { transform: translateX(3px); }
+}
+
+.bibi-swipe-hint {
+  animation: bibi-swipe-hint-ring 1.8s ease-in-out infinite;
+  animation-delay: 0.8s;
+  will-change: box-shadow;
+}
+
+/* Move the chevron inside the button (not the button itself) — keeps the
+ * click target perfectly stable while still cueing horizontal motion. */
+.bibi-swipe-hint > svg {
+  animation: bibi-swipe-hint-chevron 1.8s ease-in-out infinite;
+  animation-delay: 0.8s;
+  will-change: transform;
+}
+
+.bibi-swipe-hint:hover,
+.bibi-swipe-hint:focus-visible,
+.bibi-swipe-hint:disabled,
+.bibi-swipe-hint:hover > svg,
+.bibi-swipe-hint:focus-visible > svg,
+.bibi-swipe-hint:disabled > svg {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bibi-swipe-hint,
+  .bibi-swipe-hint > svg {
+    animation: none !important;
+  }
+}

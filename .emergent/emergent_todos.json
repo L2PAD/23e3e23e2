@@ -1,18 +1,14 @@
 [
   {
-    "content": "Пофиксить Before/After + Reviews горизонтальный свайп (touch-action: pan-x)",
+    "content": "Убрать программный scrollToIdx из useEffect + исправить off-by-one из-за <style> child",
     "status": "completed"
   },
   {
-    "content": "Vehicle type apiType: motorbike/sedan/suv/pickup/van (подогнать под backend keys)",
+    "content": "Price tabs — +10px сверху (от серой полоски) и +10px снизу (до карточки)",
     "status": "completed"
   },
   {
-    "content": "Vehicle type active icon — чёрная внутри при активе (визуальная проверка)",
-    "status": "completed"
-  },
-  {
-    "content": "MobileCarSearch brand dropdown — не срезать и возврат в исходное",
+    "content": "Hint-анимация на стрелках next (chevron + box-shadow pulse, button bbox стабилен)",
     "status": "completed"
   }
 ]
