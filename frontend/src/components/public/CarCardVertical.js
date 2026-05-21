@@ -18,18 +18,19 @@ export const CarCardVertical = ({ v, idx = 0 }) => {
     `${v?.year || ''} ${v?.make || ''} ${v?.model || ''}`.trim() ||
     'Vehicle';
   const mileage = v?.odometer
-    ? `${v.odometer.toLocaleString()} KM`
-    : v?.mileage || '65 900 KM';
+    ? `${Number(v.odometer).toLocaleString()} ${(v?.odometer_unit || 'km').toUpperCase()}`
+    : v?.mileage || '—';
   const engine =
+    v?.engine ||
     v?.engine_info ||
     (v?.engine_size && v?.fuel_type
       ? `${v.engine_size}L / ${String(v.fuel_type).toUpperCase()}`
-      : '4.6L / PATROL');
-  const drive = (v?.drive || v?.drivetrain || 'All-wheel').toUpperCase();
-  const turnkey = v?.turnkey_price || v?.price_bulgaria || '5, 950 EURO';
-  const average = v?.average_price || '16, 200 EURO';
-  const tradingDate = v?.sale_date || v?.auction_date || 'Trading date — 34.13.2027';
-  const timer = v?.auction_countdown || '1 d: 4h: 35m';
+      : '—');
+  const drive = (v?.drive || v?.drivetrain || '—').toUpperCase();
+  const turnkey = v?.turnkey_price || v?.price_bulgaria || null;
+  const average = v?.average_price || null;
+  const tradingDate = v?.sale_date || v?.auction_date || null;
+  const timer = v?.auction_countdown || null;
 
   return (
     <Link
@@ -47,21 +48,27 @@ export const CarCardVertical = ({ v, idx = 0 }) => {
           className="absolute inset-0 w-full h-full object-cover"
           data-testid={`car-card-${idx}-image`}
         />
-        {/* Trading date badge — top-left, semi-transparent white */}
-        <div
-          className="absolute top-4 left-4 px-3 h-8 flex items-center text-[13px] font-medium text-black bg-white/70 rounded-sm"
-          data-testid={`car-card-${idx}-trading-date`}
-        >
-          {tradingDate}
-        </div>
-        {/* Timer pill — bottom-left, amber */}
-        <div
-          className="absolute bottom-4 left-4 px-3 h-8 flex items-center gap-2 bg-[#FEAE00] text-black text-[13px] font-medium rounded-sm"
-          data-testid={`car-card-${idx}-timer`}
-        >
-          <Clock size={16} strokeWidth={2} />
-          <span>{timer}</span>
-        </div>
+        {/* Trading date badge — top-left, semi-transparent white.
+            Hidden when the backend has no sale_date for this row. */}
+        {tradingDate && (
+          <div
+            className="absolute top-4 left-4 px-3 h-8 flex items-center text-[13px] font-medium text-black bg-white/70 rounded-sm"
+            data-testid={`car-card-${idx}-trading-date`}
+          >
+            {tradingDate}
+          </div>
+        )}
+        {/* Timer pill — bottom-left, amber.  Hidden when no countdown
+            is available so we never render the mock "1 d: 4h: 35m". */}
+        {timer && (
+          <div
+            className="absolute bottom-4 left-4 px-3 h-8 flex items-center gap-2 bg-[#FEAE00] text-black text-[13px] font-medium rounded-sm"
+            data-testid={`car-card-${idx}-timer`}
+          >
+            <Clock size={16} strokeWidth={2} />
+            <span>{timer}</span>
+          </div>
+        )}
         {/* Compare + favorite icons — bottom-right circular outline */}
         <div className="absolute bottom-4 right-4 flex items-center gap-3">
           <button
@@ -108,7 +115,7 @@ export const CarCardVertical = ({ v, idx = 0 }) => {
             style={{ fontSize: 20 }}
             data-testid={`car-card-${idx}-turnkey-price`}
           >
-            {turnkey}
+            {turnkey || '—'}
           </div>
         </div>
 
@@ -146,7 +153,7 @@ export const CarCardVertical = ({ v, idx = 0 }) => {
             className="text-[14px] font-bold uppercase text-[#FEAE00]"
             data-testid={`car-card-${idx}-average-price`}
           >
-            {average}
+            {average || '—'}
           </div>
         </div>
         <span

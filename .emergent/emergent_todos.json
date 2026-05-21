@@ -1,34 +1,18 @@
 [
   {
-    "content": "Card1: убрать мок-fallback'ы (Lucid Motors, 20-30k EUR, 65900 KM)",
+    "content": "Прочесать базу на оставшиеся mock-fallbackи (placeholders в UI)",
     "status": "completed"
   },
   {
-    "content": "frame-component21: PAGE_SIZE=6 вместо 12",
-    "status": "completed"
+    "content": "Smoke-тест 4 кабинетов через testing agent",
+    "status": "in_progress"
   },
   {
-    "content": "Card1: использовать data.images[0] (не пустой data.image)",
-    "status": "completed"
+    "content": "Smoke-тест backend API + парсеры",
+    "status": "in_progress"
   },
   {
-    "content": "Card1: реальная цена из current_bid + current_bid_currency",
-    "status": "completed"
-  },
-  {
-    "content": "Card1: скрывать finalCost-блок если нет данных",
-    "status": "completed"
-  },
-  {
-    "content": "Verify HMAC tracking endpoint работает с shared secret",
-    "status": "completed"
-  },
-  {
-    "content": "Rebuild Vessel Sync ZIP с baked secret",
-    "status": "completed"
-  },
-  {
-    "content": "Скрин подтверждает 6 разных карточек с реальными фото",
-    "status": "completed"
+    "content": "Production readiness checklist (env, secrets, hardcoded urls)",
+    "status": "pending"
   }
 ]

@@ -1816,56 +1816,11 @@ function MobileSearchFromAmericaKorea({ t }) {
 /*   7. MORE VEHICLES +         — Mazzard H Medium 14, 127×17, underlined  */
 /* ─────────────────────────────────────────────────────────────────────── */
 
-const TOP_DEALS_CARS = [
-  {
-    id: 1,
-    name: '2025 Lucid Motors Air Pure',
-    img: '/mobile/image-15@2x.png',
-    tradingDate: '34.13.2027',
-    timer: '1 d: 4h: 35m',
-    purchasePrice: '20 000-30 000 EURO',
-    mileage: '65 900 KM',
-    engine: '4.6L / Patrol',
-    drive: 'All-wheel',
-    finalCost: '50 000 - 70 000 EURO',
-  },
-  {
-    id: 2,
-    name: '2024 BMW M5 Competition',
-    img: '/mobile/image-93@2x.png',
-    tradingDate: '12.04.2027',
-    timer: '0 d: 12h: 02m',
-    purchasePrice: '45 000-55 000 EURO',
-    mileage: '12 400 KM',
-    engine: '4.4L V8 Bi-Turbo',
-    drive: 'All-wheel',
-    finalCost: '78 000 - 92 000 EURO',
-  },
-  {
-    id: 3,
-    name: '2023 Mercedes-AMG GT 63',
-    img: '/mobile/image-74@2x.png',
-    tradingDate: '08.05.2027',
-    timer: '2 d: 6h: 11m',
-    purchasePrice: '60 000-72 000 EURO',
-    mileage: '8 100 KM',
-    engine: '4.0L V8 Bi-Turbo',
-    drive: 'All-wheel',
-    finalCost: '110 000 - 130 000 EURO',
-  },
-  {
-    id: 4,
-    name: '2024 Tesla Model S Plaid',
-    img: '/mobile/image-76@2x.png',
-    tradingDate: '21.06.2027',
-    timer: '0 d: 4h: 50m',
-    purchasePrice: '55 000-65 000 EURO',
-    mileage: '4 200 KM',
-    engine: 'Triple-Motor EV',
-    drive: 'All-wheel',
-    finalCost: '95 000 - 115 000 EURO',
-  },
-];
+// Hardcoded TOP_DEALS_CARS removed — the mobile welcome carousel now reads
+// live data from `/api/public/vehicles` exactly like the desktop version
+// (see figma_home/components/frame-component21.jsx).  When the request is
+// in-flight the carousel collapses to a single shimmer card instead of
+// rendering the placeholder Lucid / BMW / AMG mock.
 
 /**
  * VEHICLE_TYPES — 5 types reused from /pages/public/CalculatorPage.js
@@ -1894,16 +1849,70 @@ function MobileTopVehicleDeals({ t }) {
   const [idx, setIdx] = useState(0);
   const [favorited, setFavorited] = useState({});
   const [compared, setCompared] = useState({});
+  /* Live carousel data — pulls real vehicles from /api/public/vehicles
+   * (same source as the desktop FrameComponent21 + CatalogPage). Falls
+   * back to an empty list while the request is in flight so we never
+   * render the legacy Lucid / BMW / AMG placeholder set. */
+  const [liveCars, setLiveCars] = useState([]);
+  const [liveTotal, setLiveTotal] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const API = process.env.REACT_APP_BACKEND_URL;
+        const r = await axios.get(`${API}/api/public/vehicles`, {
+          params: { limit: 12 },
+          timeout: 18000,
+        });
+        if (cancelled) return;
+        const arr = Array.isArray(r.data?.data) ? r.data.data : [];
+        // Normalise to the shape the mobile card expects (`name`, `img`,
+        // `tradingDate`, `timer`, `purchasePrice`, `mileage`, `engine`,
+        // `drive`, `finalCost`) so the existing JSX stays untouched.
+        const mapped = arr.map((v) => {
+          const imgArr = Array.isArray(v.images) ? v.images.filter(Boolean) : [];
+          const km = Number.isFinite(v.odometer) ? `${Number(v.odometer).toLocaleString()} ${(v.odometer_unit || 'km').toUpperCase()}` : '—';
+          const bidCur = (v.current_bid_currency || 'USD').toUpperCase();
+          const bidSym = bidCur === 'USD' ? '$' : bidCur === 'EUR' ? '€' : '';
+          const purchase = Number.isFinite(Number(v.current_bid))
+            ? `${bidSym}${Number(v.current_bid).toLocaleString('en-US')}${bidSym ? '' : ' ' + bidCur}`
+            : (v.price ? String(v.price) : '—');
+          return {
+            id: v.vin || v.lot_number,
+            vin: v.vin,
+            name: v.title || `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
+            img: imgArr[0] || '/mobile/image-15@2x.png',
+            tradingDate: v.lot_number ? `Lot ${v.lot_number}` : (v.auction_name || ''),
+            timer: v.sale_date || null,
+            purchasePrice: purchase,
+            mileage: km,
+            engine: v.engine || '—',
+            drive: (v.drivetrain || '—').toString(),
+            finalCost: null,
+          };
+        });
+        setLiveCars(mapped);
+        setLiveTotal(Number.isFinite(r.data?.total) ? Number(r.data.total) : mapped.length);
+      } catch (_) {
+        if (!cancelled) { setLiveCars([]); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   /* Share modal state — Welcome top-deal cards now have a share icon
    * (parity with SingleCarPage + Catalog cards per user spec). */
   const [shareOpen, setShareOpen] = useState(false);
 
-  // Real card list — pager and counter follow it 1:1.
-  const visible = TOP_DEALS_CARS;
+  // Real card list — pager and counter follow it 1:1.  Pulls from live
+  // /api/public/vehicles via the effect above; collapses to 0 cards
+  // while loading.
+  const visible = liveCars;
   const total = visible.length;
   const safeIdx = total ? ((idx % total) + total) % total : 0;
   const current = visible[safeIdx];
-  const proposals = total; // "Proposals - N" mirrors the real number of offers
+  // "Proposals - N" mirrors the REAL total catalogue size from the API
+  // (5,997+ cars), not just the items in the current carousel window.
+  const proposals = liveTotal || total;
   const counter = `${String(safeIdx + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
 
   const goPrev = () => setIdx((v) => (total ? (v - 1 + total) % total : 0));
@@ -2125,8 +2134,19 @@ function MobileTopVehicleDeals({ t }) {
         <span style={{ color: '#FFFFFF', whiteSpace: 'nowrap' }}>{t?.proposalsLabel || 'Proposals'} - {proposals}</span>
       </div>
 
-      {/* 5 — Vehicle card (with real touch swipe) */}
+      {/* 5 — Vehicle card (with real touch swipe).
+          While the API request is in flight (`current` is undefined), we
+          render a neutral skeleton — never the legacy Lucid/BMW mock. */}
       <div ref={carouselScopeRef} className="tilt-scope-mobile" style={{ width: '100%' }}>
+      {!current ? (
+        <div style={{
+          backgroundColor: '#1d1d1b', borderRadius: 8, height: 420,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#71717A', fontSize: 13, letterSpacing: '0.06em',
+        }}>
+          {t?.loadingLabel || 'Loading vehicles…'}
+        </div>
+      ) : (
       <article
         data-tilt-card
         data-testid={`mobile-deal-${current.id}`}
@@ -2423,6 +2443,7 @@ function MobileTopVehicleDeals({ t }) {
           </button>
         </div>
       </article>
+      )}
       </div>
 
       {/* 6 — Pager (130×24) — counter follows real card count 1:1 */}
