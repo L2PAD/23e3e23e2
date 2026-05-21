@@ -1,0 +1,647 @@
+.card,
+.buttonParent {
+  height: var(--height-764);
+  width: var(--width-560);
+  border-radius: var(--br-8);
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+}
+.card {
+  background-color: var(--color-dimgray-100);
+  text-align: left;
+  font-size: var(--fs-13);
+  color: var(--color-black);
+  font-family: var(--font-mazzard);
+}
+.buttonParent {
+  background-color: var(--color-gray-500);
+  overflow: hidden;
+  flex-direction: column;
+  padding: var(--padding-26);
+  box-sizing: border-box;
+  gap: var(--gap-24);
+}
+
+/* ── IMAGE ───────────────────────────────────────────────────────────────────── */
+.imageWrapper {
+  width: 100%;
+  height: 388px;
+  position: relative;
+  border-radius: var(--br-8);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.imageInner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+.image15Icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tradingDetails {
+  position: absolute;
+  left: 17px;
+  top: 17px;
+  height: var(--height-32);
+  width: var(--width-189);
+  background-color: var(--color-gray-600);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--padding-14);
+  box-sizing: border-box;
+  border-radius: var(--br-4);
+}
+.tradingDate {
+  position: relative;
+  font-size: var(--fs-13);
+  color: var(--color-black);
+  font-weight: 500;
+  line-height: 99.9%;
+  text-transform: capitalize;
+}
+
+/* ── BODY ─────────────────────────────────────────────────────────────────────── */
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 28px;
+  flex: 1;
+}
+
+.timerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-16);
+}
+.iconoirclockParent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--height-32);
+  background-color: var(--color-orange-200);
+  padding: var(--padding-4) var(--padding-8);
+  border-radius: var(--br-4);
+  box-sizing: border-box;
+}
+.iconoirclock {
+  width: var(--width-24);
+  height: var(--height-24);
+  display: block;
+}
+.d4h35m {
+  position: relative;
+  font-size: var(--fs-13);
+  color: var(--color-black);
+  line-height: 99.9%;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.frameIcons {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-16);
+}
+.frameIcon {
+  height: var(--height-32);
+  width: var(--width-32);
+  display: block;
+}
+
+/* ── Action icon buttons (share / compare / favorite) ────────────────
+ * These wrap each 32 × 32 icon image inside the body's .frameIcons row
+ * (and the .mobileActionIcons overlay on mobile). They are real
+ * <button>s — clickable independently from the parent <Link>. */
+.iconBtn,
+.mobileIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: transform 0.12s ease, filter 0.12s ease;
+  flex-shrink: 0;
+}
+.iconBtn:hover,
+.mobileIconBtn:hover {
+  transform: scale(1.05);
+}
+.iconBtn:active,
+.mobileIconBtn:active {
+  transform: scale(0.95);
+}
+.iconBtn:disabled,
+.mobileIconBtn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+/* Active state — applied when compare/favorite is toggled ON. Adds a
+ * subtle orange glow so the user gets immediate feedback that the toggle
+ * succeeded, without overriding the icon glyph itself. */
+.iconBtn.iconBtnActive,
+.mobileIconBtn.iconBtnActive {
+  filter: drop-shadow(0 0 4px rgba(254, 174, 0, 0.6));
+}
+
+/* ── TITLE ───────────────────────────────────────────────────────────────────── */
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  font-size: var(--fs-24);
+  color: var(--color-white);
+}
+.lucidMotorsAir {
+  margin: 0;
+  font-size: inherit;
+  line-height: 99.9%;
+  font-weight: 400;
+  font-family: inherit;
+  text-transform: capitalize;
+}
+.detailsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: var(--fs-14);
+  color: var(--color-whitesmoke);
+}
+.row1 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.purchasePriceParent {
+  display: flex;
+  flex-direction: column;
+  gap: 8.5px;
+  flex-shrink: 0;
+}
+.purchasePrice {
+  position: relative;
+  line-height: 99.9%;
+  text-transform: capitalize;
+}
+.priceSquaresParent {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: var(--fs-20);
+  color: var(--color-orange-100);
+  z-index: 1;
+}
+.priceSquares {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--br-8);
+  background-color: var(--color-black);
+  z-index: 0;
+}
+.h3 {
+  margin: 0;
+  position: relative;
+  font-size: inherit;
+  line-height: 99.9%;
+  text-transform: uppercase;
+  font-weight: 400;
+  font-family: inherit;
+  z-index: 1;
+  white-space: nowrap;
+}
+.mileageEngineBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: 26px;
+}
+.labelsCol,
+.valuesCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.valuesCol { color: var(--color-orange-100); }
+.mileage,
+.engine,
+.km,
+.lPetrol {
+  position: relative;
+  line-height: 99.9%;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.km,
+.lPetrol { text-transform: uppercase; }
+.row2 {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.driveParent {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-44);
+}
+.drive {
+  position: relative;
+  line-height: 99.9%;
+  text-transform: capitalize;
+  color: var(--color-white);
+}
+.allWheel {
+  position: relative;
+  line-height: 99.9%;
+  text-transform: uppercase;
+  color: var(--color-orange-100);
+}
+
+/* ── FOOTER ────────────────────────────────────────────────────────────────── */
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: var(--fs-14);
+  color: var(--color-whitesmoke);
+}
+.estimatedFinalCostToBulgarParent {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.estimatedFinalCost {
+  position: relative;
+  line-height: 99.9%;
+}
+.divFinalCost {
+  position: relative;
+  font-size: var(--fs-16);
+  text-transform: uppercase;
+  color: var(--color-orange-100);
+  line-height: 99.9%;
+  white-space: nowrap;
+}
+
+/* ── Mobile-only overlay elements (hidden on desktop by default). ──────── */
+.mobileImageOverlay { display: none; }
+.mobileTimerChip {}
+.mobileTimerClock {}
+.mobileTimerText {}
+.mobileActionIcons {}
+.mobileActionIcon {}
+
+/* ============================================================================
+ * MOBILE PIXEL-PERFECT (≤ 768 px) — Similar Cars carousel card per Figma
+ *
+ *   Per the May 2026 screenshot, the layout is:
+ *
+ *     ┌───────────────────────────────────────────┐
+ *     │  ▣ 1d:4h:35m              ⛶  ♡           │  ← image, full-bleed
+ *     │       [ car photo — 336 × 240 ]          │     timer chip top-LEFT
+ *     │                                          │     action icons top-RIGHT
+ *     └───────────────────────────────────────────┘
+ *      2025 Lucid Motors Air Pure                    ← title, H SemiBold ~26
+ *     ┌──────────────────┐  Mileage   65,900 KM     │
+ *     │  Purchase Price  │  Engine    4.6 L / …     │ ← info row, 2 cols
+ *     │  €20 000-30 000  │  Drive     ALL-WHEEL     │
+ *     └──────────────────┘                          │
+ *      Estimated final cost     ┌──────────────────┐
+ *      to Bulgaria:             │  MORE DETAILS    │ ← footer row
+ *      €50 000-70 000           └──────────────────┘
+ *
+ *   • Card: full width of section (336 px @ 360 viewport), no rounded
+ *     corners, no border, dark gray background only behind the info area
+ *   • Image: 336 × 240, edge-to-edge, no padding
+ *   • Timer chip: yellow filled #FEAE00, black text H Medium 14,
+ *     clock icon 14 × 14, 12 px from top-left of image, 4 px radius
+ *   • Action icons: 32 × 32 circular orange rings, 12 px gap, top-right of
+ *     image, 12 px from top-right
+ *   • Title: H SemiBold ≈ 24, white, 16 px below image, 0 padding L/R
+ *     (sits flush at 0 inside card — visual matches screenshot)
+ *   • Purchase Price box: padding 24 16, background #000 (dark inset),
+ *     label H Regular 18 white, value H Medium 16 orange uppercase
+ *   • Mileage / Engine / Drive: 3 stacked rows, label (#949494) left,
+ *     value (mileage orange, engine/drive orange) right
+ *   • MORE DETAILS button: 172 × 48, #FEAE00 filled, 4 px radius, H Medium
+ *     14 black uppercase
+ *   • Pagination: arrows in 40 × 40 orange filled CIRCLES, 24 px gap from
+ *     "01/10" label (H Medium 14 white)
+ * ========================================================================= */
+@media screen and (max-width: 768px) {
+  /* ── Card outer ───────────────────────────────────────────────────── */
+  .card,
+  .buttonParent {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    border-radius: 0;
+    flex-shrink: 0;
+  }
+  .buttonParent {
+    padding: 0;
+    gap: 0;                          /* control spacing per-section explicitly */
+    background-color: #1D1D1B;       /* unified gray surface under the image */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Image — full bleed 336 × 240 ─────────────────────────────────── */
+  .imageWrapper {
+    width: 100%;
+    height: 240px;
+    border-radius: 0;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    display: block;
+  }
+  .imageInner { inset: 0; }
+  .image15Icon { object-fit: cover; }
+
+  /* Hide the old desktop "Trading date" pill on mobile. */
+  .tradingDetails { display: none !important; }
+
+  /* ── MOBILE OVERLAYS (timer chip + action icons over the image) ───── */
+  .mobileImageOverlay {
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .mobileTimerChip {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    background-color: var(--color-orange-100);
+    color: #000;
+    border-radius: 4px;
+    pointer-events: auto;
+    box-sizing: border-box;
+  }
+  .mobileTimerClock {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    /* PNG already rendered in black on transparent — no filter needed. */
+  }
+  .mobileTimerText {
+    font-family: var(--font-mazzard);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    color: #000;
+    white-space: nowrap;
+  }
+  .mobileActionIcons {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+  .mobileActionIcon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  /* ── Hide the old in-body timer row (now in image overlay). ───────── */
+  .timerRow { display: none !important; }
+
+  /* ── Body — single gray-bg container under the image ──────────────── */
+  .body {
+    padding: 0;
+    gap: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: #1D1D1B;
+  }
+
+  /* ── Title block — sits cleanly on the gray surface BELOW the image
+   *    (16 px top padding so it doesn't kiss the image). ──────────── */
+  .titleBlock {
+    padding: 16px 16px 0;
+    gap: 0;
+    background-color: #1D1D1B;
+  }
+  .lucidMotorsAir {
+    margin: 0;
+    padding: 0;
+    font-size: 20px;                 /* H SemiBold 20 per spec */
+    font-weight: 600;
+    line-height: 1.2;
+    color: #FFFFFF;
+    border: 0;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  /* ── Details block — 2 col grid (Purchase Price box | M/E/D) ─────── */
+  .detailsBlock {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: min-content;
+    column-gap: 16px;
+    row-gap: 12px;
+    align-items: stretch;
+    padding: 16px;
+    margin: 16px 0 0;                /* 16 px gap from title block above */
+    background-color: #1D1D1B;
+    box-sizing: border-box;
+  }
+  .row1 { display: contents; }
+  .row2 { display: contents; }
+
+  .purchasePriceParent {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 121px;                    /* strict 121 × 78 per spec */
+    max-width: 121px;
+    height: 78px;
+    background-color: #000000;
+    padding: 8px 6px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    box-sizing: border-box;
+    justify-self: start;
+    align-self: center;
+  }
+  .purchasePrice {
+    font-size: 14px;
+    font-weight: 400;
+    color: #FFFFFF;
+    line-height: 1.1;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .priceSquaresParent {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .priceSquares { display: none; }
+  .h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-orange-100);
+    line-height: 1.1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .mileageEngineBlock {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    padding-top: 0;
+    width: 100%;
+  }
+  .driveParent {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .labelsCol, .valuesCol {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .labelsCol { align-items: flex-start; }
+  .valuesCol { align-items: flex-end; text-align: right; }
+  .mileage, .engine {
+    font-size: 12px !important;      /* H Regular 12 per spec */
+    font-weight: 400 !important;
+    color: #949494 !important;
+    line-height: 1.2;
+  }
+  .km {
+    font-size: 12px !important;      /* H Medium 12 per spec */
+    font-weight: 500 !important;
+    color: var(--color-orange-100) !important;
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .lPetrol {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: var(--color-orange-100) !important;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  .drive {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    color: #949494 !important;
+    line-height: 1.2;
+  }
+  .allWheel {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: var(--color-orange-100) !important;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  /* ── Footer — Estimated cost (left) + MORE DETAILS button (right) ── */
+  .footerRow {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 0;
+    border-top: 1px solid #555452;   /* divider between info and footer */
+    padding: 16px;
+    margin: 16px 0 0;
+    background-color: #1D1D1B;
+    box-sizing: border-box;
+  }
+  .estimatedFinalCostToBulgarParent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .estimatedFinalCost {
+    font-size: 12px;                 /* H Regular 12 per spec */
+    font-weight: 400;
+    color: #FFFFFF;
+    line-height: 1.3;
+  }
+  .divFinalCost {
+    font-size: 12px;                 /* H Medium 12 per spec */
+    font-weight: 500;
+    color: var(--color-orange-100);
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  /* MORE DETAILS button — strict 172 × 48 px, H Medium 12 px, radius 4 */
+  .footerRow button {
+    width: 172px !important;
+    max-width: 172px !important;
+    min-width: 0 !important;
+    height: 48px !important;
+    border-radius: 4px !important;
+    flex-shrink: 0;
+    padding: 0 !important;
+    background-color: var(--color-orange-100) !important;
+  }
+  .footerRow button > * {
+    width: auto !important;
+    max-width: 100% !important;
+    font-size: 12px !important;      /* H Medium 12 per spec */
+    font-weight: 500 !important;
+    color: #000 !important;
+    text-transform: uppercase !important;
+  }
+}

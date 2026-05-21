@@ -1,0 +1,146 @@
+/* ────────────────────────────────────────────────────────────────
+ * BIBI Cars — Adaptive i18n layout protection
+ *
+ * Bulgarian and Ukrainian translations are typically 20-50 % longer
+ * than the canonical English source. This stylesheet ensures that
+ * fixed-width admin / manager / team-lead chrome stays usable when
+ * any locale is active.
+ *
+ * General rules:
+ *   • Buttons / chips / nav items: become `min-width` driven and
+ *     allow horizontal padding instead of hard `width`.
+ *   • Long single-line labels: break gracefully (word-wrap, hyphens).
+ *   • Table headers / KPI labels: shrink font-size by 1px on narrow
+ *     viewports if locale is `bg` or `uk`.
+ *   • Modal titles + drawer headers: respect overflow with ellipsis
+ *     while preserving the existing layout.
+ *
+ * Scope: `.admin-layout *` and `body[data-app-area="admin"] *`. The
+ * public Figma-pixel site is NOT affected — locales already covered
+ * with bespoke per-component adaptive CSS.
+ * ──────────────────────────────────────────────────────────────── */
+
+/* 1. Word-break safety net for all admin chrome ------------------- */
+.admin-layout button,
+.admin-layout .btn,
+.admin-layout a[role="button"],
+.admin-layout .badge,
+.admin-layout .chip,
+.admin-layout .pill,
+.admin-layout [data-i18n-adaptive] {
+  /* allow flex / inline-block to grow horizontally so long BG/UK
+     translations don't get cut off; preserve original look on EN */
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+/* 2. KPI / stat cards: ensure value stays prominent --------------- */
+.admin-layout .kpi-label,
+.admin-layout .stat-label,
+.admin-layout .metric-label {
+  font-size: clamp(10px, 1vw, 12px);
+  line-height: 1.25;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 3. Sidebar nav items: scale font on long BG/UK strings ---------- */
+body[data-app-lang="bg"] .admin-layout nav a,
+body[data-app-lang="uk"] .admin-layout nav a,
+body[data-app-lang="bg"] .admin-layout .nav-item,
+body[data-app-lang="uk"] .admin-layout .nav-item {
+  font-size: 13px; /* fall back from 14 to fit longer labels */
+  line-height: 1.3;
+}
+
+/* 4. Table headers ------------------------------------------------- */
+.admin-layout table th {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+/* 5. Buttons: min-height + auto width on flex containers --------- */
+.admin-layout button[class*="px-"],
+.admin-layout a[class*="px-"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 6. Modal / dialog titles: ellipsis if overflow ------------------ */
+.admin-layout [role="dialog"] h1,
+.admin-layout [role="dialog"] h2,
+.admin-layout [role="dialog"] h3 {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* 7. Tab triggers (Radix) ----------------------------------------- */
+.admin-layout [role="tablist"] [role="tab"] {
+  white-space: normal;
+  word-break: break-word;
+  text-align: center;
+  padding-inline: 0.75rem;
+  min-width: 0;
+}
+
+/* 8. Dropdown menu items ------------------------------------------ */
+.admin-layout [role="menu"] [role="menuitem"],
+.admin-layout .dropdown-item {
+  white-space: normal;
+  word-break: break-word;
+  min-height: 32px;
+}
+
+/* 9. Form labels --------------------------------------------------- */
+.admin-layout label {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 10. Mobile (< 768px) tightening for BG / UK --------------------- */
+@media (max-width: 768px) {
+  body[data-app-lang="bg"] .admin-layout,
+  body[data-app-lang="uk"] .admin-layout {
+    font-size: 13px;
+  }
+  body[data-app-lang="bg"] .admin-layout h1,
+  body[data-app-lang="uk"] .admin-layout h1 {
+    font-size: clamp(18px, 4.5vw, 24px);
+    line-height: 1.2;
+  }
+  body[data-app-lang="bg"] .admin-layout h2,
+  body[data-app-lang="uk"] .admin-layout h2 {
+    font-size: clamp(16px, 4vw, 20px);
+  }
+}
+
+/* 11. Auto-detect long labels in flex toolbars -------------------- */
+.admin-layout .toolbar,
+.admin-layout .header-actions,
+.admin-layout .crm-toolbar {
+  flex-wrap: wrap !important;
+  gap: 8px;
+}
+
+/* 12. Ensure no horizontal overflow at the page level ------------- */
+.admin-layout {
+  overflow-x: hidden;
+}
+
+/* 13. Sticky table headers (preserve readability) ---------------- */
+.admin-layout thead th {
+  vertical-align: top;
+}
+
+/* 14. Tooltip text wrapping --------------------------------------- */
+.admin-layout [data-radix-tooltip-content],
+.admin-layout .tooltip-content {
+  max-width: 280px;
+  white-space: normal;
+}
+
+/* end i18n adaptive ------------------------------------------------ */

@@ -1,0 +1,256 @@
+/* =========================================================================
+ * BIBI Cars — ShareModal styles
+ *
+ * Dark single-car theme, no gradients, native components only. The colour
+ * palette mirrors the rest of SingleCarPage:
+ *   • background       : #1D1D1B  (modal card)
+ *   • backdrop         : rgba(0, 0, 0, 0.78)
+ *   • borders          : 1 px #2A2A28 / rgba(254,174,0,.25) for orange accents
+ *   • accent           : #FEAE00  (BIBI yellow)
+ *   • body text        : #FFFFFF / #949494 (secondary)
+ *   • typography       : Mazzard H (Bold/SemiBold/Medium/Regular)
+ * ====================================================================== */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: shm-fade 0.18s ease-out;
+}
+@keyframes shm-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  background: #1D1D1B;
+  border: 1px solid #2A2A28;
+  border-radius: 12px;
+  color: #FFFFFF;
+  font-family: 'Mazzard H', 'Mazzard', system-ui, -apple-system, sans-serif;
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(254, 174, 0, 0.08);
+  animation: shm-slide 0.22s cubic-bezier(.2,.7,.2,1);
+  overflow: hidden;
+}
+@keyframes shm-slide { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.closeBtn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: #FFFFFF;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  transition: background-color 0.15s ease;
+}
+.closeBtn:hover { background-color: rgba(255, 255, 255, 0.08); }
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.header {
+  padding: 24px 28px 0 28px;
+}
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #FFFFFF;
+}
+.subtitle {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #949494;
+  line-height: 1.45;
+}
+
+/* ── Vehicle card ───────────────────────────────────────────────────── */
+.vehicleCard {
+  margin: 20px 28px 0;
+  background: #16161A;
+  border: 1px solid #232325;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.vehicleImageWrap {
+  flex-shrink: 0;
+  width: 120px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #2A2A28;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vehicleImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.vehicleImagePlaceholder {
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.vehicleInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vehicleTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #FFFFFF;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.vehicleMeta {
+  font-size: 12px;
+  color: #949494;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  line-height: 1.3;
+}
+.vehiclePrice {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FEAE00;
+  letter-spacing: 0;
+}
+
+/* ── Link row ────────────────────────────────────────────────────────── */
+.linkRow {
+  margin: 16px 28px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #16161A;
+  border: 1px solid #232325;
+  border-radius: 8px;
+  padding: 0 0 0 12px;
+  height: 44px;
+}
+.linkInput {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-overflow: ellipsis;
+  min-width: 0;
+  padding: 0;
+}
+.copyBtn {
+  height: 100%;
+  padding: 0 18px;
+  border: 0;
+  background: #FEAE00;
+  color: #1A1A1A;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 0 8px 8px 0;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+.copyBtn:hover { background: #FFC233; }
+.copyBtn:disabled { opacity: 0.6; cursor: default; }
+.copyBtnCopied { background: #2A2A28; color: #FEAE00; }
+
+/* ── Channel buttons ────────────────────────────────────────────────── */
+.channels {
+  margin: 20px 28px 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.channelBtn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 8px;
+  background: #16161A;
+  border: 1px solid #232325;
+  border-radius: 10px;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+}
+.channelBtn:hover {
+  border-color: rgba(254, 174, 0, 0.5);
+  background: #1A1A1A;
+}
+.channelBtn:active { transform: scale(0.98); }
+.channelIcon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.channelLabel { line-height: 1; }
+
+.channelBtn[data-channel="facebook"] .channelIcon { color: #1877F2; }
+.channelBtn[data-channel="viber"] .channelIcon { color: #7360F2; }
+.channelBtn[data-channel="telegram"] .channelIcon { color: #2AABEE; }
+
+/* ── Toast / status note ────────────────────────────────────────────── */
+.statusNote {
+  margin: 0 28px 16px;
+  font-size: 12px;
+  color: #949494;
+  text-align: center;
+  min-height: 16px;
+}
+.statusNoteSuccess { color: #FEAE00; }
+.statusNoteError { color: #FF6B6B; }
+
+/* ── Mobile fallback ────────────────────────────────────────────────── */
+@media screen and (max-width: 520px) {
+  .modal { border-radius: 10px; }
+  .header { padding: 20px 20px 0; }
+  .vehicleCard { margin: 14px 20px 0; padding: 12px; gap: 10px; }
+  .vehicleImageWrap { width: 96px; height: 64px; }
+  .vehicleTitle { font-size: 14px; }
+  .linkRow { margin: 12px 20px 0; }
+  .channels { margin: 14px 20px 18px; gap: 8px; }
+  .channelBtn { padding: 12px 6px; font-size: 11px; }
+}

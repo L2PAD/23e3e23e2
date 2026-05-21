@@ -1,0 +1,267 @@
+/* GetInTouchModal — premium dark-glass modal matching BIBI Cars palette
+   Yellow #FEAE00 / black background / white text. Mazzard / Inter stack. */
+
+.git-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 16px;
+  overflow-y: auto;
+  animation: gitFadeIn 0.18s ease-out both;
+}
+
+@keyframes gitFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes gitSlideIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.git-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  margin: auto;
+  background:
+    radial-gradient(1200px 320px at 100% -10%, rgba(254, 174, 0, 0.10), transparent 60%),
+    radial-gradient(800px 240px at 0% 110%, rgba(254, 174, 0, 0.06), transparent 60%),
+    #0B0B0C;
+  border: 1px solid rgba(254, 174, 0, 0.22);
+  border-radius: 20px;
+  padding: 36px 36px 28px 36px;
+  color: #FFFFFF;
+  font-family: var(--bibi-font, 'Mazzard', 'Inter', system-ui, sans-serif);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.55),
+    0 8px 24px rgba(254, 174, 0, 0.12);
+  animation: gitSlideIn 0.24s ease-out both;
+}
+
+.git-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #FFFFFF;
+  font-size: 22px;
+  line-height: 1;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+.git-modal-close:hover {
+  background: rgba(254, 174, 0, 0.12);
+  border-color: #FEAE00;
+  color: #FEAE00;
+}
+
+.git-modal-header {
+  margin-bottom: 18px;
+  text-align: left;
+}
+.git-modal-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #FEAE00;
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
+}
+.git-modal-subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #B8B8BA;
+  max-width: 440px;
+}
+
+.git-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.git-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.git-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #B8B8BA;
+}
+.git-req { color: #FEAE00; }
+
+.git-input {
+  width: 100%;
+  background: #0F0F11;
+  border: 1px solid #232326;
+  border-radius: 10px;
+  padding: 0 14px;
+  height: 46px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #FFFFFF;
+  outline: none;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+.git-input::placeholder { color: #6B6B6F; }
+.git-input:focus {
+  border-color: #FEAE00;
+  background: #121214;
+  box-shadow: 0 0 0 3px rgba(254, 174, 0, 0.18);
+}
+.git-textarea {
+  height: auto;
+  padding: 12px 14px;
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+}
+/* Hide native number spinners */
+.git-input[type="number"]::-webkit-outer-spin-button,
+.git-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.git-input[type="number"] { -moz-appearance: textfield; }
+
+.git-budget-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.git-input--budget { flex: 1 1 auto; }
+
+.git-currency {
+  display: inline-flex;
+  border: 1px solid #232326;
+  border-radius: 10px;
+  padding: 4px;
+  background: #0F0F11;
+}
+.git-currency-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #B8B8BA;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0 12px;
+  height: 36px;
+  min-width: 56px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.git-currency-btn:hover { color: #FEAE00; }
+.git-currency-btn.is-active {
+  background: #FEAE00;
+  color: #000000;
+}
+
+.git-error {
+  background: rgba(220, 38, 38, 0.10);
+  border: 1px solid rgba(220, 38, 38, 0.40);
+  color: #FCA5A5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.git-submit {
+  margin-top: 6px;
+  appearance: none;
+  border: none;
+  height: 50px;
+  width: 100%;
+  border-radius: 10px;
+  background: #FEAE00;
+  color: #000000;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 0.18s ease, transform 0.08s ease;
+}
+.git-submit:hover:not(:disabled) { filter: brightness(1.08); }
+.git-submit:active:not(:disabled) { transform: translateY(1px); }
+.git-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.git-disclaimer {
+  margin: 6px 0 0;
+  text-align: center;
+  font-size: 11.5px;
+  color: #6B6B6F;
+}
+.git-disclaimer a,
+.git-disclaimer .git-policy-link {
+  color: #B8B8BA;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.git-disclaimer .git-policy-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.git-disclaimer a:hover,
+.git-disclaimer .git-policy-link:hover { color: #FEAE00; }
+
+/* Success state */
+.git-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px 8px 4px;
+  gap: 14px;
+}
+.git-success-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(254, 174, 0, 0.12);
+  color: #FEAE00;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  border: 2px solid rgba(254, 174, 0, 0.40);
+}
+.git-success .git-modal-title { color: #FEAE00; }
+.git-success .git-submit { max-width: 220px; }
+
+/* Mobile */
+@media (max-width: 560px) {
+  .git-modal-card { padding: 28px 20px 22px; border-radius: 16px; }
+  .git-modal-title { font-size: 24px; }
+  .git-budget-row { flex-direction: column; }
+  .git-currency { align-self: stretch; justify-content: stretch; }
+  .git-currency-btn { flex: 1 1 50%; }
+}

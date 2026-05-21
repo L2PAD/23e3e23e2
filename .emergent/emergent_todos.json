@@ -1,0 +1,26 @@
+[
+  {
+    "content": "Backup existing /app .env files",
+    "status": "completed"
+  },
+  {
+    "content": "Copy cloned repo into /app preserving .env files",
+    "status": "completed"
+  },
+  {
+    "content": "Install backend Python dependencies",
+    "status": "completed"
+  },
+  {
+    "content": "Install frontend Node dependencies (yarn)",
+    "status": "completed"
+  },
+  {
+    "content": "Restart backend & frontend services and verify logs",
+    "status": "completed"
+  },
+  {
+    "content": "Verify app loads via preview URL",
+    "status": "completed"
+  }
+]
