@@ -73,21 +73,17 @@ const FrameComponent20 = ({ className = "", onChange }) => {
     const controller = new AbortController();
     (async () => {
       try {
-        const { data } = await axios.get(`${API}/api/public/featured`, {
-          // The live source caps results around ~12; using a sane upper
-          // bound (24) reliably returns ALL available lots. Larger
-          // values (50+) currently make the endpoint return an empty
-          // page, so we keep the request in the working band.
-          params: { limit: 24 },
+        // Use /api/public/vehicles?limit=1 — we just need the `total`
+        // field which is the real, live count of vehicles in the DB.
+        // Previously we hit /api/public/featured which returns a max of
+        // ~24 items and undercounts the catalogue.
+        const { data } = await axios.get(`${API}/api/public/vehicles`, {
+          params: { limit: 1 },
           signal: controller.signal,
           timeout: 15000,
         });
-        const items = Array.isArray(data?.items) ? data.items : [];
-        // Some backend versions also surface a numeric `count`; trust
-        // whichever is larger so we don't undercount when the page
-        // returns the items array AND a count field.
-        const apiCount = Number.isFinite(data?.count) ? Number(data.count) : 0;
-        setCount(Math.max(items.length, apiCount));
+        const apiTotal = Number.isFinite(data?.total) ? Number(data.total) : 0;
+        setCount(apiTotal);
       } catch (e) {
         if (e?.name !== "CanceledError" && e?.code !== "ERR_CANCELED") {
           // Parser failed → truthful 0 per spec.

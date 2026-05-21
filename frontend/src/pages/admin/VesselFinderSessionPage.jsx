@@ -125,6 +125,14 @@ export default function VesselFinderSessionPage() {
   const [extError, setExtError] = useState(null);
   const [newSecret, setNewSecret] = useState(null);     // last secret returned by bootstrap/rotate
   const [copiedField, setCopiedField] = useState(null);
+  // Shared HMAC secret (baked into Vessel Sync ext, from backend .env)
+  const [sharedSecret, setSharedSecret] = useState(null);
+  const [sharedSecretVisible, setSharedSecretVisible] = useState(false);
+  // Locally-cached secrets from previous Generate clicks — backend stores
+  // only the hash, so we keep the plaintext in localStorage so the admin
+  // can re-copy it after refreshing the page (the user explicitly asked
+  // not to lose access to the secret after the modal is dismissed).
+  const [cachedSecrets, setCachedSecrets] = useState({});
 
   // ---- data loaders ----
   const loadStatus = useCallback(async () => {
@@ -167,14 +175,59 @@ export default function VesselFinderSessionPage() {
     }
   }, []);
 
+  // Load the server-wide HMAC shared secret (baked into Vessel Sync ext).
+  // Persists across page reloads because the value lives in .env on the
+  // backend — it's NOT stored in MongoDB.
+  const loadSharedSecret = useCallback(async () => {
+    try {
+      const r = await axios.get(`${API_URL}/api/admin/ext-clients/shared-secret`, { headers: authHeaders() });
+      setSharedSecret(r.data || null);
+    } catch (e) {
+      setSharedSecret({ configured: false, error: e?.response?.data?.detail || e.message });
+    }
+  }, []);
+
+  // Load locally-cached per-client secrets (the plaintext Generate showed
+  // once and we kept).  Keyed by clientId.  Stored in localStorage so the
+  // admin can recover them after refreshing or closing the browser.
+  const CACHE_KEY = 'bibi.extClientSecrets.v1';
+  const loadCachedSecrets = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      setCachedSecrets(raw ? JSON.parse(raw) : {});
+    } catch { setCachedSecrets({}); }
+  }, []);
+
+  const cacheSecret = (clientId, secret, name) => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      const cur = raw ? JSON.parse(raw) : {};
+      cur[clientId] = { secret, name, savedAt: new Date().toISOString() };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cur));
+      setCachedSecrets(cur);
+    } catch {}
+  };
+
+  const forgetCachedSecret = (clientId) => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      const cur = raw ? JSON.parse(raw) : {};
+      delete cur[clientId];
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cur));
+      setCachedSecrets(cur);
+    } catch {}
+  };
+
   useEffect(() => {
     loadStatus();
     loadShipments();
     loadExtClients();
+    loadSharedSecret();
+    loadCachedSecrets();
     const t1 = setInterval(loadStatus, 10000);
     const t2 = setInterval(loadShipments, 30000);
     return () => { clearInterval(t1); clearInterval(t2); };
-  }, [loadStatus, loadShipments, loadExtClients]);
+  }, [loadStatus, loadShipments, loadExtClients, loadSharedSecret, loadCachedSecrets]);
 
   // ---- actions ----
   const bootstrapExtClient = async () => {
@@ -190,6 +243,8 @@ export default function VesselFinderSessionPage() {
       if (created?.secret) {
         // Bootstrap returned a NEW client → secret is shown ONLY this once
         setNewSecret({ clientId: created.clientId, secret: created.secret, name: created.name });
+        // Also cache so the admin can re-copy after refresh
+        cacheSecret(created.clientId, created.secret, created.name);
       }
       await loadExtClients();
     } catch (e) {
@@ -211,6 +266,7 @@ export default function VesselFinderSessionPage() {
       );
       if (r.data?.secret) {
         setNewSecret({ clientId, secret: r.data.secret, name: r.data.name });
+        cacheSecret(clientId, r.data.secret, r.data.name);
       }
       await loadExtClients();
     } catch (e) {
@@ -585,22 +641,22 @@ export default function VesselFinderSessionPage() {
       {/* ================ EXTENSION KEYS ================
           The auction-parser extension (BIBI Cars) needs a `clientId` and a
           `secret` to HMAC-sign its requests.  This panel:
-            • Lists every active ext-client (created via /bootstrap).
-            • Lets the operator copy the clientId for that machine.
-            • Lets the operator generate / rotate a secret — secrets are
-              shown ONCE (we only store the salted hash on the server).
-          The Vessel Sync extension has its secret baked at build time and
-          does NOT need anything from here. */}
+            • Surfaces the server-wide EXT_SHARED_SECRET (baked into the
+              Vessel Sync extension at build time) so the admin can copy
+              it into the popup without rebuilding the ZIP.
+            • Lists every active per-machine ext-client (created via
+              /bootstrap) and shows the LOCALLY-CACHED secret (we keep the
+              plaintext in localStorage so it survives page reload — the
+              server only stores the salted hash).
+            • Lets the admin generate / rotate at any time. */}
       <section className="rounded-2xl border border-[#E4E4E7] bg-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-[15px] font-semibold text-[#18181B]">Extension keys (BIBI Cars parser)</h3>
+            <h3 className="text-[15px] font-semibold text-[#18181B]">Extension keys</h3>
             <p className="mt-1 text-[12.5px] text-[#71717A] max-w-2xl">
-              Paste these into the BIBI Cars extension popup → fields
-              <b className="text-[#18181B]"> Client ID </b> and
-              <b className="text-[#18181B]"> Client Secret</b>.
-              The Vessel Sync extension does <b>NOT</b> need anything here —
-              its secret is baked at build time.
+              Vessel Sync uses the <b className="text-[#18181B]">Shared HMAC secret</b> below.
+              The BIBI Cars (auction parser) extension uses
+              <b className="text-[#18181B]"> per-machine</b> client IDs/secrets — generate them in the second block.
             </p>
           </div>
           <button
@@ -611,6 +667,52 @@ export default function VesselFinderSessionPage() {
           >
             + Generate new client
           </button>
+        </div>
+
+        {/* ── Shared HMAC secret ── (always visible, never lost) ── */}
+        <div className="mb-4 rounded-xl border border-[#0EA5E9] bg-[#F0F9FF] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div>
+              <h4 className="text-[13px] font-semibold text-[#0C4A6E]">
+                Shared HMAC secret  &nbsp;<span className="text-[10.5px] font-normal text-[#0369A1]">(Vessel Sync · always available)</span>
+              </h4>
+              <div className="text-[11.5px] text-[#0369A1] mt-0.5">
+                {sharedSecret?.configured
+                  ? <>Source: <code className="bg-white border border-[#BAE6FD] rounded px-1">{sharedSecret.source}</code>  •  Fingerprint: <code className="bg-white border border-[#BAE6FD] rounded px-1">{sharedSecret.fingerprint}…</code>  •  Length: {sharedSecret.length}</>
+                  : 'EXT_SHARED_SECRET is NOT set in backend .env — Vessel Sync extension cannot HMAC-sign requests until you set it.'}
+              </div>
+            </div>
+            {sharedSecret?.configured && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSharedSecretVisible(v => !v)}
+                  className="text-[11px] px-2 py-1 rounded border border-[#7DD3FC] bg-white text-[#0C4A6E] hover:bg-[#F0F9FF] font-semibold"
+                >
+                  {sharedSecretVisible ? 'Hide' : 'Show'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(sharedSecret.secret, 'shared-secret')}
+                  className="text-[11px] px-2 py-1 rounded bg-[#0284C7] text-white hover:bg-[#0369A1] font-semibold"
+                  data-testid="vf-shared-secret-copy"
+                >
+                  {copiedField === 'shared-secret' ? '✓ Copied!' : '📋 Copy'}
+                </button>
+              </div>
+            )}
+          </div>
+          {sharedSecret?.configured && (
+            <code
+              className="block bg-white border border-[#BAE6FD] rounded px-2 py-1.5 text-[12px] text-[#0C4A6E] break-all font-mono"
+              data-testid="vf-shared-secret-value"
+            >
+              {sharedSecretVisible ? sharedSecret.secret : '•'.repeat(Math.min(48, sharedSecret.length || 48))}
+            </code>
+          )}
+          {sharedSecret?.usage && (
+            <div className="mt-2 text-[11.5px] text-[#075985] leading-relaxed">{sharedSecret.usage}</div>
+          )}
         </div>
 
         {extError && (
@@ -670,7 +772,7 @@ export default function VesselFinderSessionPage() {
         {/* List of existing clients */}
         {extClients.length === 0 ? (
           <div className="text-[12.5px] text-[#71717A] py-2">
-            No extension clients yet. Click <b>Generate new client</b> above to create one.
+            No per-machine extension clients yet. Click <b>Generate new client</b> above to create one (only needed for the <b>BIBI Cars (auction parser)</b> extension — Vessel Sync uses the shared secret above).
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -679,15 +781,18 @@ export default function VesselFinderSessionPage() {
                 <tr className="text-left text-[10.5px] uppercase tracking-wider text-[#71717A] border-b border-[#E4E4E7]">
                   <th className="py-2 pr-3 font-semibold">Client ID</th>
                   <th className="py-2 pr-3 font-semibold">Name</th>
-                  <th className="py-2 pr-3 font-semibold">Manager email</th>
+                  <th className="py-2 pr-3 font-semibold">Secret (cached locally)</th>
                   <th className="py-2 pr-3 font-semibold">Status</th>
                   <th className="py-2 pr-3 font-semibold">Created</th>
                   <th className="py-2 pr-3 font-semibold text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {extClients.map((c) => (
-                  <tr key={c.clientId} className="border-b border-[#F4F4F5]">
+                {extClients.map((c) => {
+                  const cached = cachedSecrets[c.clientId];
+                  const revealKey = `reveal-${c.clientId}`;
+                  return (
+                  <tr key={c.clientId} className="border-b border-[#F4F4F5] align-top">
                     <td className="py-2 pr-3">
                       <div className="flex items-center gap-2">
                         <code className="text-[12px] text-[#18181B] break-all">{c.clientId}</code>
@@ -701,7 +806,45 @@ export default function VesselFinderSessionPage() {
                       </div>
                     </td>
                     <td className="py-2 pr-3 text-[#18181B]">{c.name || '—'}</td>
-                    <td className="py-2 pr-3 text-[#71717A]">{c.managerEmail || '—'}</td>
+                    <td className="py-2 pr-3">
+                      {cached ? (
+                        <div className="flex items-center gap-2">
+                          <code
+                            className="text-[11.5px] text-[#166534] bg-[#F0FDF4] border border-[#86EFAC] rounded px-1.5 py-0.5 break-all"
+                            style={{
+                              filter: copiedField === revealKey ? 'none' : 'blur(4px)',
+                              transition: 'filter 0.15s ease',
+                              maxWidth: 180,
+                              display: 'inline-block',
+                            }}
+                            onMouseEnter={() => setCopiedField(revealKey)}
+                            onMouseLeave={() => setCopiedField(null)}
+                            title="Hover to reveal · click 'copy' to grab"
+                          >
+                            {cached.secret}
+                          </code>
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(cached.secret, `cached-${c.clientId}`)}
+                              className="text-[10.5px] text-[#166534] underline hover:no-underline whitespace-nowrap"
+                            >
+                              {copiedField === `cached-${c.clientId}` ? '✓ copied' : 'copy'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { if (window.confirm('Forget this secret from local cache?')) forgetCachedSecret(c.clientId); }}
+                              className="text-[10.5px] text-[#B91C1C] underline hover:no-underline whitespace-nowrap"
+                              title="Remove from local cache. The client itself stays active on the server."
+                            >
+                              forget
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-[#A1A1AA] italic">not cached — rotate to issue a new one</span>
+                      )}
+                    </td>
                     <td className="py-2 pr-3">
                       {c.active ? (
                         <span className="inline-block px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#166534] text-[10.5px] font-semibold">active</span>
@@ -723,7 +866,8 @@ export default function VesselFinderSessionPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

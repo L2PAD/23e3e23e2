@@ -182,17 +182,41 @@ const Card1 = ({
   }, []);
 
   // Resolve display values
+  // The backend `/api/public/vehicles` row uses `images` (array), `current_bid`
+  // (numeric, with `current_bid_currency`) and `drivetrain` — Card1 maps those
+  // to the slot names used in the UI.  When a field is missing we render an
+  // em-dash rather than mock data: the user explicitly asked to remove every
+  // hard-coded "20,000-30,000 EURO" / "65 900 KM" / Lucid placeholder.
   const vin = data?.vin || null;
-  const title = data?.title || titleProp || "2025 Lucid Motors Air Pure";
-  const image = data?.image || image15 || FALLBACK_IMG;
-  const auctionName = data?.auction_name || "IAAI";
+  const title = data?.title || titleProp || '';
+  const imagesArr = Array.isArray(data?.images) ? data.images.filter(Boolean) : [];
+  const image = imagesArr[0] || data?.image || image15 || FALLBACK_IMG;
+  const auctionName = data?.auction_name || data?.auction || '';
   const lotNumber = data?.lot_number;
-  const purchasePrice = fmtPrice(data?.price ?? purchasePriceProp ?? "20,000-30,000 EURO", t.onRequest);
-  const mileage = data ? fmtKm(data.odometer, data.odometer_unit) : (mileageProp || "65 900 KM");
-  const engine = data?.engine || engineProp || (data?.fuel_type ? data.fuel_type : "—");
-  const drive = data?.drivetrain || driveProp || data?.condition || "—";
-  const finalCost = finalCostProp || "50,000-70,000 EURO";
-  const tradingDate = tradingDateProp || (lotNumber ? `${t.lotPrefix} - ${lotNumber}` : `${t.auctionPrefix} - ${auctionName}`);
+  // Real price comes from `current_bid` + `current_bid_currency` (USD by
+  // default).  Fall back to the older `price` field for legacy rows, then
+  // to "On request" when neither is present.  No mock EUR range.
+  const fmtCurrentBid = () => {
+    if (data && Number.isFinite(Number(data.current_bid))) {
+      const v = Number(data.current_bid);
+      const cur = (data.current_bid_currency || 'USD').toUpperCase();
+      const sym = cur === 'USD' ? '$' : cur === 'EUR' ? '€' : '';
+      try { return `${sym}${v.toLocaleString('en-US')}${sym ? '' : ' ' + cur}`; }
+      catch { return `${sym}${v}${sym ? '' : ' ' + cur}`; }
+    }
+    return null;
+  };
+  const purchasePrice = fmtCurrentBid()
+    || fmtPrice(data?.price ?? purchasePriceProp, t.onRequest)
+    || t.onRequest;
+  const mileage = data ? fmtKm(data.odometer, data.odometer_unit) : (mileageProp || '—');
+  // `engine` from backend is "1.6l 4" / "3.5l 6" — show that verbatim.
+  const engine = data?.engine || engineProp || '—';
+  const drive  = data?.drivetrain || driveProp || '—';
+  // `finalCost` block was a sales-tool teaser; only show if explicitly passed.
+  const finalCost = finalCostProp || null;
+  const tradingDate = tradingDateProp
+    || (lotNumber ? `${t.lotPrefix} - ${lotNumber}` : (auctionName ? `${t.auctionPrefix} - ${auctionName}` : ''));
 
   /* ── real-time countdown ── */
   const saleAt = useMemo(() => parseSaleDate(data?.sale_date), [data?.sale_date]);
@@ -400,10 +424,12 @@ const Card1 = ({
       </div>
 
       <div className={styles.footer}>
-        <div className={styles.finalCostBlock}>
-          <span className={styles.finalCostLabel}>{t.estimatedFinalCostToBulgaria}</span>
-          <span className={styles.finalCostValue}>{finalCost}</span>
-        </div>
+        {finalCost && (
+          <div className={styles.finalCostBlock}>
+            <span className={styles.finalCostLabel}>{t.estimatedFinalCostToBulgaria}</span>
+            <span className={styles.finalCostValue}>{finalCost}</span>
+          </div>
+        )}
         {detailHref ? (
           <Link to={detailHref} className={styles.ctaBtn} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
             {ctaLabel || t.moreDetails}

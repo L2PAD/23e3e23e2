@@ -31,8 +31,15 @@ const PLACEHOLDER_IMGS = [
 ];
 
 const FrameComponent21 = ({ className = "" }) => {
-  const [items, setItems] = useState(null); // null = loading
-  const [expanded, setExpanded] = useState(false);
+  const [items, setItems] = useState(null);    // null = first load
+  const [total, setTotal] = useState(0);       // total cars in the DB
+  // Welcome page is now backed by the FULL `/api/public/vehicles` catalogue
+  // — not the trimmed `/api/public/featured` block.  Per product spec we
+  // start with 6 cards (2 rows × 3 cols, no scroll on first load) and load
+  // the next 6 each time the user clicks "MORE VEHICLES +".
+  const PAGE_SIZE = 6;
+  const [loadedPages, setLoadedPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const { lang } = useLang();
   const isBg = lang === "bg";
@@ -42,28 +49,47 @@ const FrameComponent21 = ({ className = "" }) => {
   const [cmpSet, setCmpSet] = useState(new Set());
   const [cmpCount, setCmpCount] = useState(0);
 
-  /* ── Load real lots ─────────────────────────────────────────────── */
+  /* ── Load vehicles from the full catalogue ───────────────────────── */
+  const loadPage = useCallback(async (page) => {
+    const offset = (page - 1) * PAGE_SIZE;
+    const { data } = await axios.get(`${API}/api/public/vehicles`, {
+      params: { limit: PAGE_SIZE, offset },
+      timeout: 18000,
+    });
+    return {
+      items: Array.isArray(data?.data) ? data.data : (Array.isArray(data?.items) ? data.items : []),
+      total: Number.isFinite(data?.total) ? Number(data.total) : 0,
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await axios.get(`${API}/api/public/featured`, {
-          params: { limit: 12 },
-          timeout: 18000,
-        });
-        if (!cancelled) {
-          const arr = Array.isArray(data?.items) ? data.items : [];
-          setItems(arr);
-        }
+        const { items: arr, total: t } = await loadPage(1);
+        if (!cancelled) { setItems(arr); setTotal(t); }
       } catch (e) {
-        if (!cancelled) {
-          setError(e?.message || "fetch failed");
-          setItems([]);
-        }
+        if (!cancelled) { setError(e?.message || "fetch failed"); setItems([]); }
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [loadPage]);
+
+  const onLoadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = loadedPages + 1;
+      const { items: more, total: t } = await loadPage(nextPage);
+      setItems((cur) => [...(cur || []), ...more]);
+      setLoadedPages(nextPage);
+      if (t) setTotal(t);
+    } catch (e) {
+      setError(e?.message || "fetch failed");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   /* ── Load favorites + compare once (silent on guest) ─────────────── */
   const loadEngagement = useCallback(async () => {
@@ -106,20 +132,19 @@ const FrameComponent21 = ({ className = "" }) => {
     setCmpCount((c) => Math.max(0, c + (next ? 1 : -1)));
   }, []);
 
-  const toggleExpand = useCallback(() => setExpanded((v) => !v), []);
-
   /* ── Build rows ───────────────────────────────────────────────────── */
   const live = items && items.length > 0 ? items : null;
-  const visibleCount = expanded ? 12 : 6;
+  const visibleCount = live ? live.length : 6;
   const rows = [];
   if (live) {
-    const slice = live.slice(0, visibleCount);
-    for (let i = 0; i < slice.length; i += 3) rows.push(slice.slice(i, i + 3));
+    for (let i = 0; i < live.length; i += 3) rows.push(live.slice(i, i + 3));
   } else {
     rows.push([0, 1, 2]);
     rows.push([3, 4, 5]);
   }
-  const hasMoreToShow = live ? live.length > 6 : false;
+  // Show the "more vehicles +" button while server still has unloaded
+  // pages — once we've fetched all `total` records we hide it.
+  const hasMoreToShow = live ? (live.length < total) : false;
 
   // Reusable BIBI tilt-parallax for the car cards. The `:scope .${...}`
   // selector reaches into both rows since the IO is one-shot per card.
@@ -128,14 +153,8 @@ const FrameComponent21 = ({ className = "" }) => {
   const blockRef = useRef(null);
   useTiltParallax(blockRef, {
     cardsSelector: `:scope .${styles.carBlock}`,
-    // Entry animation is owned by the site-wide `reveal--fade-up` cascade
-    // (see the <section> elements below). Without this flag, tilt-card
-    // and reveal--fade-up race for opacity/transform → cards flicker
-    // and the entry animation only plays "sometimes" depending on which
-    // observer fires first. `skipEntry` keeps the hover/tilt behavior
-    // while letting reveal--fade-up own the entry.
     skipEntry: true,
-    deps: [live, expanded],
+    deps: [live, loadedPages],
   });
 
   // Viewport observer for the section — flips `inView` once the deals
@@ -195,22 +214,31 @@ const FrameComponent21 = ({ className = "" }) => {
         ))}
 
         {hasMoreToShow && (
-          <div style={{ display: "flex", justifyContent: "center", padding: "32px 0 0" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "32px 0 0", gap: 6 }}>
             <button
               type="button"
-              onClick={toggleExpand}
+              onClick={onLoadMore}
+              disabled={loadingMore}
               data-testid="top-deals-more-toggle"
               style={{
                 background: "transparent", border: 0, color: "#FEAE00",
                 fontFamily: "var(--font-mazzard)", fontSize: 18, fontWeight: 500,
                 letterSpacing: "0.06em", textTransform: "uppercase",
-                textDecoration: "underline", cursor: "pointer", padding: "8px 12px",
+                textDecoration: "underline", cursor: loadingMore ? "wait" : "pointer", padding: "8px 12px",
+                opacity: loadingMore ? 0.5 : 1,
               }}
             >
-              {expanded
-                ? (isBg ? "по-малко автомобили −" : "less vehicles −")
+              {loadingMore
+                ? (isBg ? "зареждам…" : "loading…")
                 : (isBg ? "още автомобили +" : "more vehicles +")}
             </button>
+            {total > 0 && (
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", letterSpacing: "0.04em" }}>
+                {isBg
+                  ? `${visibleCount} / ${total} автомобила`
+                  : `${visibleCount} of ${total} vehicles`}
+              </div>
+            )}
           </div>
         )}
       </div>

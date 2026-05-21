@@ -89,7 +89,45 @@ router = APIRouter(
 )
 
 
-# ── 1/5 ───────────────────────────────────────────────────────
+# ── 0/6 ───────────────────────────────────────────────────────
+# Server-wide HMAC shared secret (loaded from EXT_SHARED_SECRET env)
+# ───────────────────────────────────────────────────────────────
+# This is the secret that is BAKED INTO the Vessel Sync extension at
+# build time.  Every Vessel Sync popup signs requests with it.  Per-client
+# secrets (created by /bootstrap below) are stored hashed and CAN'T be
+# recovered later — admins need a persistent place to read this one back.
+@router.get("/shared-secret")
+async def ext_shared_secret(current_user: dict = Depends(require_admin)):
+    """Return the server-wide EXT_SHARED_SECRET used by Vessel Sync ext.
+
+    This is intentionally readable by any admin (not master-only) because
+    operators need to copy it into the extension popup on every fresh
+    install.  The value is *not* persisted in MongoDB — it lives in the
+    backend's environment (.env → EXT_SHARED_SECRET) and is the same
+    secret that was injected into the Vessel Sync ZIP via build.sh.
+    """
+    import os as _os
+    secret = (_os.environ.get("EXT_SHARED_SECRET") or "").strip()
+    # Fingerprint for sanity-checking against the ZIP build.sh output
+    fp = ""
+    if secret:
+        import hashlib as _hashlib
+        fp = _hashlib.sha256(secret.encode()).hexdigest()[:16]
+    return {
+        "configured": bool(secret),
+        "secret": secret,
+        "fingerprint": fp,
+        "length": len(secret),
+        "source": ".env (EXT_SHARED_SECRET)",
+        "usage": (
+            "Paste this value into the BIBI Vessel Sync extension popup "
+            "→ field 'HMAC Secret'.  The 'Client ID' field stays at the "
+            "default 'bibi-vf-ext' unless you create a per-machine client."
+        ),
+    }
+
+
+# ── 1/6 ───────────────────────────────────────────────────────
 @router.post("")
 async def ext_client_create(
     payload: _ExtClientCreate,
