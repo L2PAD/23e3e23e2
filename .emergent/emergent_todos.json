@@ -1,26 +1,18 @@
 [
   {
-    "content": "Phase 1: Проверить контракт /api/public/vehicles — total с учётом фильтров",
+    "content": "Пофиксить Before/After + Reviews горизонтальный свайп (touch-action: pan-x)",
     "status": "completed"
   },
   {
-    "content": "Phase 2: MobileTopVehicleDeals — фильтрация по vehicle_type + price_min/price_max, lazy paging",
+    "content": "Vehicle type apiType: motorbike/sedan/suv/pickup/van (подогнать под backend keys)",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Реальный счётчик 01/<filtered_total> + PROPOSALS - <filtered_total>",
+    "content": "Vehicle type active icon — чёрная внутри при активе (визуальная проверка)",
     "status": "completed"
   },
   {
-    "content": "Phase 3: optimizeImage.js helper (weserv.nl proxy → webp + resize)",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 3: Интегрировать optimizeImage везде (mobile deals, hero, B/A, reviews, desktop catalog)",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 4: Проверить свайп + лэзи подгрузку + оптимизацию",
+    "content": "MobileCarSearch brand dropdown — не срезать и возврат в исходное",
     "status": "completed"
   }
 ]

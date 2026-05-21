@@ -1834,11 +1834,11 @@ function MobileSearchFromAmericaKorea({ t }) {
  * the Calculator's vehCardActive style).
  */
 const VEHICLE_TYPES = [
-  { id: 'motorbike', kind: 'mask', src: '/figma/calc/veh-motorbike.png', label: 'Motorbike', apiType: 'motorcycle' },
+  { id: 'motorbike', kind: 'mask', src: '/figma/calc/veh-motorbike.png', label: 'Motorbike', apiType: 'motorbike' },
   { id: 'sedan',     kind: 'mask', src: '/figma/calc/veh-sedan.png',     label: 'Sedan',     apiType: 'sedan' },
   { id: 'suv',       kind: 'mask', src: '/figma/calc/veh-suv.png',       label: 'SUV',       apiType: 'suv' },
   { id: 'pickup',    kind: 'mask', src: '/figma/calc/veh-pickup.png',    label: 'Pick-up',   apiType: 'pickup' },
-  { id: 'van',       kind: 'mask', src: '/figma/calc/veh-van.png',       label: 'Van',       apiType: 'bigSUV' },
+  { id: 'van',       kind: 'mask', src: '/figma/calc/veh-van.png',       label: 'Van',       apiType: 'van' },
 ];
 
 const PRICE_TABS = [
@@ -2795,11 +2795,10 @@ function MobileCarSearch({
                 <input
                   data-testid="mobile-brand-search"
                   type="text"
-                  autoFocus
                   value={brandQuery}
                   onChange={(e) => setBrandQuery(e.target.value)}
                   placeholder={t?.searchBrand || 'Search brand...'}
-                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontFamily: FONT, fontSize: 14 }}
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontFamily: FONT, fontSize: 16 /* >=16px prevents iOS auto-zoom */ }}
                 />
               </div>
               <div style={{ overflowY: 'auto', maxHeight: 230 }}>
@@ -2914,7 +2913,7 @@ function YearSelect({ value, onChange, placeholder, years, testid }) {
         style={{
           width: '100%', height: 48, background: '#000', border: '1px solid #2a2a28',
           borderRadius: 6, color: value ? '#fff' : '#7a7a78',
-          fontFamily: FONT, fontSize: 14, padding: '0 36px 0 14px',
+          fontFamily: FONT, fontSize: 16 /* >=16px prevents iOS auto-zoom on select */, padding: '0 36px 0 14px',
           appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
           cursor: 'pointer', boxSizing: 'border-box',
         }}
@@ -4955,10 +4954,13 @@ function MobileBeforeAndAfter({ items, activeIdx, setActiveIdx, t }) {
           overflowY: 'hidden',
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-x',
+          overscrollBehaviorX: 'contain',
           /* user spec: 12 L/R on welcome mobile (peek of next card preserved) */
           paddingLeft: 12,
           paddingRight: 12,
           scrollbarWidth: 'none',
+          cursor: 'grab',
         }}
       >
         <style>{`
@@ -5503,9 +5505,12 @@ function MobileOurClientsSay({ reviews, googleRating, googleReviewsCount, active
           overflowY: 'hidden',
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-x',
+          overscrollBehaviorX: 'contain',
           paddingLeft: 12,                        /* user spec: 12 L/R on welcome mobile */
           paddingRight: 12,
           scrollbarWidth: 'none',
+          cursor: 'grab',
         }}
       >
         <style>{`
