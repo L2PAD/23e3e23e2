@@ -13,6 +13,7 @@ import { useLang } from '../../i18n';
 import { renderKpiWithRolling } from '../../components/RollingNumber';
 import { useTiltParallax } from '../../components/useTiltParallax';
 import AnimatedHeading from '../../components/AnimatedHeading';
+import { optimizeImage, ImageSize } from '../../lib/optimizeImage';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -544,7 +545,7 @@ export default function MobileHomePage() {
         {/* Hero image — FULL WIDTH within the viewport (no horizontal padding). */}
         <div className="mt-7 w-full" style={{ lineHeight: 0, overflow: 'hidden' }}>
           <img
-            src={heroImageUrl}
+            src={heroImageUrl?.startsWith('/') ? heroImageUrl : optimizeImage(heroImageUrl, ImageSize.hero)}
             alt=""
             style={{
               width: '100%',
@@ -558,7 +559,9 @@ export default function MobileHomePage() {
               marginBottom: -5,
               backgroundColor: '#000',
             }}
-            loading="lazy"
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
             onError={(e) => {
               e.currentTarget.src = '/mobile/image-103@2x.png';
             }}
@@ -1838,85 +1841,178 @@ const VEHICLE_TYPES = [
   { id: 'van',       kind: 'mask', src: '/figma/calc/veh-van.png',       label: 'Van',       apiType: 'bigSUV' },
 ];
 
-const PRICE_TABS = ['10-15K', '15-25K', '30-50K'];
+const PRICE_TABS = [
+  { id: 'all',    label: 'ALL',    min: null,  max: null  },
+  { id: '10-15k', label: '10-15K', min: 10000, max: 15000 },
+  { id: '15-25k', label: '15-25K', min: 15000, max: 25000 },
+  { id: '30-50k', label: '30-50K', min: 30000, max: 50000 },
+];
+
+const DEALS_PAGE_SIZE = 24;
+const DEALS_PREFETCH_GAP = 6;
 
 function MobileTopVehicleDeals({ t }) {
   const FONT = "'Mazzard', 'Mazzard H', system-ui, -apple-system, sans-serif";
   /* Default selection matches calculator's first non-trivial vehicle (sedan)
    * so the icons read coherently across Welcome → Calculator. */
   const [vehicleType, setVehicleType] = useState('sedan');
-  const [priceTab, setPriceTab] = useState('10-15K');
+  // Default tab: 'all' → no price filter → counter shows full catalogue.
+  const [priceTab, setPriceTab] = useState('all');
   const [idx, setIdx] = useState(0);
   const [favorited, setFavorited] = useState({});
   const [compared, setCompared] = useState({});
-  /* Live carousel data — pulls real vehicles from /api/public/vehicles
-   * (same source as the desktop FrameComponent21 + CatalogPage). Falls
-   * back to an empty list while the request is in flight so we never
-   * render the legacy Lucid / BMW / AMG placeholder set. */
+
+  /* Live carousel data — server-driven pagination keyed off the active
+   * filters. Re-fetches from scratch whenever vehicleType or priceTab
+   * change. The pager counter `01/<total>` always mirrors the SERVER's
+   * filtered total (not just what's been streamed into memory). */
   const [liveCars, setLiveCars] = useState([]);
   const [liveTotal, setLiveTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  // Token used to cancel-out stale responses when the user rapidly
+  // toggles filters (prevents an older fetch from overwriting newer data).
+  const fetchTokenRef = useRef(0);
+
+  // Resolve current price-tab definition once.
+  const activeTab = useMemo(
+    () => PRICE_TABS.find((p) => p.id === priceTab) || PRICE_TABS[0],
+    [priceTab],
+  );
+  const activeVehicleType = useMemo(
+    () => VEHICLE_TYPES.find((v) => v.id === vehicleType) || VEHICLE_TYPES[0],
+    [vehicleType],
+  );
+
+  // Normalise a single API vehicle → carousel card shape used by JSX below.
+  const normalize = (v) => {
+    const imgArr = Array.isArray(v.images) ? v.images.filter(Boolean) : [];
+    const km = Number.isFinite(v.odometer)
+      ? `${Number(v.odometer).toLocaleString()} ${(v.odometer_unit || 'km').toUpperCase()}`
+      : '—';
+    const bidCur = (v.current_bid_currency || 'USD').toUpperCase();
+    const bidSym = bidCur === 'USD' ? '$' : bidCur === 'EUR' ? '€' : '';
+    const purchase = Number.isFinite(Number(v.current_bid))
+      ? `${bidSym}${Number(v.current_bid).toLocaleString('en-US')}${bidSym ? '' : ' ' + bidCur}`
+      : (v.price ? String(v.price) : '—');
+    return {
+      id: v.vin || v.lot_number,
+      vin: v.vin,
+      name: v.title || `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
+      img: imgArr[0] || '/mobile/image-15@2x.png',
+      tradingDate: v.lot_number ? `Lot ${v.lot_number}` : (v.auction_name || ''),
+      timer: v.sale_date || null,
+      purchasePrice: purchase,
+      mileage: km,
+      engine: v.engine || '—',
+      drive: (v.drivetrain || '—').toString(),
+      finalCost: null,
+    };
+  };
+
+  // Build query params from current filter state. skip→page offset.
+  const buildParams = (skip = 0) => {
+    const params = { limit: DEALS_PAGE_SIZE, skip };
+    if (activeVehicleType?.apiType) params.vehicle_type = activeVehicleType.apiType;
+    if (activeTab.min != null) params.price_min = activeTab.min;
+    if (activeTab.max != null) params.price_max = activeTab.max;
+    return params;
+  };
+
+  // Initial load + reload whenever filters change.
   useEffect(() => {
+    const token = ++fetchTokenRef.current;
     let cancelled = false;
+    setLoading(true);
+    setLiveCars([]);
+    setLiveTotal(0);
+    setHasMore(true);
+    setIdx(0);
     (async () => {
       try {
-        const API = process.env.REACT_APP_BACKEND_URL;
         const r = await axios.get(`${API}/api/public/vehicles`, {
-          params: { limit: 12 },
+          params: buildParams(0),
           timeout: 18000,
         });
-        if (cancelled) return;
+        if (cancelled || fetchTokenRef.current !== token) return;
         const arr = Array.isArray(r.data?.data) ? r.data.data : [];
-        // Normalise to the shape the mobile card expects (`name`, `img`,
-        // `tradingDate`, `timer`, `purchasePrice`, `mileage`, `engine`,
-        // `drive`, `finalCost`) so the existing JSX stays untouched.
-        const mapped = arr.map((v) => {
-          const imgArr = Array.isArray(v.images) ? v.images.filter(Boolean) : [];
-          const km = Number.isFinite(v.odometer) ? `${Number(v.odometer).toLocaleString()} ${(v.odometer_unit || 'km').toUpperCase()}` : '—';
-          const bidCur = (v.current_bid_currency || 'USD').toUpperCase();
-          const bidSym = bidCur === 'USD' ? '$' : bidCur === 'EUR' ? '€' : '';
-          const purchase = Number.isFinite(Number(v.current_bid))
-            ? `${bidSym}${Number(v.current_bid).toLocaleString('en-US')}${bidSym ? '' : ' ' + bidCur}`
-            : (v.price ? String(v.price) : '—');
-          return {
-            id: v.vin || v.lot_number,
-            vin: v.vin,
-            name: v.title || `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
-            img: imgArr[0] || '/mobile/image-15@2x.png',
-            tradingDate: v.lot_number ? `Lot ${v.lot_number}` : (v.auction_name || ''),
-            timer: v.sale_date || null,
-            purchasePrice: purchase,
-            mileage: km,
-            engine: v.engine || '—',
-            drive: (v.drivetrain || '—').toString(),
-            finalCost: null,
-          };
-        });
-        setLiveCars(mapped);
-        setLiveTotal(Number.isFinite(r.data?.total) ? Number(r.data.total) : mapped.length);
+        const total = Number.isFinite(r.data?.total) ? Number(r.data.total) : arr.length;
+        setLiveCars(arr.map(normalize));
+        setLiveTotal(total);
+        setHasMore(arr.length < total);
       } catch (_) {
-        if (!cancelled) { setLiveCars([]); }
+        if (cancelled || fetchTokenRef.current !== token) return;
+        setLiveCars([]);
+        setLiveTotal(0);
+        setHasMore(false);
+      } finally {
+        if (!cancelled && fetchTokenRef.current === token) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleType, priceTab]);
+
+  // Lazy paging — when the user gets close to the end of what's loaded,
+  // fetch the next batch in the background. Counter still reflects the
+  // SERVER total, so users see the real "out of N" number from the start.
+  const prefetchNextPage = async () => {
+    if (loading || !hasMore) return;
+    const token = fetchTokenRef.current;
+    const skip = liveCars.length;
+    setLoading(true);
+    try {
+      const r = await axios.get(`${API}/api/public/vehicles`, {
+        params: buildParams(skip),
+        timeout: 18000,
+      });
+      if (fetchTokenRef.current !== token) return;
+      const arr = Array.isArray(r.data?.data) ? r.data.data : [];
+      const total = Number.isFinite(r.data?.total) ? Number(r.data.total) : liveTotal;
+      setLiveCars((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        return [...prev, ...arr.map(normalize).filter((c) => !seen.has(c.id))];
+      });
+      setLiveTotal(total);
+      setHasMore(skip + arr.length < total);
+    } catch (_) {
+      // Keep what we have; user can keep browsing what's loaded.
+    } finally {
+      if (fetchTokenRef.current === token) setLoading(false);
+    }
+  };
+
   /* Share modal state — Welcome top-deal cards now have a share icon
    * (parity with SingleCarPage + Catalog cards per user spec). */
   const [shareOpen, setShareOpen] = useState(false);
 
-  // Real card list — pager and counter follow it 1:1.  Pulls from live
-  // /api/public/vehicles via the effect above; collapses to 0 cards
-  // while loading.
+  // Pager / counter / index — backed by the loaded cards. `total` is the
+  // SERVER total (filtered) so the user immediately sees the real count.
   const visible = liveCars;
-  const total = visible.length;
-  const safeIdx = total ? ((idx % total) + total) % total : 0;
+  const loadedCount = visible.length;
+  const total = liveTotal;
+  const safeIdx = loadedCount ? Math.min(idx, loadedCount - 1) : 0;
   const current = visible[safeIdx];
-  // "Proposals - N" mirrors the REAL total catalogue size from the API
-  // (5,997+ cars), not just the items in the current carousel window.
-  const proposals = liveTotal || total;
-  const counter = `${String(safeIdx + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
+  const proposals = total;
+  const counter = total > 0
+    ? `${String(safeIdx + 1).padStart(2, '0')}/${total}`
+    : '00/00';
 
-  const goPrev = () => setIdx((v) => (total ? (v - 1 + total) % total : 0));
-  const goNext = () => setIdx((v) => (total ? (v + 1) % total : 0));
+  // Trigger lazy paging when approaching the loaded-tail edge.
+  useEffect(() => {
+    if (idx >= loadedCount - DEALS_PREFETCH_GAP && hasMore && !loading) {
+      prefetchNextPage();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx, loadedCount, hasMore, loading]);
+
+  const goPrev = () => setIdx((v) => Math.max(0, v - 1));
+  const goNext = () => setIdx((v) => {
+    if (!loadedCount) return 0;
+    if (v + 1 < loadedCount) return v + 1;
+    if (!hasMore) return loadedCount - 1; // hold at last
+    return v; // wait for prefetch
+  });
 
   // Apply BIBI tilt-parallax to the single visible deal card. Lives on the
   // carousel scope so it gets re-attached when the user swipes to a new
@@ -1943,7 +2039,7 @@ function MobileTopVehicleDeals({ t }) {
     }
   };
 
-  if (!total) return null;
+  if (!loadedCount && !loading) return null;
 
   return (
     <section
@@ -2102,16 +2198,16 @@ function MobileTopVehicleDeals({ t }) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'nowrap' }}>
-          {PRICE_TABS.map((t) => {
-            const active = priceTab === t;
+          {PRICE_TABS.map((tab) => {
+            const active = priceTab === tab.id;
             return (
               <button
-                key={t}
+                key={tab.id}
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setPriceTab(t)}
-                data-testid={`mobile-deals-price-${t}`}
+                onClick={() => setPriceTab(tab.id)}
+                data-testid={`mobile-deals-price-${tab.id}`}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -2124,9 +2220,10 @@ function MobileTopVehicleDeals({ t }) {
                   textTransform: 'uppercase',
                   color: active ? '#FEAE00' : '#FFFFFF',
                   whiteSpace: 'nowrap',
+                  transition: 'color 150ms ease',
                 }}
               >
-                {t}
+                {tab.label}
               </button>
             );
           })}
@@ -2175,10 +2272,11 @@ function MobileTopVehicleDeals({ t }) {
           }}
         >
           <img
-            src={current.img}
+            src={optimizeImage(current.img, ImageSize.cardMobile)}
             alt={current.name}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             loading="lazy"
+            decoding="async"
             onError={(e) => { e.currentTarget.src = '/mobile/image-15@2x.png'; }}
           />
 
@@ -2236,7 +2334,7 @@ function MobileTopVehicleDeals({ t }) {
             }}
           >
             <Clock size={12} weight="regular" color="#000" />
-            {current.timer}
+            {current.timer || '—'}
           </div>
 
           {/* Round action buttons (bottom-right) — exact Figma SVGs.
@@ -2499,7 +2597,7 @@ function MobileTopVehicleDeals({ t }) {
           aria-label="Next"
           onClick={goNext}
           data-testid="mobile-deals-next"
-          disabled={total <= 1}
+          disabled={total <= 1 || safeIdx >= total - 1}
           style={{
             width: 32,
             height: 32,
@@ -2510,8 +2608,9 @@ function MobileTopVehicleDeals({ t }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: total <= 1 ? 'default' : 'pointer',
-            opacity: total <= 1 ? 0.4 : 1,
+            cursor: total <= 1 || safeIdx >= total - 1 ? 'default' : 'pointer',
+            opacity: total <= 1 || safeIdx >= total - 1 ? 0.4 : 1,
+            transition: 'opacity 150ms ease',
           }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -2543,17 +2642,19 @@ function MobileTopVehicleDeals({ t }) {
 
       {/* ── Share modal — mounted at the section level so it overlays the
        *    entire page when opened.  Uses the currently-visible card's data. */}
-      <ShareModal
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        vin={String(current.vin || current.id || '')}
-        snapshot={{
-          title: current.name,
-          image: current.img,
-          price: current.purchasePrice,
-          auction_name: current.auction || 'BidMotors',
-        }}
-      />
+      {current && (
+        <ShareModal
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          vin={String(current.vin || current.id || '')}
+          snapshot={{
+            title: current.name,
+            image: current.img,
+            price: current.purchasePrice,
+            auction_name: current.auction || 'BidMotors',
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -4925,7 +5026,7 @@ function MobileBeforeAndAfter({ items, activeIdx, setActiveIdx, t }) {
               }}
             >
               <img
-                src={fullMediaUrl(c.before_image_url)}
+                src={optimizeImage(fullMediaUrl(c.before_image_url), ImageSize.beforeAfter)}
                 alt="before"
                 data-testid={`mobile-before-img-${i + 1}`}
                 style={{
@@ -4936,10 +5037,11 @@ function MobileBeforeAndAfter({ items, activeIdx, setActiveIdx, t }) {
                   display: 'block',
                 }}
                 loading="lazy"
+                decoding="async"
                 onError={(e) => { e.currentTarget.style.opacity = 0.3; }}
               />
               <img
-                src={fullMediaUrl(c.after_image_url)}
+                src={optimizeImage(fullMediaUrl(c.after_image_url), ImageSize.beforeAfter)}
                 alt="after"
                 data-testid={`mobile-after-img-${i + 1}`}
                 style={{
@@ -4949,6 +5051,7 @@ function MobileBeforeAndAfter({ items, activeIdx, setActiveIdx, t }) {
                   display: 'block',
                 }}
                 loading="lazy"
+                decoding="async"
                 onError={(e) => { e.currentTarget.style.opacity = 0.3; }}
               />
             </div>
@@ -5446,7 +5549,7 @@ function MobileOurClientsSay({ reviews, googleRating, googleReviewsCount, active
               <header style={{ display: 'flex', alignItems: 'center', gap: 27 }}>
                 {r.image_url ? (
                   <img
-                    src={fullMediaUrl(r.image_url)}
+                    src={optimizeImage(fullMediaUrl(r.image_url), ImageSize.avatar)}
                     alt={r.name || ''}
                     width={40}
                     height={40}
@@ -5459,6 +5562,7 @@ function MobileOurClientsSay({ reviews, googleRating, googleReviewsCount, active
                       flex: '0 0 auto',
                     }}
                     loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       // Fall back to a neutral initial-avatar circle
                       e.currentTarget.style.display = 'none';

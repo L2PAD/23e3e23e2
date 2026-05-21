@@ -1,22 +1,26 @@
 [
   {
-    "content": "Прочесать базу на оставшиеся mock-fallbackи",
+    "content": "Phase 1: Проверить контракт /api/public/vehicles — total с учётом фильтров",
     "status": "completed"
   },
   {
-    "content": "Smoke-тест 4 кабинетов через testing agent (61/61 прошли)",
+    "content": "Phase 2: MobileTopVehicleDeals — фильтрация по vehicle_type + price_min/price_max, lazy paging",
     "status": "completed"
   },
   {
-    "content": "Smoke-тест backend API + парсеры (100%)",
+    "content": "Phase 2: Реальный счётчик 01/<filtered_total> + PROPOSALS - <filtered_total>",
     "status": "completed"
   },
   {
-    "content": "Production readiness: .env.example + DEPLOYMENT.md",
+    "content": "Phase 3: optimizeImage.js helper (weserv.nl proxy → webp + resize)",
     "status": "completed"
   },
   {
-    "content": "Production readiness: CORS warning fix (рекомендация)",
+    "content": "Phase 3: Интегрировать optimizeImage везде (mobile deals, hero, B/A, reviews, desktop catalog)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 4: Проверить свайп + лэзи подгрузку + оптимизацию",
     "status": "completed"
   }
 ]

@@ -17,6 +17,7 @@ import styles from './VehicleCardRow.module.css';
 import ShareModal from '../ShareModal';
 import { useLang } from '../../../i18n';
 import { userEngagementApi, getCustomerToken } from '../../../lib/api';
+import { optimizeImage, ImageSize } from '../../../lib/optimizeImage';
 
 const fmtNum   = (n) => (n === null || n === undefined ? '—' : Number(n).toLocaleString());
 const fmtMoney = (n, ccy = 'EUR') => {
@@ -333,7 +334,7 @@ export default function VehicleCardRow({ vehicle, onClick }) {
       {/* IMAGE LEFT */}
       <div className={styles.imageWrap}>
         {image
-          ? <img className={styles.image} src={image} alt={title} loading="lazy" />
+          ? <img className={styles.image} src={optimizeImage(image, ImageSize.cardDesktop)} alt={title} loading="lazy" decoding="async" />
           : <div className={styles.placeholder}>BIBI CARS</div>}
 
         {/* Live auction countdown — Figma "Vehicle Card (Mobile)":

@@ -55,8 +55,10 @@ const VehicleCard = ({ vehicle, useSlug = false }) => {
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
         <img
-          src={displayImage}
+          src={optimizeImage(displayImage, ImageSize.cardDesktop)}
           alt={displayTitle}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           onError={(e) => {
             e.target.src = '/images/car-placeholder.jpg';
