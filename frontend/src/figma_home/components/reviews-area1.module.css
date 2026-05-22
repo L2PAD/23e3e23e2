@@ -300,7 +300,11 @@
   right: var(--ra-sat-right);
   display: flex;
   align-items: center;
-  gap: clamp(10px, 1.04vw, 20px);
+  /* 70 px bracket↔text gap on desktop to match the canonical Figma
+     spec used by Vehicle Deals ("Thousands of listings.") and
+     Before/After. Scales down fluidly on smaller viewports so the
+     bracketed block stays within the 460+ stage. */
+  gap: clamp(14px, 4.55vw, 70px);
   z-index: 4;
   pointer-events: auto;
 }

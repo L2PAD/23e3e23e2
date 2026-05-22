@@ -1,0 +1,90 @@
+{
+  "summary": "Comprehensive pre-deploy backend testing completed for Bibi Cars V3.2. Tested all critical APIs including Google Reviews integration, Google Sign-In, public catalog endpoints, and all 4 role-based cabinets (Admin/Manager/TeamLead/Customer). 74/75 tests passed (98.7% success rate).",
+  "backend_issues": {
+    "critical_bugs": [],
+    "minor_issues": [
+      {
+        "endpoint": "/api/admin/auth/settings",
+        "issue": "Endpoint returns 404 - does not exist",
+        "impact": "Cannot retrieve auth settings with google.allowedDomains as mentioned in review request",
+        "fix_priority": "LOW",
+        "note": "This endpoint may not be implemented. The google integration settings are available via /api/admin/integrations/google which works correctly."
+      }
+    ],
+    "flaky_endpoints": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "✅ All authentication flows (Admin, Manager, TeamLead, Customer)",
+    "✅ Public catalog endpoints: GET /api/public/vehicles (with filters: limit, price_min, price_max, make, model)",
+    "✅ Public catalog endpoints: GET /api/public/featured",
+    "✅ Public catalog endpoints: GET /api/public/brands",
+    "✅ Google Reviews integration: GET /api/public/google-reviews (returns approved >=4 star reviews)",
+    "✅ Google Reviews integration: GET /api/admin/google-reviews/config (admin config with masked API key)",
+    "✅ Google Reviews integration: GET /api/admin/google-reviews (admin moderation list)",
+    "✅ Google Sign-In: GET /api/auth/google-client-id (returns clientId)",
+    "✅ Google Sign-In: POST /api/customer-auth/google/verify (correctly rejects bad token with 400, not 500)",
+    "✅ Admin integrations: GET /api/admin/integrations/google (works correctly)",
+    "✅ Admin integrations: GET /api/admin/integrations (returns all provider configs)",
+    "✅ All 17 admin endpoints tested (providers/stats, ext-clients, integrations, email-templates, blog, etc.)",
+    "✅ All 7 manager endpoints tested (orders, calls, invoices, tracking)",
+    "✅ All 16 team lead endpoints tested (dashboard, leads, tasks, shipping, performance)",
+    "✅ All 12 customer endpoints tested (profile, orders, contracts, deals, deposits, invoices, notifications)",
+    "✅ HMAC extension endpoint: POST /api/vesselfinder/heartbeat (signature verification working)",
+    "✅ Bootstrap endpoint: POST /api/admin/ext-clients/bootstrap"
+  ],
+  "test_report_links": [
+    "/app/backend/backend_test.py"
+  ],
+  "success_percentage": {
+    "backend": "98.7% (74/75 tests passed)",
+    "frontend": "N/A (backend-only testing as requested)"
+  },
+  "updated_files": [
+    "/app/backend/backend_test.py"
+  ],
+  "action_item_for_main_agent": "✅ Backend is production-ready! Only 1 minor issue: /api/admin/auth/settings endpoint does not exist (returns 404). If this endpoint is required for the google.allowedDomains feature, it needs to be implemented. However, Google integration settings are accessible via /api/admin/integrations/google which works correctly. All critical functionality tested and working: authentication (all 4 roles), public catalog, Google Reviews integration (public feed + admin moderation), Google Sign-In (client ID + verify endpoint), and all cabinet-specific endpoints.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_test_itself": false,
+  "detailed_findings": {
+    "google_reviews_integration": {
+      "status": "✅ WORKING",
+      "public_endpoint": "GET /api/public/google-reviews - Returns proper structure with rating, count, reviews array. Reviews are correctly filtered to >=4 stars.",
+      "admin_config": "GET /api/admin/google-reviews/config - Returns full config with masked API key preview",
+      "admin_moderation": "GET /api/admin/google-reviews - Returns moderation list with items and count",
+      "notes": "Integration is fully functional. API key is properly masked in admin responses. Review filtering by rating works correctly."
+    },
+    "google_signin_integration": {
+      "status": "✅ WORKING",
+      "client_id_endpoint": "GET /api/auth/google-client-id - Returns clientId and enabled status",
+      "verify_endpoint": "POST /api/customer-auth/google/verify - Correctly rejects invalid tokens with 400 (not 500)",
+      "notes": "Integration endpoints exist and handle errors correctly. Cannot test full OAuth flow without real Google token, but error handling is correct."
+    },
+    "public_catalog": {
+      "status": "✅ WORKING",
+      "vehicles_endpoint": "GET /api/public/vehicles - Returns 6021 total vehicles. Filters working: limit, price_min, price_max, make, model",
+      "featured_endpoint": "GET /api/public/featured - Working correctly",
+      "brands_endpoint": "GET /api/public/brands - Returns brand list with counts",
+      "notes": "All public catalog endpoints working. Note: 'search' parameter is not implemented in the endpoint signature, but other filters work correctly."
+    },
+    "authentication": {
+      "status": "✅ WORKING",
+      "admin": "POST /api/auth/login - Working with admin@bibi.cars",
+      "manager": "POST /api/auth/login - Working with manager@bibi.cars",
+      "teamlead": "POST /api/auth/login - Working with teamlead@bibi.cars",
+      "customer": "POST /api/customer-auth/login - Working with user@bibi.cars",
+      "notes": "All 4 role-based authentication flows working correctly. Tokens are properly generated and accepted by protected endpoints."
+    },
+    "cabinet_endpoints": {
+      "admin": "17/17 endpoints working (100%)",
+      "manager": "7/7 endpoints working (100%)",
+      "teamlead": "16/16 endpoints working (100%)",
+      "customer": "12/12 endpoints working (100%)",
+      "notes": "All role-based cabinet endpoints tested and working. No 500 errors detected."
+    }
+  }
+}

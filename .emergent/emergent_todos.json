@@ -1,26 +1,22 @@
 [
   {
-    "content": "Копировать 22 отличающихся файла из NEW репо → /app",
+    "content": "Fix bracket padding inconsistency on /welcome (frame-component23 + reviews-area1)",
+    "status": "completed"
+  },
+  {
+    "content": "Run comprehensive backend testing (all critical APIs: auth, google reviews, google client-id, customer-auth)",
     "status": "in_progress"
   },
   {
-    "content": "Восстановить live Google Reviews (OurClientsSayBlock + reviews-area1 + MobileHomePage)",
+    "content": "Run comprehensive frontend testing (4 cabinets + public pages + post-merge regression)",
     "status": "pending"
   },
   {
-    "content": "Восстановить OAuth polish (CustomerAuth: disableAutoSelect, auto_select, googleEnabled)",
+    "content": "Address any high/medium priority bugs from testing reports",
     "status": "pending"
   },
   {
-    "content": "Восстановить allowedDomains в AuthSettingsPage",
-    "status": "pending"
-  },
-  {
-    "content": "Восстановить multi place_ids в GoogleReviewsEditor",
-    "status": "pending"
-  },
-  {
-    "content": "Lint + compile check + screenshot",
+    "content": "Final pre-deploy verification + summary",
     "status": "pending"
   }
 ]

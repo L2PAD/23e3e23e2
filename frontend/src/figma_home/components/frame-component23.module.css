@@ -123,18 +123,24 @@
   display: inline-flex;
   align-items: center;
   position: relative;
-  padding: 0 14px;
+  /* Outer padding pushes the bracket lines 70 px AWAY from the text
+     on both sides — matching the canonical Figma spec used by
+     Vehicle Deals ("Thousands of listings.") and Before/After
+     ("Our clients receive the best service"). Previously the
+     bracketLabel had only 14 px of horizontal padding which made the
+     "WE WORK FOR EACH CLIENT" block look visibly tighter than its
+     two reference siblings. */
+  padding: 0 70px;
   --bracket-color: var(--color-dimgray-200);
 }
 
 .bracketChild {
   display: inline-flex;
   align-items: center;
-  /* Tighter vertical padding so the brackets hug the actual text height
-     instead of looking oversized — critical for the BG translation
-     where the lines stay short but the bracket extension was visibly
-     too tall vs the text glyph height. */
-  padding: 2px 14px;
+  /* Vertical padding only — horizontal spacing is owned by the
+     bracketLabel above so the 70 px gap to the bracket lines stays
+     consistent across all four bracketed taglines on /welcome. */
+  padding: 2px 0;
 }
 
 .bracketLabel::before,
@@ -445,6 +451,9 @@
   .cardTitle { font-size: 34px; }
   .cardCta { font-size: 28px; }
   .card { min-height: 560px; padding: 36px 32px 48px; gap: 32px; }
+  /* Scale the bracket↔text gap down on smaller desktops so the
+     bracketed tagline doesn't overflow the 100px right inset. */
+  .bracketLabel:not(:has(> .bracketChild > .tileNum)) { padding: 0 40px; }
 }
 
 @media screen and (max-width: 925px) {
@@ -461,8 +470,10 @@
   .questionCard { padding: 36px 24px; gap: 22px; }
   .questionTitle { font-size: 24px; }
   .questionPhone { font-size: 18px; }
+  .bracketLabel:not(:has(> .bracketChild > .tileNum)) { padding: 0 20px; }
 }
 
 @media screen and (max-width: 480px) {
   .howWeWork { font-size: 36px; }
+  .bracketLabel:not(:has(> .bracketChild > .tileNum)) { padding: 0 14px; }
 }

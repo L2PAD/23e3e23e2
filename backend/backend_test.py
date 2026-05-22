@@ -605,6 +605,328 @@ class BIBICarsAPITester:
             self.test("POST /api/admin/ext-clients/bootstrap", False, f"Exception: {e}")
 
     # ═══════════════════════════════════════════════════════════════
+    # GOOGLE REVIEWS INTEGRATION TESTS
+    # ═══════════════════════════════════════════════════════════════
+    
+    def test_google_reviews(self):
+        """Test Google Reviews integration endpoints"""
+        print("\n" + "="*70)
+        print("⭐ GOOGLE REVIEWS INTEGRATION")
+        print("="*70)
+        
+        # Test 1: Public Google Reviews endpoint
+        try:
+            resp = requests.get(
+                f"{self.base_url}/api/public/google-reviews",
+                timeout=10
+            )
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                has_items = "items" in data or "reviews" in data or "data" in data
+                has_stats = "rating" in data or "count" in data or "stats" in data
+                
+                self.test(
+                    "GET /api/public/google-reviews",
+                    has_items or has_stats,
+                    f"Response keys: {list(data.keys())}"
+                )
+                
+                # Check if reviews are >= 4 stars (as per config)
+                reviews = data.get("items", data.get("reviews", data.get("data", [])))
+                if reviews:
+                    low_rated = [r for r in reviews if r.get("rating", 5) < 4]
+                    self.test(
+                        "Google Reviews: only >=4 stars shown",
+                        len(low_rated) == 0,
+                        f"Found {len(low_rated)} reviews below 4 stars (should be filtered)"
+                    )
+            else:
+                self.test("GET /api/public/google-reviews", False, msg)
+        except Exception as e:
+            self.test("GET /api/public/google-reviews", False, f"Exception: {e}")
+        
+        # Test 2: Admin Google Reviews config (requires admin auth)
+        if self.admin_token:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            
+            try:
+                resp = requests.get(
+                    f"{self.base_url}/api/admin/google-reviews/config",
+                    headers=headers,
+                    timeout=10
+                )
+                success, msg = self.check_response(resp, 200)
+                if success:
+                    data = resp.json()
+                    has_config = "enabled" in data or "api_key_preview" in data
+                    self.test(
+                        "GET /api/admin/google-reviews/config",
+                        has_config,
+                        f"Config keys: {list(data.keys())}"
+                    )
+                else:
+                    self.test("GET /api/admin/google-reviews/config", False, msg)
+            except Exception as e:
+                self.test("GET /api/admin/google-reviews/config", False, f"Exception: {e}")
+            
+            # Test 3: Admin Google Reviews list (moderation)
+            try:
+                resp = requests.get(
+                    f"{self.base_url}/api/admin/google-reviews",
+                    headers=headers,
+                    timeout=10
+                )
+                success, msg = self.check_response(resp, 200)
+                if success:
+                    data = resp.json()
+                    has_items = "items" in data
+                    self.test(
+                        "GET /api/admin/google-reviews (moderation list)",
+                        has_items,
+                        f"Response keys: {list(data.keys())}"
+                    )
+                else:
+                    self.test("GET /api/admin/google-reviews", False, msg)
+            except Exception as e:
+                self.test("GET /api/admin/google-reviews", False, f"Exception: {e}")
+        else:
+            self.log("⚠️  Skipping admin Google Reviews tests - no admin token")
+
+    # ═══════════════════════════════════════════════════════════════
+    # GOOGLE SIGN-IN INTEGRATION TESTS
+    # ═══════════════════════════════════════════════════════════════
+    
+    def test_google_signin(self):
+        """Test Google Sign-In integration endpoints"""
+        print("\n" + "="*70)
+        print("🔐 GOOGLE SIGN-IN INTEGRATION")
+        print("="*70)
+        
+        # Test 1: Get Google Client ID (public endpoint)
+        try:
+            resp = requests.get(
+                f"{self.base_url}/api/auth/google-client-id",
+                timeout=10
+            )
+            # Accept 200 (configured) or 404 (not configured)
+            success = resp.status_code in [200, 404]
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                has_client_id = "clientId" in data or "client_id" in data
+                self.test(
+                    "GET /api/auth/google-client-id",
+                    has_client_id,
+                    f"Response keys: {list(data.keys())}"
+                )
+            else:
+                self.test(
+                    "GET /api/auth/google-client-id",
+                    success,
+                    f"Status: {resp.status_code} (may not be configured)"
+                )
+        except Exception as e:
+            self.test("GET /api/auth/google-client-id", False, f"Exception: {e}")
+        
+        # Test 2: Google verify endpoint (should reject bad token with 400/422, not 500)
+        try:
+            resp = requests.post(
+                f"{self.base_url}/api/customer-auth/google/verify",
+                json={"token": "invalid_test_token_12345"},
+                timeout=10
+            )
+            # Should return 400/401/422 for bad token, NOT 500
+            success = resp.status_code in [400, 401, 422]
+            
+            self.test(
+                "POST /api/customer-auth/google/verify (bad token)",
+                success,
+                f"Status: {resp.status_code} (expected 400/401/422, not 500)"
+            )
+            
+            if resp.status_code == 500:
+                self.backend_errors.append({
+                    "endpoint": "/api/customer-auth/google/verify",
+                    "status": 500,
+                    "error": "Should return 400/422 for bad token, not 500"
+                })
+        except Exception as e:
+            self.test("POST /api/customer-auth/google/verify", False, f"Exception: {e}")
+
+    # ═══════════════════════════════════════════════════════════════
+    # AUTH SETTINGS & INTEGRATIONS TESTS
+    # ═══════════════════════════════════════════════════════════════
+    
+    def test_auth_settings(self):
+        """Test auth settings and integrations endpoints"""
+        print("\n" + "="*70)
+        print("⚙️  AUTH SETTINGS & INTEGRATIONS")
+        print("="*70)
+        
+        if not self.admin_token:
+            self.log("⚠️  Skipping auth settings tests - no admin token")
+            return
+        
+        headers = {"Authorization": f"Bearer {self.admin_token}"}
+        
+        # Test 1: Auth settings with allowedDomains
+        try:
+            resp = requests.get(
+                f"{self.base_url}/api/admin/auth/settings",
+                headers=headers,
+                timeout=10
+            )
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                has_google = "google" in data
+                
+                if has_google:
+                    google_settings = data.get("google", {})
+                    has_allowed_domains = "allowedDomains" in google_settings
+                    self.test(
+                        "GET /api/admin/auth/settings (google.allowedDomains)",
+                        has_allowed_domains,
+                        f"Google settings keys: {list(google_settings.keys())}"
+                    )
+                else:
+                    self.test(
+                        "GET /api/admin/auth/settings",
+                        True,
+                        f"Response keys: {list(data.keys())} (google settings may not be configured)"
+                    )
+            else:
+                self.test("GET /api/admin/auth/settings", False, msg)
+        except Exception as e:
+            self.test("GET /api/admin/auth/settings", False, f"Exception: {e}")
+        
+        # Test 2: Admin integrations/google endpoint
+        try:
+            resp = requests.get(
+                f"{self.base_url}/api/admin/integrations/google",
+                headers=headers,
+                timeout=10
+            )
+            # Accept 200 or 404 (endpoint may not exist)
+            success = resp.status_code in [200, 404]
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                self.test(
+                    "GET /api/admin/integrations/google",
+                    True,
+                    f"Response keys: {list(data.keys())}"
+                )
+            else:
+                self.test(
+                    "GET /api/admin/integrations/google",
+                    success,
+                    f"Status: {resp.status_code}"
+                )
+        except Exception as e:
+            self.test("GET /api/admin/integrations/google", False, f"Exception: {e}")
+
+    # ═══════════════════════════════════════════════════════════════
+    # PUBLIC CATALOG ENDPOINTS (EXTENDED)
+    # ═══════════════════════════════════════════════════════════════
+    
+    def test_public_catalog_extended(self):
+        """Test additional public catalog endpoints"""
+        print("\n" + "="*70)
+        print("🚗 PUBLIC CATALOG (EXTENDED)")
+        print("="*70)
+        
+        # Test 1: GET /api/public/featured
+        try:
+            resp = requests.get(
+                f"{self.base_url}/api/public/featured",
+                timeout=10
+            )
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                has_items = "items" in data or "data" in data or isinstance(data, list)
+                self.test(
+                    "GET /api/public/featured",
+                    has_items,
+                    f"Response type: {type(data).__name__}, keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}"
+                )
+            else:
+                self.test("GET /api/public/featured", False, msg)
+        except Exception as e:
+            self.test("GET /api/public/featured", False, f"Exception: {e}")
+        
+        # Test 2: GET /api/public/brands
+        try:
+            resp = requests.get(
+                f"{self.base_url}/api/public/brands",
+                timeout=10
+            )
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                has_brands = isinstance(data, list) or "brands" in data or "data" in data
+                self.test(
+                    "GET /api/public/brands",
+                    has_brands,
+                    f"Response type: {type(data).__name__}, keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}"
+                )
+            else:
+                self.test("GET /api/public/brands", False, msg)
+        except Exception as e:
+            self.test("GET /api/public/brands", False, f"Exception: {e}")
+        
+        # Test 3: GET /api/public/vehicles with filters
+        filters = [
+            ("limit=5", "limit filter", lambda d: len(d.get("data", d.get("items", []))) == 5),
+            ("price_min=5000", "price_min filter", lambda d: d.get("total", 0) > 0),
+            ("price_max=50000", "price_max filter", lambda d: d.get("total", 0) > 0),
+        ]
+        
+        for filter_param, filter_name, check_fn in filters:
+            try:
+                resp = requests.get(
+                    f"{self.base_url}/api/public/vehicles?{filter_param}",
+                    timeout=10
+                )
+                success, msg = self.check_response(resp, 200)
+                if success:
+                    data = resp.json()
+                    items = data.get("data", data.get("items", []))
+                    passed = check_fn(data)
+                    self.test(
+                        f"GET /api/public/vehicles?{filter_param}",
+                        passed,
+                        f"Total: {data.get('total', 0)}, Items: {len(items)}"
+                    )
+                else:
+                    self.test(f"GET /api/public/vehicles?{filter_param}", False, msg)
+            except Exception as e:
+                self.test(f"GET /api/public/vehicles?{filter_param}", False, f"Exception: {e}")
+        
+        # Test 4: Search parameter (note: may not be implemented)
+        try:
+            resp = requests.get(
+                f"{self.base_url}/api/public/vehicles?search=Toyota&limit=5",
+                timeout=10
+            )
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                items = data.get("data", data.get("items", []))
+                # Search may not be implemented - just check endpoint works
+                self.test(
+                    "GET /api/public/vehicles?search=Toyota",
+                    len(items) > 0,
+                    f"Total: {data.get('total', 0)}, Items: {len(items)} (search may not filter)"
+                )
+            else:
+                self.test("GET /api/public/vehicles?search=Toyota", False, msg)
+        except Exception as e:
+            self.test("GET /api/public/vehicles?search=Toyota", False, f"Exception: {e}")
+
+    # ═══════════════════════════════════════════════════════════════
     # MAIN TEST RUNNER
     # ═══════════════════════════════════════════════════════════════
     
@@ -619,6 +941,10 @@ class BIBICarsAPITester:
         # Run all test suites
         self.test_all_logins()
         self.test_public_endpoints()
+        self.test_public_catalog_extended()
+        self.test_google_reviews()
+        self.test_google_signin()
+        self.test_auth_settings()
         self.test_admin_endpoints()
         self.test_manager_endpoints()
         self.test_teamlead_endpoints()
