@@ -147,7 +147,7 @@ const Card1 = ({
   data,
   // legacy Figma props (used as fallback)
   image15,
-  iconoirclock = "/figma/iconoir-clock.svg",
+  iconoirclock = "/figma/iconoir-clock.png",
   title: titleProp,
   tradingDate: tradingDateProp,
   timer: timerProp,
@@ -424,12 +424,10 @@ const Card1 = ({
       </div>
 
       <div className={styles.footer}>
-        {finalCost && (
-          <div className={styles.finalCostBlock}>
-            <span className={styles.finalCostLabel}>{t.estimatedFinalCostToBulgaria}</span>
-            <span className={styles.finalCostValue}>{finalCost}</span>
-          </div>
-        )}
+        <div className={styles.finalCostBlock}>
+          <span className={styles.finalCostLabel}>{t.estimatedFinalCostToBulgaria}</span>
+          <span className={styles.finalCostValue}>{finalCost || "—"}</span>
+        </div>
         {detailHref ? (
           <Link to={detailHref} className={styles.ctaBtn} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
             {ctaLabel || t.moreDetails}

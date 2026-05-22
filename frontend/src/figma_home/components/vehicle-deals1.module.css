@@ -49,7 +49,7 @@
 .tagline {
   display: inline-flex;
   align-items: stretch;
-  gap: 26px;
+  gap: 70px;                                   /* Figma: 70 px inside brackets (matches Before/After) */
   padding: 4px 0;
 }
 
@@ -80,8 +80,10 @@
   letter-spacing: 0.01em;
   display: flex;
   flex-direction: column;
+  align-items: center;          /* center each line so brackets look symmetric */
   gap: 22px;                  /* visible spacing between the 3 lines */
   justify-content: center;
+  text-align: center;
   white-space: nowrap;
 }
 

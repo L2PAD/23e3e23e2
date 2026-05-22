@@ -76,23 +76,23 @@ const fmtDrive = (it) => {
   return d || '—';
 };
 
-const fmtPriceRange = (it, onRequest) => {
+const fmtPriceRange = (it) => {
   const num =
     typeof it?.price === 'number'
       ? it.price
       : parseFloat(String(it?.price || '').replace(/[^\d.]/g, ''));
-  if (!Number.isFinite(num) || num <= 0) return onRequest || 'On request';
+  if (!Number.isFinite(num) || num <= 0) return null;  /* fall back to "—" per Figma */
   const cur = (it?.currency || 'EUR').toUpperCase();
   const sym = cur === 'EUR' ? '€' : cur === 'USD' ? '$' : `${cur} `;
   return `${sym}${Math.round(num).toLocaleString('en-US')}`;
 };
 
-const fmtFinalRange = (it, getQuote) => {
+const fmtFinalRange = (it) => {
   const num =
     typeof it?.price === 'number'
       ? it.price
       : parseFloat(String(it?.price || '').replace(/[^\d.]/g, ''));
-  if (!Number.isFinite(num) || num <= 0) return getQuote || 'Get a quote';
+  if (!Number.isFinite(num) || num <= 0) return null;  /* fall back to "—" per Figma */
   const low = Math.round(num + 2700 + num * 0.2);
   const high = Math.round(low * 1.18);
   return `€${low.toLocaleString('en-US')}-${high.toLocaleString('en-US')}`;
@@ -121,7 +121,7 @@ const fmtRemaining = (ms, closedLabel) => {
   return `${hours}h ${mins}m ${totalSec % 60}s`;
 };
 
-const CarCard = ({ className = '', data }) => {
+const CarCard = ({ className = '', data, variant = 'main' }) => {
   const { lang } = useLang();
   const t = useSingleCarT(lang);
   const vin = data?.vin;
@@ -132,7 +132,7 @@ const CarCard = ({ className = '', data }) => {
   const mileage = fmtKm(data?.odometer, data?.odometer_unit);
   const engine = fmtEngine(data);
   const drive = fmtDrive(data);
-  const purchasePrice = fmtPriceRange(data, t.fillTheSum ? null : null);
+  const purchasePrice = fmtPriceRange(data);
   const estimatedFinalCost = fmtFinalRange(data);
   const tradingDate = data?.sale_date
     ? `${t.tradingDate} - ${data.sale_date}`
@@ -374,7 +374,7 @@ const CarCard = ({ className = '', data }) => {
   );
 
   const inner = (
-    <div className={styles.buttonParent}>
+    <div className={[styles.buttonParent, variant === 'similar' ? styles.buttonParentSimilar : ''].join(' ').trim()}>
       {/* Top: image + Trading date strip */}
       <div className={styles.imageWrapper}>
         <div className={styles.imageInner}>
@@ -391,14 +391,34 @@ const CarCard = ({ className = '', data }) => {
             <div className={styles.tradingDate}>{tradingDate}</div>
           </div>
 
+          {/* ── Desktop overlay: timer chip BOTTOM-LEFT + action icons BOTTOM-RIGHT
+                (Figma spec — chip + icons live on the image, not in the body). */}
+          <div className={styles.timerRow}>
+            <div className={styles.iconoirclockParent}>
+              <img
+                className={styles.iconoirclock}
+                width={18}
+                height={18}
+                alt=""
+                src="/single-car/iconoir-clock.png"
+              />
+              <div className={styles.d4h35m}>{timer}</div>
+            </div>
+            <div className={styles.frameIcons}>
+              {ShareIconBtn}
+              {CompareIconBtn}
+              {FavoriteIconBtn}
+            </div>
+          </div>
+
           {/* ── MOBILE-ONLY overlays: timer chip top-left, action icons
                 top-right. Hidden on desktop (≥ 769 px). ──────────────── */}
           <div className={styles.mobileImageOverlay} aria-hidden="false">
             <div className={styles.mobileTimerChip}>
               <img
                 className={styles.mobileTimerClock}
-                width={14}
-                height={14}
+                width={18}
+                height={18}
                 alt=""
                 src="/single-car/iconoir-clock.png"
               />
@@ -415,52 +435,31 @@ const CarCard = ({ className = '', data }) => {
 
       {/* Body */}
       <div className={styles.body}>
-        {/* Timer + frame icons */}
-        <div className={styles.timerRow}>
-          <div className={styles.iconoirclockParent}>
-            <img
-              className={styles.iconoirclock}
-              width={24}
-              height={24}
-              alt=""
-              src="/single-car/iconoir-clock.svg"
-            />
-            <div className={styles.d4h35m}>{timer}</div>
-          </div>
-          <div className={styles.frameIcons}>
-            {ShareIconBtn}
-            {CompareIconBtn}
-            {FavoriteIconBtn}
-          </div>
-        </div>
-
         {/* Title + details */}
         <div className={styles.titleBlock}>
           <h3 className={styles.lucidMotorsAir}>{title}</h3>
           <div className={styles.detailsBlock}>
             <div className={styles.row1}>
               <div className={styles.purchasePriceParent}>
-                <div className={styles.purchasePrice}>{t.purchasePrice}</div>
                 <div className={styles.priceSquaresParent}>
                   <div className={styles.priceSquares} />
-                  <h3 className={styles.h3}>{purchasePrice}</h3>
+                  <div className={styles.purchasePrice}>{t.purchasePrice}</div>
+                  <h3 className={styles.h3}>{purchasePrice || "—"}</h3>
                 </div>
               </div>
               <div className={styles.mileageEngineBlock}>
-                <div className={styles.labelsCol}>
-                  <div className={styles.mileage}>{t.mileage}</div>
-                  <div className={styles.engine}>{t.engine}</div>
+                <div className={styles.specRow}>
+                  <span className={styles.specLabel}>{t.mileage}</span>
+                  <span className={styles.specValue}>{mileage}</span>
                 </div>
-                <div className={styles.valuesCol}>
-                  <div className={styles.km}>{mileage}</div>
-                  <div className={styles.lPetrol}>{engine}</div>
+                <div className={styles.specRow}>
+                  <span className={styles.specLabel}>{t.engine}</span>
+                  <span className={styles.specValue}>{engine}</span>
                 </div>
-              </div>
-            </div>
-            <div className={styles.row2}>
-              <div className={styles.driveParent}>
-                <div className={styles.drive}>{t.drive}</div>
-                <div className={styles.allWheel}>{drive}</div>
+                <div className={styles.specRow}>
+                  <span className={styles.specLabel}>{t.drive}</span>
+                  <span className={styles.specValue}>{drive}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -470,7 +469,7 @@ const CarCard = ({ className = '', data }) => {
         <div className={styles.footerRow}>
           <div className={styles.estimatedFinalCostToBulgarParent}>
             <div className={styles.estimatedFinalCost}>{t.estimatedFinalCostToBulgaria}</div>
-            <div className={styles.divFinalCost}>{estimatedFinalCost}</div>
+            <div className={styles.divFinalCost}>{estimatedFinalCost || "—"}</div>
           </div>
           <Button1
             property1="Default"
@@ -485,11 +484,11 @@ const CarCard = ({ className = '', data }) => {
   );
 
   const cardEl = !detailHref ? (
-    <section className={[styles.card, className].join(' ')}>{inner}</section>
+    <section className={[styles.card, variant === 'similar' ? styles.cardSimilar : '', className].join(' ').trim()}>{inner}</section>
   ) : (
     <Link
       to={detailHref}
-      className={[styles.card, className].join(' ')}
+      className={[styles.card, variant === 'similar' ? styles.cardSimilar : '', className].join(' ').trim()}
       style={{ color: 'inherit', textDecoration: 'none', cursor: 'pointer' }}
       data-testid={`similar-card-${vin}`}
     >

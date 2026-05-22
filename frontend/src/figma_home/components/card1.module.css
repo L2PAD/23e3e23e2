@@ -8,7 +8,9 @@
   width: 100%;
   max-width: 560px;
   background: #1d1d1b;
-  border-radius: 12px;
+  /* Unified card radius across the site = 8 px (user spec, May 2026):
+   * matches catalog, similar cars, blog, have-a-question, cost calculator. */
+  border-radius: 8px;
   /* Figma spec: 20px on top/left/right, 40px on bottom so the
      "More details" CTA + final-cost row don't hug the card edge. */
   padding: 20px 20px 40px;
@@ -20,12 +22,12 @@
   box-sizing: border-box;
 }
 
-/* ── Photo block (with overlays) ─────────────────────────────── */
+/* ── Photo block (with overlays) — square corners (no inner rounding) ─ */
 .imageBox {
   position: relative;
   width: 100%;
   aspect-ratio: 517 / 388;
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
   background: #0e0e0e;
 }
@@ -59,12 +61,13 @@
   left: 14px;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
-  min-width: 138px;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  width: 138px;                              /* Figma spec — FIXED 138 × 32 */
   height: 32px;
   box-sizing: border-box;
-  background: rgba(254, 174, 0, 0.8);        /* #FEAE00 @ 80 % per Figma */
+  background: #FEAE00CC;                     /* #FEAE00 @ 80 % per Figma */
   color: #000;
   border-radius: 0;                          /* SQUARE corners per Figma */
   font-size: 14px;
@@ -219,7 +222,7 @@
 .footer {
   margin-top: auto;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;                    /* button top aligns with label top (Figma) */
   justify-content: space-between;
   gap: 18px;
   padding-top: 4px;
@@ -231,14 +234,14 @@
   min-width: 0;
 }
 .finalCostLabel {
-  font-size: 13px;
-  font-weight: 500;                           /* Mazzard H Medium */
-  color: #efefef;
+  font-size: 14px;                            /* Mazzard H Medium 14 (Figma) */
+  font-weight: 500;
+  color: #FFFFFF;                             /* white per Figma */
   line-height: 1.15;
 }
 .finalCostValue {
-  font-size: 16px;
-  font-weight: 700;                           /* Mazzard H Bold */
+  font-size: 16px;                            /* Mazzard H Bold 16 (Figma) */
+  font-weight: 700;
   color: var(--color-orange-100);
   text-transform: uppercase;
   letter-spacing: 0.01em;
@@ -246,12 +249,13 @@
 }
 .ctaBtn {
   flex-shrink: 0;
+  margin-left: auto;                          /* always pin to right of footer */
   height: 44px;
   padding: 0 22px;
   background: var(--color-orange-100);
   color: #000;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;                         /* Figma: More details = 6 (was 8) */
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -288,7 +292,7 @@
     width: 100%;
   }
   .tradingDate { font-size: 12px; padding: 6px 12px; top: 10px; left: 10px; }
-  .timerChip   { font-size: 13px; padding: 6px 12px; bottom: 10px; left: 10px; min-width: 0; }
+  .timerChip   { font-size: 13px; padding: 0 12px; bottom: 10px; left: 10px; width: 138px; }
   .actions     { bottom: 10px; right: 10px; gap: 8px; }
   .iconBtn     { width: 28px; height: 28px; }
   .iconBtn img { width: 28px; height: 28px; }

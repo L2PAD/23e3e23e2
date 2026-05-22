@@ -48,68 +48,88 @@ const GSI_SRC = 'https://accounts.google.com/gsi/client';
 // ----------------------------------------------------------------------------
 const STR = {
   en: {
-    welcomeBack: 'Welcome Back',
-    createAccount: 'Create Account',
-    signInSubtitle: 'Sign in to access your BIBI Cars dashboard.',
-    signUpSubtitle: 'Join BIBI Cars to unlock your personal dashboard.',
+    welcomeBack: 'Sign In',
+    createAccount: 'Create Your Account',
+    signInSubtitle: 'Access your BIBI Cars cabinet.',
+    signUpSubtitle: 'Join BIBI Cars and unlock your personal cabinet.',
+    tabSignIn: 'Sign In',
+    tabSignUp: 'Sign Up',
     continueWithGoogle: 'Continue with Google',
-    or: 'or',
-    loginWithEmail: 'Continue with Email',
-    yourName: 'Your Name',
+    or: 'or continue with email',
+    yourName: 'Full Name',
     namePlaceholder: 'John Doe',
-    emailLabel: 'Email',
+    emailLabel: 'Email address',
+    emailPlaceholder: 'your@email.com',
     password: 'Password',
+    confirmPassword: 'Confirm Password',
+    confirmPasswordPlaceholder: 'Repeat your password',
     forgotPassword: 'Forgot password?',
-    passwordMinHint: 'At least 6 characters.',
-    loading: 'Loading…',
+    passwordReqTitle: 'Password must contain:',
+    passwordReqLength: 'At least 6 characters',
+    passwordReqUpper: 'One uppercase letter (A-Z)',
+    passwordReqLower: 'One lowercase letter (a-z)',
+    passwordsDontMatch: 'Passwords do not match.',
+    passwordTooWeak: 'Password does not meet the requirements.',
+    loading: 'Please wait…',
     signInCta: 'Sign In',
     signUpCta: 'Create Account',
     noAccount: "Don't have an account?",
     haveAccount: 'Already have an account?',
-    register: 'Register',
-    login: 'Sign in',
+    signUpHere: 'Sign up',
+    signInHere: 'Sign in',
     mustAgreeLegal: 'Please accept the Privacy Policy and Terms of Use to continue.',
     legalNotice: 'I agree with the',
     and: 'and',
     privacy: 'Privacy Policy',
     terms: 'Terms of Use',
     backToSite: 'Back to site',
-    secureLogin: 'Secure login',
+    secureLogin: 'Secure login · 256-bit SSL',
     authorizing: 'Authorizing…',
     googleNotConfigured: 'Google Sign-In is not configured yet. Admin can set it up in Integrations.',
     authError: 'Authentication failed. Please try again.',
+    emailLogoIn: 'Email',
   },
   bg: {
-    welcomeBack: 'Добре дошли отново',
+    welcomeBack: 'Вход',
     createAccount: 'Създайте акаунт',
-    signInSubtitle: 'Влезте, за да достъпите своето BIBI Cars табло.',
-    signUpSubtitle: 'Регистрирайте се в BIBI Cars, за да получите своето табло.',
+    signInSubtitle: 'Достъп до вашия BIBI Cars кабинет.',
+    signUpSubtitle: 'Регистрирайте се в BIBI Cars, за да получите своя кабинет.',
+    tabSignIn: 'Вход',
+    tabSignUp: 'Регистрация',
     continueWithGoogle: 'Продължете с Google',
-    or: 'или',
-    loginWithEmail: 'Продължи с имейл',
-    yourName: 'Вашето име',
+    or: 'или с имейл',
+    yourName: 'Пълно име',
     namePlaceholder: 'Иван Иванов',
-    emailLabel: 'Имейл',
+    emailLabel: 'Имейл адрес',
+    emailPlaceholder: 'your@email.com',
     password: 'Парола',
+    confirmPassword: 'Потвърдете паролата',
+    confirmPasswordPlaceholder: 'Повторете паролата',
     forgotPassword: 'Забравена парола?',
-    passwordMinHint: 'Поне 6 символа.',
-    loading: 'Зареждане…',
+    passwordReqTitle: 'Паролата трябва да съдържа:',
+    passwordReqLength: 'Поне 6 символа',
+    passwordReqUpper: 'Една главна буква (A-Z)',
+    passwordReqLower: 'Една малка буква (a-z)',
+    passwordsDontMatch: 'Паролите не съвпадат.',
+    passwordTooWeak: 'Паролата не отговаря на изискванията.',
+    loading: 'Моля, изчакайте…',
     signInCta: 'Вход',
-    signUpCta: 'Регистрация',
+    signUpCta: 'Създаване на акаунт',
     noAccount: 'Нямате акаунт?',
     haveAccount: 'Вече имате акаунт?',
-    register: 'Регистрация',
-    login: 'Вход',
+    signUpHere: 'Регистрирайте се',
+    signInHere: 'Влезте',
     mustAgreeLegal: 'Моля, приемете Политиката за поверителност и Условията за ползване.',
     legalNotice: 'Съгласен съм с',
     and: 'и',
     privacy: 'Политиката за поверителност',
     terms: 'Условията за ползване',
     backToSite: 'Обратно към сайта',
-    secureLogin: 'Защитен вход',
+    secureLogin: 'Защитен вход · 256-bit SSL',
     authorizing: 'Оторизация…',
-    googleNotConfigured: 'Google Sign-In все още не е настроен. Администраторът може да го конфигурира в Integrations.',
+    googleNotConfigured: 'Google Sign-In все още не е настроен.',
     authError: 'Неуспешно удостоверяване. Моля, опитайте отново.',
+    emailLogoIn: 'Имейл',
   },
 };
 const pick = (lang) => (lang === 'bg' ? STR.bg : STR.en);
@@ -317,41 +337,68 @@ export const CustomerLoginPage = () => {
   const { lang } = useLang();
   const t = pick(lang);
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useCustomerAuth();
   const staffAuth = useAuth();
   const { customer, verifyGoogleCredential } = auth;
   const { open: openPolicy } = usePolicyModal();
 
-  const [showEmailForm, setShowEmailForm] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
+  // ── Mode (sign-in vs sign-up). Optional `?mode=register` URL param so
+  // we can deep-link straight into registration from CTAs. ──
+  const initialMode = (() => {
+    try {
+      const sp = new URLSearchParams(location.search);
+      const m = (sp.get('mode') || '').toLowerCase();
+      if (m === 'register' || m === 'signup' || m === 'sign-up') return false; // false = register mode
+    } catch {}
+    return true; // true = sign-in mode by default
+  })();
+  const [isLogin, setIsLogin] = useState(initialMode);
+
+  // ── Form state ──
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
-  // Google Sign-In state
-  // Public Google config — `clientId` + `enabled` flag. When the admin
-  // disables Google sign-in (via Admin → Settings → Auth), we want to
-  // hide the Google CTA entirely (button + divider + GIS init) and let
-  // email-only login carry the page. The local `clientId` mirror is
-  // kept for backwards-compat with the rest of the file.
+  // ── Google Sign-In state ──
+  // Public Google config — `clientId` + `enabled`. When admin disables
+  // Google sign-in via Admin → Settings → Auth, hide the entire Google
+  // block (button + divider + GIS init) and let email-only login carry
+  // the page.
   const [googleConfig, setGoogleConfig] = useState({ clientId: '', enabled: false });
   const clientId = googleConfig.clientId;
   const googleEnabled = googleConfig.enabled && !!googleConfig.clientId;
   const [googleReady, setGoogleReady] = useState(false);
   const [googleAuthorizing, setGoogleAuthorizing] = useState(false);
-  // Hidden GIS button — we click it programmatically from our own styled button
-  // so we have full control over the visible text/icon (and locale).
   const hiddenGoogleRef = useRef(null);
+
+  // ── Password validation (live indicators) ──
+  const pwdChecks = {
+    length: password.length >= 6,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+  };
+  const pwdAllValid = pwdChecks.length && pwdChecks.upper && pwdChecks.lower;
+  const confirmMatches = password.length > 0 && password === passwordConfirm;
+
+  // Reset transient state on mode switch
+  const switchMode = (toLogin) => {
+    setIsLogin(toLogin);
+    setError('');
+    setPassword('');
+    setPasswordConfirm('');
+    setShowPassword(false);
+    setShowPasswordConfirm(false);
+  };
 
   // Redirect if already logged in (staff or customer — whichever is active)
   useEffect(() => {
-    // 1. Staff session takes priority (they came here from the site's profile icon
-    //    but are already signed in as admin/team_lead/manager → send them to
-    //    their proper cabinet without any extra click).
     const staffUser = staffAuth?.user;
     if (staffUser?.id) {
       const role = (staffUser.role || '').toLowerCase();
@@ -360,15 +407,12 @@ export const CustomerLoginPage = () => {
       else if (role === 'admin' || role === 'master_admin') navigate('/admin', { replace: true });
       return;
     }
-    // 2. Otherwise — standard customer redirect
     if (customer?.customerId) {
       navigate(`/cabinet/${customer.customerId}`);
     }
   }, [customer, staffAuth?.user, navigate]);
 
-  // Fetch Client ID + enabled flag once. When `enabled` is false (admin
-  // toggle) we skip GIS initialisation entirely — the page falls back to
-  // email-only login automatically.
+  // Fetch Client ID once
   useEffect(() => {
     let cancelled = false;
     axios.get(`${API_URL}/api/auth/google-client-id`)
@@ -398,8 +442,8 @@ export const CustomerLoginPage = () => {
     }
   }, [verifyGoogleCredential, navigate, t.authError]);
 
-  // Initialise GIS once we have Client ID. The native button is hidden, so we
-  // don't need to re-init on language change anymore.
+  // Initialise GIS once we have Client ID. Skipped entirely when admin
+  // toggles Google off (`googleEnabled === false`).
   useEffect(() => {
     if (!googleEnabled || !clientId) return;
     let cancelled = false;
@@ -409,28 +453,17 @@ export const CustomerLoginPage = () => {
         if (cancelled || !window.google?.accounts?.id) return;
         try {
           /* `auto_select: true` enables silent re-authentication on
-           * return visits — when GIS has a cached account from a
-           * previous successful sign-in (and the user hasn't explicitly
-           * logged out via `disableAutoSelect()`), the callback fires
-           * automatically without a popup. This is the auto-login
-           * restore polish item from the post-launch checklist. */
+           * return visits. Respects `disableAutoSelect()` from logout. */
           window.google.accounts.id.initialize({
             client_id: clientId,
             callback: handleGoogleCredential,
             auto_select: true,
             ux_mode: 'popup',
-            // Light tap suggests sign-in but doesn't block the UI; only
-            // fires when the user previously consented (otherwise it's a
-            // no-op). One-Tap respects `disableAutoSelect()` from logout.
             itp_support: true,
           });
           setGoogleReady(true);
-          // Trigger silent re-auth attempt — fully optional. Failures
-          // are silent (no UI surface) and we keep our custom button as
-          // the primary CTA regardless.
-          try {
-            window.google.accounts.id.prompt();
-          } catch (_) { /* swallow */ }
+          // Silent One-Tap suggestion — fully optional, fails silently.
+          try { window.google.accounts.id.prompt(); } catch (_) {}
         } catch (e) {
           console.warn('[gsi] initialize failed', e);
         }
@@ -439,11 +472,7 @@ export const CustomerLoginPage = () => {
     return () => { cancelled = true; };
   }, [clientId, googleEnabled, handleGoogleCredential]);
 
-  // Render the hidden, native Google button — we never show this to the user.
-  // It exists only so that our visible custom button can programmatically
-  // dispatch a click on it, which triggers the Google account-picker popup.
-  // This way the user only sees OUR text/icon (in EN/BG) and Google's iframe
-  // language no longer matters.
+  // Render the hidden, native Google button
   useEffect(() => {
     if (!googleReady || !hiddenGoogleRef.current || !window.google?.accounts?.id) return;
     try {
@@ -462,22 +491,18 @@ export const CustomerLoginPage = () => {
     }
   }, [googleReady]);
 
-  // Trigger the hidden GIS button (= opens Google's native account-picker popup).
   const triggerGoogleSignIn = () => {
     const host = hiddenGoogleRef.current;
     if (!host) return;
-    // GIS renders its button inside a div[role="button"] inside an iframe wrapper.
     const native = host.querySelector('div[role="button"]') || host.querySelector('button');
-    if (native) {
-      native.click();
-      return;
-    }
-    // Fallback: try one-tap prompt.
+    if (native) { native.click(); return; }
     try { window.google?.accounts?.id?.prompt(); } catch {}
   };
 
   const handleGoogleClick = () => {
-    if (!agreed) { setError(t.mustAgreeLegal); return; }
+    // Consent only required for REGISTRATION mode (since Google may create a new account).
+    // In Sign-In mode we don't gate Google login (existing accounts already accepted terms).
+    if (!isLogin && !agreed) { setError(t.mustAgreeLegal); return; }
     if (!clientId) { setError(t.googleNotConfigured); return; }
     if (!window.google?.accounts?.id) return;
     triggerGoogleSignIn();
@@ -485,42 +510,32 @@ export const CustomerLoginPage = () => {
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
-    // Consent required only for REGISTRATION — existing accounts (customers or
-    // staff) already accepted the legal terms when they were created. Re-
-    // asking on every login is hostile UX, especially for staff who log in
-    // through this form too (see role-based redirect below).
-    if (!isLogin && !agreed) { setError(t.mustAgreeLegal); return; }
-    setError(''); setSubmitting(true);
+    setError('');
+
+    if (!isLogin) {
+      // ── Registration extra validation ──
+      if (!agreed) { setError(t.mustAgreeLegal); return; }
+      if (!pwdAllValid) { setError(t.passwordTooWeak); return; }
+      if (password !== passwordConfirm) { setError(t.passwordsDontMatch); return; }
+    }
+
+    setSubmitting(true);
     try {
       if (isLogin) {
-        // ── 1. Try STAFF login first (admin / master_admin / team_lead / manager) ──
-        //    Staff table ≠ customer table — so we attempt /api/auth/login first.
-        //    If we get a 401 we fall back to customer login. Any other 2xx → role-based redirect.
+        // 1) Try STAFF login first
         try {
           const staffUser = await staffAuth.login(email, password);
           const role = (staffUser?.role || '').toLowerCase();
-          if (role === 'manager') {
-            navigate('/manager', { replace: true });
-          } else if (role === 'team_lead') {
-            navigate('/team/dashboard', { replace: true });
-          } else if (role === 'admin' || role === 'master_admin') {
-            // `master_admin` is a legacy alias kept only for back-compat tokens.
-            navigate('/admin', { replace: true });
-          } else {
-            // Unknown staff role — safe default
-            navigate('/admin', { replace: true });
-          }
+          if (role === 'manager') navigate('/manager', { replace: true });
+          else if (role === 'team_lead') navigate('/team/dashboard', { replace: true });
+          else if (role === 'admin' || role === 'master_admin') navigate('/admin', { replace: true });
+          else navigate('/admin', { replace: true });
           return;
         } catch (staffErr) {
           const code = staffErr?.response?.status;
-          // 401 / 404 → not a staff account → try customer login below.
-          // 403 / 429 / 500 → bubble up.
-          if (code && code !== 401 && code !== 404 && code !== 422) {
-            throw staffErr;
-          }
+          if (code && code !== 401 && code !== 404 && code !== 422) throw staffErr;
         }
-
-        // ── 2. Fallback to CUSTOMER login ──
+        // 2) Fallback to CUSTOMER login
         const data = await auth.login(email, password);
         navigate(`/cabinet/${data.customerId}`);
       } else {
@@ -539,7 +554,7 @@ export const CustomerLoginPage = () => {
   const subtitle = isLogin ? t.signInSubtitle : t.signUpSubtitle;
 
   const inputBase =
-    'w-full h-[52px] pl-11 pr-4 bg-[#0F0F0D] border border-[#3A3A37] rounded-md text-[15px] font-medium text-white placeholder:text-[#6A6A66] outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_1px_0_rgba(0,0,0,0.4)] focus:border-[#FEAE00] focus:ring-2 focus:ring-[#FEAE00]/35 focus:shadow-[0_0_0_4px_rgba(254,174,0,0.18),inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-[#55544E]';
+    'w-full h-[50px] pl-11 pr-4 bg-[#0F0F0D] border border-[#3A3A37] rounded-md text-[15px] font-medium text-white placeholder:text-[#6A6A66] outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] focus:border-[#FEAE00] focus:ring-2 focus:ring-[#FEAE00]/35 focus:shadow-[0_0_0_4px_rgba(254,174,0,0.18),inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-[#55544E]';
 
   return (
     <div
@@ -565,25 +580,78 @@ export const CustomerLoginPage = () => {
         }}
       />
 
+      {/* Top bar — logo + back link */}
       <div className="relative z-10 flex items-center justify-between px-6 xl:px-12 pt-6 lg:pt-8">
         <BibiLogo height={40} />
+        <Link
+          to="/"
+          className="hidden sm:inline-flex items-center gap-1.5 text-[12px] uppercase tracking-[0.14em] text-white/65 hover:text-[#FEAE00] transition-colors"
+          data-testid="back-to-site-link-top"
+        >
+          <ArrowLeft size={14} />
+          {t.backToSite}
+        </Link>
       </div>
 
+      {/* Centred auth card */}
       <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-10 lg:py-14">
-        <div className="w-full max-w-[440px]">
-          <div className="text-center mb-8">
+        <div className="w-full max-w-[460px]">
+          {/* Title block */}
+          <div className="text-center mb-10">
             <h1
-              className="text-[32px] lg:text-[40px] leading-[1.05] font-extrabold tracking-tight text-white"
+              className="text-[30px] lg:text-[38px] leading-[1.05] font-extrabold tracking-tight text-white"
               style={{ fontFamily: "'Mazzard', 'Mazzard H', 'Mazzard M', system-ui, sans-serif" }}
+              data-testid="auth-title"
             >
               {title}
             </h1>
-            <p className="text-[14px] lg:text-[15px] text-white/75 mt-3 max-w-[380px] mx-auto leading-relaxed">
+            <p className="text-[14px] lg:text-[15px] text-white/70 mt-3 max-w-[380px] mx-auto leading-relaxed">
               {subtitle}
             </p>
           </div>
 
+          {/* Auth card */}
           <div className="rounded-2xl border border-[#FEAE00]/25 bg-[#1D1D1B] shadow-[0_20px_60px_rgba(0,0,0,0.55),0_0_0_1px_rgba(254,174,0,0.08),inset_0_1px_0_rgba(255,255,255,0.04)] p-6 sm:p-8">
+
+            {/* ── Mode switcher (Sign In / Sign Up) — visible at the top, not hidden ── */}
+            <div
+              className="relative grid grid-cols-2 mb-7 p-1 bg-[#0F0F0D] border border-[#3A3A37] rounded-lg"
+              role="tablist"
+              aria-label="Auth mode"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={isLogin}
+                onClick={() => switchMode(true)}
+                className={[
+                  'h-[42px] rounded-md text-[13px] font-semibold uppercase tracking-[0.1em] transition-all',
+                  isLogin
+                    ? 'bg-[#FEAE00] text-black'
+                    : 'text-white/70 hover:text-white',
+                ].join(' ')}
+                data-testid="auth-tab-signin"
+              >
+                {t.tabSignIn}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!isLogin}
+                onClick={() => switchMode(false)}
+                className={[
+                  'h-[42px] rounded-md text-[13px] font-semibold uppercase tracking-[0.1em] transition-all',
+                  !isLogin
+                    ? 'bg-[#FEAE00] text-black'
+                    : 'text-white/70 hover:text-white',
+                ].join(' ')}
+                data-testid="auth-tab-signup"
+              >
+                {t.tabSignUp}
+              </button>
+            </div>
+
+            {/* Error banner */}
             {error && (
               <div
                 className="mb-5 p-3 rounded-md bg-[#3A1212] border border-[#5B1B1B] flex items-start gap-2.5"
@@ -595,62 +663,40 @@ export const CustomerLoginPage = () => {
               </div>
             )}
 
-            {/* Google Sign-In — fully custom button so we control text + icon
-                in the user's chosen language (EN/BG). The native GIS button is
-                rendered hidden off-screen and clicked programmatically when the
-                user taps our button. This bypasses the GIS limitation where the
-                native button text follows browser Accept-Language (e.g. Russian).
-
-                The entire Google block (button + divider) is conditionally
-                rendered: when the admin disables Google sign-in in Admin →
-                Settings → Auth (`features.googleEnabled = false`), this whole
-                section collapses and the page falls back to email-only auth. */}
+            {/* ── Google Sign-In: conditionally rendered. When admin
+             *    toggles Google off (`features.googleEnabled = false`),
+             *    the entire Google block + the "OR" divider collapse,
+             *    and email-only login becomes the primary CTA. */}
             {googleEnabled && (
+            <>
             <div className="relative" data-testid="google-signin-wrap">
-              {/* Hidden native GIS button (mounted only when ready) */}
+              {/* Hidden native GIS button */}
               <div
                 ref={hiddenGoogleRef}
                 aria-hidden="true"
                 tabIndex={-1}
                 style={{
-                  position: 'absolute',
-                  top: 0, left: 0,
-                  width: 1, height: 1,
-                  overflow: 'hidden',
-                  opacity: 0,
-                  pointerEvents: 'none',
-                  visibility: 'hidden',
+                  position: 'absolute', top: 0, left: 0,
+                  width: 1, height: 1, overflow: 'hidden',
+                  opacity: 0, pointerEvents: 'none', visibility: 'hidden',
                 }}
                 data-testid="google-signin-native-hidden"
               />
 
               {googleAuthorizing ? (
-                <div className="w-full h-[54px] rounded-md bg-black border border-[#3A3A37] flex items-center justify-center gap-2.5 text-white">
+                <div className="w-full h-[52px] rounded-md bg-black border border-[#3A3A37] flex items-center justify-center gap-2.5 text-white">
                   <SpinnerGap size={18} className="animate-spin text-[#FEAE00]" />
                   <span className="text-[13px] font-medium">{t.authorizing}</span>
                 </div>
-              ) : !agreed ? (
-                /* DISABLED state — only a lock icon, no text, fully darkened */
-                <button
-                  type="button"
-                  onClick={handleGoogleClick}
-                  aria-label={t.mustAgreeLegal}
-                  title={t.mustAgreeLegal}
-                  className="w-full h-[54px] rounded-md bg-[#0A0A09] border border-[#2A2A28] cursor-not-allowed flex items-center justify-center transition-colors hover:bg-[#0F0F0E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FEAE00]/40"
-                  data-testid="google-signin-disabled"
-                >
-                  <Lock size={20} weight="fill" className="text-white/50" />
-                </button>
               ) : (
-                /* ENABLED state — our localized text + Google logo */
                 <button
                   type="button"
                   onClick={handleGoogleClick}
                   disabled={!googleReady || !clientId}
                   className={[
-                    'w-full h-[54px] rounded-md font-semibold text-[14px] transition-all flex items-center justify-center gap-3 border',
+                    'w-full h-[52px] rounded-md font-semibold text-[14px] transition-all flex items-center justify-center gap-3 border',
                     googleReady && clientId
-                      ? 'bg-black hover:bg-[#121212] active:bg-[#0A0A0A] text-white border-[#3A3A37] hover:border-[#FEAE00]/55 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.04)]'
+                      ? 'bg-white hover:bg-[#F5F5F5] active:bg-[#EEEEEE] text-[#1F1F1F] border-transparent shadow-[0_4px_14px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.5)]'
                       : 'bg-black/60 text-white/55 border-[#2A2A28] cursor-not-allowed',
                   ].join(' ')}
                   data-testid="google-signin-btn"
@@ -665,227 +711,289 @@ export const CustomerLoginPage = () => {
                 </button>
               )}
             </div>
-            )}
 
-            {/* Divider — only shown when both auth methods are present */}
-            {googleEnabled && (
+            {/* Divider — only shown when Google block is also visible */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-[#3A3A37]" />
               </div>
               <div className="relative flex justify-center">
-                <span className="px-3 bg-[#1D1D1B] text-[11px] uppercase tracking-[0.22em] text-white/60 font-semibold">
+                <span className="px-3 bg-[#1D1D1B] text-[11px] uppercase tracking-[0.18em] text-white/55 font-semibold">
                   {t.or}
                 </span>
               </div>
             </div>
+            </>
             )}
 
-            {!showEmailForm ? (
-              <button
-                onClick={() => setShowEmailForm(true)}
-                className="w-full h-[54px] rounded-md border border-[#3A3A37] bg-[#0F0F0D] hover:border-[#FEAE00] hover:bg-[#171614] hover:shadow-[0_0_0_3px_rgba(254,174,0,0.18)] text-white font-semibold text-[14px] transition-all flex items-center justify-center gap-3"
-                data-testid="show-email-form-btn"
-              >
-                <Envelope size={18} className="text-[#FEAE00]" />
-                {t.loginWithEmail}
-              </button>
-            ) : (
-              <form onSubmit={handleEmailSubmit} className="space-y-5" data-testid="email-auth-form">
-                {!isLogin && (
-                  <div>
-                    <label className="block text-[12px] font-bold text-[#FEAE00] mb-2 uppercase tracking-[0.12em]">
-                      {t.yourName}
-                    </label>
-                    <div className="relative">
-                      <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#FEAE00]/80" />
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder={t.namePlaceholder}
-                        className={inputBase}
-                        data-testid="register-name-input"
-                      />
-                    </div>
-                  </div>
-                )}
-
+            {/* ── Email/password form (always visible — no intermediate button) ── */}
+            <form onSubmit={handleEmailSubmit} className="space-y-4" data-testid="email-auth-form">
+              {!isLogin && (
                 <div>
                   <label className="block text-[12px] font-bold text-[#FEAE00] mb-2 uppercase tracking-[0.12em]">
-                    {t.emailLabel}
+                    {t.yourName}
                   </label>
                   <div className="relative">
-                    <Envelope size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#FEAE00]/80" />
+                    <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#FEAE00]/80" />
                     <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={t.namePlaceholder}
                       required
+                      autoComplete="name"
                       className={inputBase}
-                      data-testid="login-email-input"
-                      autoComplete="email"
+                      data-testid="register-name-input"
                     />
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[12px] font-bold text-[#FEAE00] uppercase tracking-[0.12em]">
-                      {t.password}
-                    </label>
-                    {isLogin && (
-                      <Link
-                        to="/cabinet/forgot-password"
-                        className="text-[11px] text-white/70 hover:text-[#FEAE00] font-medium transition-colors"
-                        tabIndex={-1}
-                        data-testid="forgot-password-link"
-                      >
-                        {t.forgotPassword}
-                      </Link>
-                    )}
+              <div>
+                <label className="block text-[12px] font-bold text-[#FEAE00] mb-2 uppercase tracking-[0.12em]">
+                  {t.emailLabel}
+                </label>
+                <div className="relative">
+                  <Envelope size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#FEAE00]/80" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t.emailPlaceholder}
+                    required
+                    className={inputBase}
+                    data-testid="login-email-input"
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[12px] font-bold text-[#FEAE00] uppercase tracking-[0.12em]">
+                    {t.password}
+                  </label>
+                  {isLogin && (
+                    <Link
+                      to="/cabinet/forgot-password"
+                      className="text-[11px] text-white/70 hover:text-[#FEAE00] font-medium transition-colors"
+                      tabIndex={-1}
+                      data-testid="forgot-password-link"
+                    >
+                      {t.forgotPassword}
+                    </Link>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#FEAE00]/80" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={isLogin ? 1 : 6}
+                    className={`${inputBase} pr-11`}
+                    data-testid="login-password-input"
+                    autoComplete={isLogin ? 'current-password' : 'new-password'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-[#FEAE00] transition-colors p-1"
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Password strength indicators — only on register and only when user starts typing */}
+              {!isLogin && password.length > 0 && (
+                <div
+                  className="bg-[#0F0F0D] border border-[#2A2A28] rounded-md p-3 space-y-1.5"
+                  data-testid="password-requirements"
+                >
+                  <div className="text-[11px] uppercase tracking-[0.1em] text-white/55 font-semibold mb-1.5">
+                    {t.passwordReqTitle}
                   </div>
+                  {[
+                    { ok: pwdChecks.length, label: t.passwordReqLength, key: 'length' },
+                    { ok: pwdChecks.upper,  label: t.passwordReqUpper,  key: 'upper' },
+                    { ok: pwdChecks.lower,  label: t.passwordReqLower,  key: 'lower' },
+                  ].map(({ ok, label, key }) => (
+                    <div key={key} className="flex items-center gap-2 text-[12px]" data-testid={`pwd-req-${key}`}>
+                      <span className={[
+                        'w-4 h-4 rounded-full border flex items-center justify-center transition-colors',
+                        ok ? 'bg-[#19A36C] border-[#19A36C]' : 'bg-transparent border-[#5A5A56]',
+                      ].join(' ')}>
+                        {ok && (
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
+                            <path d="M4 12.5l5 5L20 6" stroke="#000" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className={ok ? 'text-[#9FE8C6]' : 'text-white/55'}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Confirm password — only on register */}
+              {!isLogin && (
+                <div>
+                  <label className="block text-[12px] font-bold text-[#FEAE00] mb-2 uppercase tracking-[0.12em]">
+                    {t.confirmPassword}
+                  </label>
                   <div className="relative">
                     <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#FEAE00]/80" />
                     <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      type={showPasswordConfirm ? 'text' : 'password'}
+                      value={passwordConfirm}
+                      onChange={(e) => setPasswordConfirm(e.target.value)}
+                      placeholder={t.confirmPasswordPlaceholder}
                       required
-                      minLength={6}
-                      className={`${inputBase} pr-11`}
-                      data-testid="login-password-input"
-                      autoComplete={isLogin ? 'current-password' : 'new-password'}
+                      className={`${inputBase} pr-11 ${
+                        passwordConfirm.length > 0 && !confirmMatches
+                          ? 'border-[#7A2B2B] focus:border-[#FF6B6B] focus:ring-[#FF6B6B]/30'
+                          : ''
+                      }`}
+                      data-testid="register-password-confirm-input"
+                      autoComplete="new-password"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword((s) => !s)}
+                      onClick={() => setShowPasswordConfirm((s) => !s)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-[#FEAE00] transition-colors p-1"
                       tabIndex={-1}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label={showPasswordConfirm ? 'Hide password' : 'Show password'}
                     >
-                      {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                      {showPasswordConfirm ? <EyeSlash size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                  {!isLogin && <p className="mt-1.5 text-[11px] text-white/55">{t.passwordMinHint}</p>}
+                  {passwordConfirm.length > 0 && !confirmMatches && (
+                    <p className="mt-1.5 text-[11.5px] text-[#FF8B8B]" data-testid="pwd-mismatch">
+                      {t.passwordsDontMatch}
+                    </p>
+                  )}
                 </div>
+              )}
 
-                <button
-                  type="submit"
-                  disabled={submitting || (!isLogin && !agreed)}
-                  className="w-full h-[54px] mt-2 bg-[#FEAE00] hover:bg-[#FFBF2D] active:bg-[#E89D00] text-black rounded-md font-extrabold text-[14px] tracking-[0.06em] uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_8px_30px_-4px_rgba(254,174,0,0.65),inset_0_1px_0_rgba(255,255,255,0.25)]"
-                  data-testid="login-submit-btn"
+              {/* Consent — only on register, inline, prominent */}
+              {!isLogin && (
+                <div
+                  role="checkbox"
+                  tabIndex={0}
+                  onClick={() => { setAgreed((v) => !v); if (!agreed) setError(''); }}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      setAgreed((v) => !v);
+                      if (!agreed) setError('');
+                    }
+                  }}
+                  className={[
+                    'w-full flex items-start gap-3 text-left p-3 rounded-lg border transition-colors cursor-pointer select-none',
+                    agreed
+                      ? 'bg-[#FEAE00]/10 border-[#FEAE00]/40'
+                      : 'bg-[#0F0F0D] border-[#3A3A37] hover:border-[#FEAE00]/40',
+                  ].join(' ')}
+                  data-testid="auth-consent-checkbox"
+                  aria-checked={agreed}
                 >
-                  {submitting ? (
-                    <>
-                      <SpinnerGap size={18} className="animate-spin" />
-                      {t.loading}
-                    </>
-                  ) : isLogin ? t.signInCta : t.signUpCta}
-                </button>
-              </form>
-            )}
+                  <span
+                    className={[
+                      'w-5 h-5 rounded border flex items-center justify-center mt-0.5 shrink-0 transition-colors',
+                      agreed ? 'bg-[#FEAE00] border-[#FEAE00]' : 'bg-transparent border-[#5A5A56]',
+                    ].join(' ')}
+                  >
+                    {agreed && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 12.5l5 5L20 6" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="flex-1 text-[12.5px] text-white/85 leading-relaxed">
+                    {t.legalNotice}{' '}
+                    <span
+                      role="link"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); openPolicy('privacy'); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openPolicy('privacy');
+                        }
+                      }}
+                      className="text-[#FEAE00] underline underline-offset-2 hover:brightness-110 font-medium cursor-pointer"
+                      data-testid="auth-privacy-link"
+                    >
+                      {t.privacy}
+                    </span>{' '}
+                    {t.and}{' '}
+                    <span
+                      role="link"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); openPolicy('terms'); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openPolicy('terms');
+                        }
+                      }}
+                      className="text-[#FEAE00] underline underline-offset-2 hover:brightness-110 font-medium cursor-pointer"
+                      data-testid="auth-terms-link"
+                    >
+                      {t.terms}
+                    </span>.
+                  </span>
+                </div>
+              )}
 
-            {showEmailForm && (
-              <div className="mt-6 text-center text-[13px]">
-                <span className="text-white/70">
-                  {isLogin ? t.noAccount : t.haveAccount}
-                </span>
-                <button
-                  onClick={() => { setIsLogin((v) => !v); setError(''); }}
-                  className="ml-2 text-[#FEAE00] font-bold hover:underline underline-offset-4"
-                  data-testid="toggle-auth-mode-btn"
-                >
-                  {isLogin ? t.register : t.login}
-                </button>
-              </div>
-            )}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-[54px] mt-2 bg-[#FEAE00] hover:bg-[#FFBF2D] active:bg-[#E89D00] text-black rounded-md font-semibold text-[14px] tracking-[0.06em] uppercase transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                data-testid="login-submit-btn"
+              >
+                {submitting ? (
+                  <>
+                    <SpinnerGap size={18} className="animate-spin" />
+                    {t.loading}
+                  </>
+                ) : isLogin ? t.signInCta : t.signUpCta}
+              </button>
+            </form>
+
+            {/* Bottom helper — toggle mode */}
+            <div className="mt-6 text-center text-[13px]">
+              <span className="text-white/65">
+                {isLogin ? t.noAccount : t.haveAccount}
+              </span>
+              <button
+                onClick={() => switchMode(!isLogin)}
+                className="ml-2 text-[#FEAE00] font-bold hover:underline underline-offset-4"
+                data-testid="toggle-auth-mode-btn"
+                type="button"
+              >
+                {isLogin ? t.signUpHere : t.signInHere}
+              </button>
+            </div>
           </div>
 
-          {/* Legal consent + Back link */}
-          <div className="mt-6 space-y-3">
-            <div
-              role="checkbox"
-              tabIndex={0}
-              onClick={() => { setAgreed((v) => !v); if (!agreed) setError(''); }}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  setAgreed((v) => !v);
-                  if (!agreed) setError('');
-                }
-              }}
-              className={[
-                'w-full flex items-start gap-3 text-left p-3 rounded-lg border transition-colors cursor-pointer select-none',
-                agreed
-                  ? 'bg-[#FEAE00]/10 border-[#FEAE00]/40'
-                  : 'bg-[#0F0F0D] border-[#3A3A37] hover:border-[#FEAE00]/40',
-              ].join(' ')}
-              data-testid="auth-consent-checkbox"
-              aria-checked={agreed}
+          {/* Bottom: back to site link with proper breathing room */}
+          <div className="mt-10 text-center">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-[12px] uppercase tracking-[0.14em] text-white/65 hover:text-[#FEAE00] transition-colors"
+              data-testid="back-to-site-link"
             >
-              <span
-                className={[
-                  'w-5 h-5 rounded border flex items-center justify-center mt-0.5 shrink-0 transition-colors',
-                  agreed ? 'bg-[#FEAE00] border-[#FEAE00]' : 'bg-transparent border-[#5A5A56]',
-                ].join(' ')}
-              >
-                {agreed && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 12.5l5 5L20 6" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </span>
-              <span className="flex-1 text-[12.5px] text-white/85 leading-relaxed">
-                {t.legalNotice}{' '}
-                <span
-                  role="link"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); openPolicy('privacy'); }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openPolicy('privacy');
-                    }
-                  }}
-                  className="text-[#FEAE00] underline underline-offset-2 hover:brightness-110 font-medium cursor-pointer"
-                  data-testid="auth-privacy-link"
-                >
-                  {t.privacy}
-                </span>{' '}
-                {t.and}{' '}
-                <span
-                  role="link"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); openPolicy('terms'); }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openPolicy('terms');
-                    }
-                  }}
-                  className="text-[#FEAE00] underline underline-offset-2 hover:brightness-110 font-medium cursor-pointer"
-                  data-testid="auth-terms-link"
-                >
-                  {t.terms}
-                </span>.
-              </span>
-            </div>
-
-            <div className="text-center">
-              <Link
-                to="/"
-                className="inline-flex items-center gap-1.5 text-[12px] uppercase tracking-[0.14em] text-white/75 hover:text-[#FEAE00] transition-colors"
-                data-testid="back-to-site-link"
-              >
-                <ArrowLeft size={14} />
-                {t.backToSite}
-              </Link>
-            </div>
+              <ArrowLeft size={14} />
+              {t.backToSite}
+            </Link>
           </div>
         </div>
       </div>

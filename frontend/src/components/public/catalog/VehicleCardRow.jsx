@@ -344,11 +344,7 @@ export default function VehicleCardRow({ vehicle, onClick }) {
          *   • only shown for active listings with a future auction date */}
         {countdown && !isSold && (
           <div className={styles.timerChip} data-testid={`auction-timer-${vin || v.id}`}>
-            <svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true">
-              <circle cx="7" cy="7.5" r="5.5" stroke="currentColor" strokeWidth="1.4" />
-              <path d="M7 4.5V7.5L9 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M5 1.5h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-            </svg>
+            <img src="/single-car/iconoir-clock.png" alt="" width={18} height={18} />
             <span>{countdown}</span>
           </div>
         )}

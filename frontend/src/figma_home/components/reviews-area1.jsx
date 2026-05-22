@@ -90,22 +90,16 @@ const ReviewsArea1 = ({ className = "" }) => {
   const { lang: ctxLang } = useLang();
   const lang = ctxLang === "bg" ? "bg" : "en";
 
-  // Fetch admin-managed CMS headings AND real Google reviews on mount.
-  //
   // Race-condition note: both endpoints run in parallel, but the live
   // Google feed is the SOURCE OF TRUTH for `items`, `google_rating`,
   // `google_reviews_count` and `google_reviews_url`. The CMS site-info
-  // only owns the localized text (`title_*`, `subtitle_*`) and the
-  // happy-customers baseline. We use a ref-backed `googleApplied` flag
-  // so that if site-info resolves AFTER Google, it does NOT clobber
-  // the live aggregate (which used to give back the stale "31 Google
-  // reviews" / "Georgi" CMS fallback).
+  // only owns the localized text (`title_*`, `subtitle_*`). A ref-backed
+  // `googleApplied` flag prevents site-info (when it resolves AFTER
+  // Google) from clobbering live aggregates with stale CMS fallback.
   const googleAppliedRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
-    // 1) CMS site-info (title / subtitle / fallback aggregate when no Google
-    //    sync has run yet). Carefully OMITS Google-owned fields when the
-    //    live feed has already populated them.
+    // 1) CMS site-info (title / subtitle / fallback rating-count if no Google sync yet)
     (async () => {
       try {
         const r = await axios.get(`${API_URL}/api/site-info`);
@@ -121,8 +115,6 @@ const ReviewsArea1 = ({ className = "" }) => {
               delete safe.google_reviews_count;
               delete safe.google_reviews_url;
             }
-            // Preserve `items` array shape (only honour the CMS items when
-            // we still don't have live Google items yet).
             return {
               ...prev,
               ...safe,

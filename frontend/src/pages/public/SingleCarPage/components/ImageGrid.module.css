@@ -110,30 +110,34 @@
   cursor: pointer;
   border: 0;
   padding: 0;
-  transition: background-color 0.18s ease, transform 0.18s ease;
+  color: #9A9A95;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 .allImagesCard:hover {
   background-color: #1E1E22;
+  color: #FEAE00;
   transform: translateY(-1px);
 }
-.allImagesCard:hover .allImagesCount,
-.allImagesCard:hover .allImagesIcon { opacity: 0.85; }
-/* Composite: PNG icon-block left, dynamic count right.
- * The PNG visually carries the "ALL IMAGES" wordmark; we append "(N)" so
- * the full reading is "ALL IMAGES (30)" — count is data-driven. */
+/* Stacked layout — picture icon on TOP, "ALL IMAGES (N)" label BELOW.
+ * Both elements are horizontally centred inside the 203×152 tile and the
+ * whole composition is vertically centred via the parent's flex centering.
+ * The icon is rendered as inline SVG (uses currentColor) so it stays sharp
+ * at any density and inherits the hover-tint colour.
+ */
 .allImagesInner {
   display: inline-flex;
-  flex-direction: row;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 10px;
+  text-align: center;
 }
 .allImagesIcon {
-  width: 76px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   display: block;
-  object-fit: contain;
   flex-shrink: 0;
+  color: currentColor;
   transition: opacity 0.18s ease;
 }
 .allImagesCount {
@@ -141,14 +145,10 @@
   line-height: 1;
   text-transform: uppercase;
   font-family: var(--font-mazzard);
-  color: var(--color-dimgray-100);
+  color: currentColor;
   font-weight: 500;
-  letter-spacing: 0.04em;
-  /* Align the bottom edge of "(N)" with the baseline of the
-   * "ALL IMAGES" text inside the 48 px PNG. The text in the PNG
-   * sits at the bottom strip (rows 35–44 of 48 px), so a small
-   * bottom-shift keeps the "(N)" optically locked to that baseline. */
-  padding-bottom: 4px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
   transition: opacity 0.18s ease;
 }
 
@@ -158,7 +158,12 @@
   min-width: 0;
   max-width: 848px;
   /* Grid container has align-items: stretch → height auto-matches
-     photo column (aspect-ratio driven), no min-height needed. */
+     photo column (aspect-ratio driven). The explicit `align-self: stretch`
+     + `height: 100%` are defensive in case some viewport/round-off causes
+     the implicit stretch to leave a sub-pixel gap (which is exactly the
+     "right card looks slightly shorter" issue we hit at certain widths). */
+  align-self: stretch;
+  height: 100%;
   background-color: var(--color-gray-500);
   overflow: hidden;
   display: flex;
@@ -243,18 +248,27 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: clamp(14px, 1.25vw, 24px);    /* row gap between Brand/Model/Year/... */
+  gap: clamp(16px, 1.4vw, 26px);    /* row gap between Brand/Model/Year/... — a touch more air */
   min-width: 0;
 }
 .detailRow {
   align-self: stretch;
   display: flex;
   align-items: center;
-  gap: clamp(8px, 0.83vw, 16px);
+  /* user spec: at least 14 px between label and value at every viewport */
+  gap: clamp(14px, 1.25vw, 22px);
   flex-wrap: nowrap;
 }
 .detailLabel {
-  width: clamp(74px, 5.47vw, 105px);
+  /* Wider label slot so single-word labels like
+   * "Transmission" / "Engine volume" / "Body type" / "Drive type"
+   * comfortably fit on ONE line at every viewport.
+   * Longer multi-word labels (e.g. "Estimated total price") gracefully
+   * wrap to 2 lines only when the value next to them is short — see
+   * `.detailRowWide` modifier for the special "Estimated total price"
+   * row that gets a wider label slot so even that one fits on one line
+   * when the viewport allows it. */
+  width: clamp(110px, 9.5vw, 165px);
   flex-shrink: 0;
   font-size: 14px;
   line-height: 1.4;

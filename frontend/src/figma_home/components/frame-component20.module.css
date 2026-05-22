@@ -96,14 +96,14 @@
   font-family: inherit;
 }
 .proposals {
-  /* Per Figma spec — Mazzard H Bold 12px, uppercase, 0.06em tracking.
+  /* Per Figma spec — Mazzard H Medium 12px, uppercase, 0.06em tracking.
      Label stays white, the count value is brand amber so the user can
      scan how many cars are available at a glance. */
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;                          /* H Medium per Figma */
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #fff;
@@ -119,7 +119,7 @@
 }
 .proposalsCount {
   color: #feae00;
-  font-weight: 700;
+  font-weight: 500;
   /* Subtle slide-in when the number changes (e.g., when the live
      parse finishes after the initial 0 placeholder). Keeps motion
      consistent with the rest of the site. */

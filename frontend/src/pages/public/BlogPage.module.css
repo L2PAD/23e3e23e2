@@ -271,7 +271,9 @@
 
 .featuredCard {
   background: #1D1D1B;
-  border-radius: 4px;
+  /* Unified card radius across the site = 8 px (matches catalog,
+   * top-deals, similar cars, cost calculator, have-a-question). */
+  border-radius: 8px;
   padding: 24px;                              /* inner text padding 24 (user spec) */
   display: flex;
   flex-direction: row;
@@ -409,7 +411,7 @@
 }
 .sideCard {
   background: #1D1D1B;
-  border-radius: 4px;
+  border-radius: 8px;                         /* unified card radius (user spec) */
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -487,7 +489,7 @@
 }
 .gridCard {
   background: #1D1D1B;
-  border-radius: 4px;
+  border-radius: 8px;                         /* unified card radius (user spec) */
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -847,7 +849,7 @@
     height: auto;
     min-height: 0;
     background: #1A1B19;
-    border-radius: 4px;              /* Figma: r=4 on ALL corners */
+    border-radius: 8px;              /* unified card radius (user spec) */
     overflow: hidden;
     flex-direction: column;
     padding: 0;
@@ -859,7 +861,7 @@
     height: 224px;                   /* Figma 336 × 224 */
     aspect-ratio: auto;
     object-fit: cover;
-    border-radius: 4px 4px 0 0;      /* r=4 top to match card */
+    border-radius: 8px 8px 0 0;      /* match card top corners */
   }
   .featuredInfo {
     width: 100%;

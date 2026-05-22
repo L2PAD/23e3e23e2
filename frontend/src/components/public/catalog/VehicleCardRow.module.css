@@ -34,7 +34,8 @@
   width: 100%;
   max-width: 1263px;
   background: #1A1B19;
-  border-radius: 0;
+  /* Unified card radius = 8 px (user spec — matches all other cards). */
+  border-radius: 8px;
   display: flex;
   align-items: stretch;
   gap: 24px;                                /* Figma: 24 px — image ↔ info column, FIXED */
@@ -74,7 +75,7 @@
   align-self: stretch;                     /* image dictates card height */
   overflow: hidden;
   background: #0F0F0F;
-  border-radius: 0;
+  border-radius: 0;                         /* square inner image (user spec) */
 }
 .image { width: 100%; height: 100%; object-fit: cover; display: block; }
 .placeholder {
@@ -232,17 +233,20 @@
 .idLine .copy img { width: 16px; height: 16px; display: block; }
 
 /* DATA ROW: specs (left) + right column (price + CTA) --------------
- *  align-items: stretch  — specs и rightCol одинаковой высоты,
- *  чтобы низ CTA совпал с низом строки "Auction COPART" (Figma).
- *
- *  No flex-wrap on desktop: side-by-side layout всегда сохраняется
- *  (MacBook 13" 1280 включительно).  Размещение в две строки появится
- *  только на планшетах (≤1024 cqw), см. блок @container ниже.
+ *  Use a CSS grid so the right column has a FIXED start position
+ *  regardless of how wide the spec values are (e.g. "FRONT-WHEEL DRIVE"
+ *  vs "ALL WHEEL DRIVE").  Previously a flex layout with
+ *  `min-width: max-content` on `.specBlock` let the spec column grow
+ *  with the content, which in turn shifted `.rightCol` (and therefore
+ *  the CTA button) several pixels to the right on cards with longer
+ *  strings.  Grid keeps the CTA's right edge nailed to the card edge
+ *  on every row.
  * ------------------------------------------------------------------ */
 .dataRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 27.09cqw, 327px);
+  column-gap: clamp(20px, 8.28cqw, 100px);
   align-items: stretch;
-  gap: clamp(20px, 8.28cqw, 100px);       /* 100 @1263 (cqw из content-box 1207) */
   min-width: 0;
 }
 
@@ -269,8 +273,11 @@
   column-gap: clamp(12px, 3.6cqw, 56px);
   row-gap: clamp(10px, 1.33cqw, 16px);     /* fluid 16→10 */
   align-items: baseline;
-  /* min-width: max-content guarantees the longest value never overflows. */
-  min-width: max-content;
+  /* No min-width: max-content — would force the spec column wider when a
+     value like "FRONT-WHEEL DRIVE" is longer, shifting .rightCol to the
+     right (CTA button shift bug).  The grid track minmax(0, 1fr) above
+     already gives `.specBlock` enough room. */
+  min-width: 0;
 }
 
 .priceBlock {
@@ -378,21 +385,27 @@
   top: 12px;
   left: 12px;
   z-index: 2;
+  width: 138px;                         /* Figma spec — fixed 138 × 32 */
+  height: 32px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 8px;
-  background: #FEAE00;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: #FEAE00CC;                /* #FEAE00 @ 80 % opacity (Figma) */
   color: #000000;
-  border-radius: 4px;
+  border-radius: 0;                     /* square corners (user spec) */
   font-family: 'Mazzard H', var(--font-mazzard, system-ui, sans-serif);
   font-weight: 500;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
   white-space: nowrap;
   user-select: none;
   pointer-events: none;
+  box-sizing: border-box;
 }
+.timerChip svg,
+.timerChip img { flex: 0 0 auto; width: 18px; height: 18px; display: block; }
 
 
 /* =========================================================================
@@ -456,7 +469,8 @@
     gap: 0;
     padding: 0;
     background: #1A1B19;
-    border-radius: 0;
+    border-radius: 8px;
+    overflow: hidden;
     align-items: stretch;
   }
   .card:hover { outline-color: transparent; }
@@ -466,6 +480,7 @@
     width: 100%;
     aspect-ratio: 336 / 240;
     align-self: auto;
+    border-radius: 0;                       /* square inner image (user spec) */
   }
   .image { object-fit: cover; }
 

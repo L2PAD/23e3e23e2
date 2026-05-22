@@ -1,26 +1,26 @@
 [
   {
-    "content": "#1 google.accounts.id.disableAutoSelect() в logout",
-    "status": "completed"
+    "content": "Копировать 22 отличающихся файла из NEW репо → /app",
+    "status": "in_progress"
   },
   {
-    "content": "#2 Auto-login restore (auto_select=true + One Tap prompt)",
-    "status": "completed"
+    "content": "Восстановить live Google Reviews (OurClientsSayBlock + reviews-area1 + MobileHomePage)",
+    "status": "pending"
   },
   {
-    "content": "#3 Allowed Google domains (B2B whitelist) — backend gate + admin UI field",
-    "status": "completed"
+    "content": "Восстановить OAuth polish (CustomerAuth: disableAutoSelect, auto_select, googleEnabled)",
+    "status": "pending"
   },
   {
-    "content": "#4 Hide Google block (кнопка + divider) когда googleEnabled=false",
-    "status": "completed"
+    "content": "Восстановить allowedDomains в AuthSettingsPage",
+    "status": "pending"
   },
   {
-    "content": "#5 Email fallback visual consistency — проверено визуально",
-    "status": "completed"
+    "content": "Восстановить multi place_ids в GoogleReviewsEditor",
+    "status": "pending"
   },
   {
-    "content": "Lint + screenshot + deploy ready",
-    "status": "completed"
+    "content": "Lint + compile check + screenshot",
+    "status": "pending"
   }
 ]

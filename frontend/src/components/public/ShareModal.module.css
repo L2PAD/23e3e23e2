@@ -27,10 +27,10 @@
 .modal {
   position: relative;
   width: 100%;
-  max-width: 560px;
+  max-width: 600px;
   background: #1D1D1B;
   border: 1px solid #2A2A28;
-  border-radius: 12px;
+  border-radius: 14px;
   color: #FFFFFF;
   font-family: 'Mazzard H', 'Mazzard', system-ui, -apple-system, sans-serif;
   box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(254, 174, 0, 0.08);
@@ -41,10 +41,10 @@
 
 .closeBtn {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 32px;
-  height: 32px;
+  top: 18px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 0;
   background: transparent;
@@ -53,7 +53,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
   transition: background-color 0.15s ease;
 }
@@ -61,39 +61,40 @@
 
 /* ── Header ─────────────────────────────────────────────────────────── */
 .header {
-  padding: 24px 28px 0 28px;
+  padding: 32px 36px 0 36px;
 }
 .title {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.2;
   color: #FFFFFF;
+  letter-spacing: -0.01em;
 }
 .subtitle {
-  margin-top: 6px;
-  font-size: 13px;
+  margin-top: 10px;
+  font-size: 13.5px;
   font-weight: 400;
   color: #949494;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 /* ── Vehicle card ───────────────────────────────────────────────────── */
 .vehicleCard {
-  margin: 20px 28px 0;
+  margin: 26px 36px 0;
   background: #16161A;
   border: 1px solid #232325;
-  border-radius: 10px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 20px;
   display: flex;
-  gap: 14px;
+  gap: 18px;
   align-items: center;
 }
 .vehicleImageWrap {
   flex-shrink: 0;
-  width: 120px;
-  height: 80px;
-  border-radius: 8px;
+  width: 140px;
+  height: 92px;
+  border-radius: 10px;
   overflow: hidden;
   background: #2A2A28;
   display: flex;
@@ -117,14 +118,14 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 .vehicleTitle {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: #FFFFFF;
-  line-height: 1.25;
+  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
@@ -135,12 +136,12 @@
   color: #949494;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  line-height: 1.3;
+  gap: 10px;
+  line-height: 1.4;
 }
 .vehiclePrice {
-  margin-top: 2px;
-  font-size: 14px;
+  margin-top: 4px;
+  font-size: 15px;
   font-weight: 700;
   color: #FEAE00;
   letter-spacing: 0;
@@ -148,15 +149,15 @@
 
 /* ── Link row ────────────────────────────────────────────────────────── */
 .linkRow {
-  margin: 16px 28px 0;
+  margin: 26px 36px 0;
   display: flex;
   align-items: center;
   gap: 8px;
   background: #16161A;
   border: 1px solid #232325;
-  border-radius: 8px;
-  padding: 0 0 0 12px;
-  height: 44px;
+  border-radius: 10px;
+  padding: 0 0 0 16px;
+  height: 52px;
 }
 .linkInput {
   flex: 1;
@@ -164,7 +165,7 @@
   border: 0;
   outline: 0;
   color: #FFFFFF;
-  font-size: 13px;
+  font-size: 13.5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   text-overflow: ellipsis;
   min-width: 0;
@@ -172,17 +173,18 @@
 }
 .copyBtn {
   height: 100%;
-  padding: 0 18px;
+  padding: 0 22px;
   border: 0;
   background: #FEAE00;
   color: #1A1A1A;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 9px 9px 0;
   transition: background-color 0.15s ease;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 .copyBtn:hover { background: #FFC233; }
 .copyBtn:disabled { opacity: 0.6; cursor: default; }
@@ -190,10 +192,10 @@
 
 /* ── Channel buttons ────────────────────────────────────────────────── */
 .channels {
-  margin: 20px 28px 24px;
+  margin: 28px 36px 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 14px;
 }
 .channelBtn {
   position: relative;
@@ -201,14 +203,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px 8px;
+  gap: 12px;
+  padding: 22px 10px;
   background: #16161A;
   border: 1px solid #232325;
-  border-radius: 10px;
+  border-radius: 12px;
   color: #FFFFFF;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   text-decoration: none;
@@ -220,12 +222,13 @@
 }
 .channelBtn:active { transform: scale(0.98); }
 .channelIcon {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.channelIcon svg { width: 28px; height: 28px; }
 .channelLabel { line-height: 1; }
 
 .channelBtn[data-channel="facebook"] .channelIcon { color: #1877F2; }
@@ -234,23 +237,29 @@
 
 /* ── Toast / status note ────────────────────────────────────────────── */
 .statusNote {
-  margin: 0 28px 16px;
-  font-size: 12px;
+  margin: 22px 36px 28px;
+  font-size: 12.5px;
   color: #949494;
   text-align: center;
-  min-height: 16px;
+  min-height: 18px;
+  line-height: 1.5;
 }
 .statusNoteSuccess { color: #FEAE00; }
 .statusNoteError { color: #FF6B6B; }
 
 /* ── Mobile fallback ────────────────────────────────────────────────── */
 @media screen and (max-width: 520px) {
-  .modal { border-radius: 10px; }
-  .header { padding: 20px 20px 0; }
-  .vehicleCard { margin: 14px 20px 0; padding: 12px; gap: 10px; }
-  .vehicleImageWrap { width: 96px; height: 64px; }
+  .modal { border-radius: 12px; }
+  .header { padding: 24px 22px 0; }
+  .title { font-size: 20px; }
+  .subtitle { margin-top: 8px; font-size: 13px; }
+  .vehicleCard { margin: 18px 22px 0; padding: 14px; gap: 12px; border-radius: 10px; }
+  .vehicleImageWrap { width: 104px; height: 72px; border-radius: 8px; }
   .vehicleTitle { font-size: 14px; }
-  .linkRow { margin: 12px 20px 0; }
-  .channels { margin: 14px 20px 18px; gap: 8px; }
-  .channelBtn { padding: 12px 6px; font-size: 11px; }
+  .linkRow { margin: 18px 22px 0; height: 48px; padding-left: 14px; }
+  .channels { margin: 20px 22px 0; gap: 10px; }
+  .channelBtn { padding: 16px 6px; font-size: 12px; gap: 9px; border-radius: 10px; }
+  .channelIcon { width: 30px; height: 30px; }
+  .channelIcon svg { width: 24px; height: 24px; }
+  .statusNote { margin: 16px 22px 20px; }
 }

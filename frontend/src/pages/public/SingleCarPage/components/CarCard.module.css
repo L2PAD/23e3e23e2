@@ -2,10 +2,16 @@
 .buttonParent {
   height: var(--height-764);
   width: var(--width-560);
-  border-radius: var(--br-8);
+  border-radius: 0;                 /* square outer + right panel (user spec) */
   flex-shrink: 0;
   display: flex;
   align-items: stretch;
+}
+
+/* Similar Cars variant: outer card keeps the 8 px rounding (catalog parity). */
+.cardSimilar,
+.buttonParentSimilar {
+  border-radius: 8px;
 }
 .card {
   background-color: var(--color-dimgray-100);
@@ -18,7 +24,11 @@
   background-color: var(--color-gray-500);
   overflow: hidden;
   flex-direction: column;
-  padding: var(--padding-26);
+  /* 26 top / 26 horizontal / 40 bottom — Figma spec: bottom (footer → card
+     edge) must read 40 px, the other sides stay at 26.  Card height stays
+     the same (height: var(--height-764)); the .body flexes to absorb the
+     extra 14 px of bottom padding so the footer is pushed UP, not the card. */
+  padding: 26px 26px 40px 26px;
   box-sizing: border-box;
   gap: var(--gap-24);
 }
@@ -28,7 +38,7 @@
   width: 100%;
   height: 388px;
   position: relative;
-  border-radius: var(--br-8);
+  border-radius: 0;                 /* square main image (user spec) */
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -51,14 +61,15 @@
   left: 17px;
   top: 17px;
   height: var(--height-32);
-  width: var(--width-189);
-  background-color: var(--color-gray-600);
+  width: auto;
+  min-width: var(--width-189);
+  background-color: rgba(255, 255, 255, 0.7);   /* white 70 % per Figma */
   overflow: hidden;
   display: flex;
   align-items: center;
   padding: 0 var(--padding-14);
   box-sizing: border-box;
-  border-radius: var(--br-4);
+  border-radius: 0;                              /* square corners (user spec) */
 }
 .tradingDate {
   position: relative;
@@ -79,29 +90,39 @@
 }
 
 .timerRow {
+  position: absolute;
+  left: 17px;
+  right: 17px;
+  bottom: 17px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-16);
+  z-index: 2;
+  pointer-events: none;                         /* let .iconoirclockParent + .frameIcons re-enable */
 }
+.timerRow > * { pointer-events: auto; }
 .iconoirclockParent {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  height: var(--height-32);
-  background-color: var(--color-orange-200);
-  padding: var(--padding-4) var(--padding-8);
-  border-radius: var(--br-4);
+  width: 138px;                                  /* Figma spec — fixed 138 × 32 */
+  height: 32px;
+  background-color: #FEAE00CC;                   /* #FEAE00 @ 80 % opacity (Figma) */
+  padding: 0 12px;
+  border-radius: 0;                              /* square corners (user spec) */
   box-sizing: border-box;
 }
 .iconoirclock {
-  width: var(--width-24);
-  height: var(--height-24);
+  width: 18px;
+  height: 18px;
   display: block;
+  flex: 0 0 auto;
 }
 .d4h35m {
   position: relative;
-  font-size: var(--fs-13);
+  font-size: 14px;
   color: var(--color-black);
   line-height: 99.9%;
   font-weight: 500;
@@ -169,11 +190,12 @@
 }
 .lucidMotorsAir {
   margin: 0;
-  font-size: inherit;
-  line-height: 99.9%;
-  font-weight: 400;
+  font-size: 24px;                  /* Mazzard H Bold 24 (Figma) */
+  font-weight: 700;
+  line-height: 1.15;
   font-family: inherit;
   text-transform: capitalize;
+  color: #FFFFFF;
 }
 .detailsBlock {
   display: flex;
@@ -181,56 +203,89 @@
   gap: 12px;
   font-size: var(--fs-14);
   color: var(--color-whitesmoke);
+  margin-top: 21.5px;                            /* Figma: title → Purchase price box = 21.5 px */
 }
 .row1 {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: stretch;
+  gap: 66px;                                     /* Figma: Purchase Price box → Mileage = ~66 px */
 }
 .purchasePriceParent {
   display: flex;
   flex-direction: column;
-  gap: 8.5px;
   flex-shrink: 0;
 }
-.purchasePrice {
-  position: relative;
-  line-height: 99.9%;
-  text-transform: capitalize;
-}
+/* Black "Purchase Price" box — fixed 242 × 100, label + value INSIDE. */
 .priceSquaresParent {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  font-size: var(--fs-20);
+  width: 242px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 20px;
+  box-sizing: border-box;
   color: var(--color-orange-100);
   z-index: 1;
+  border-radius: 8px;
+  background-color: #000000;
 }
-.priceSquares {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--br-8);
-  background-color: var(--color-black);
-  z-index: 0;
+.priceSquares { display: none; }                 /* legacy bg layer no longer needed */
+.purchasePrice {
+  position: relative;
+  font-size: 14px;                              /* Mazzard H Medium 14 (Figma) */
+  font-weight: 500;
+  color: #FFFFFF;
+  line-height: 99.9%;
+  text-transform: capitalize;
 }
 .h3 {
   margin: 0;
   position: relative;
-  font-size: inherit;
+  font-size: 20px;                              /* H Bold 20 (Figma) */
+  font-weight: 700;
   line-height: 99.9%;
   text-transform: uppercase;
-  font-weight: 400;
   font-family: inherit;
+  color: var(--color-orange-100);
   z-index: 1;
   white-space: nowrap;
 }
 .mileageEngineBlock {
   display: flex;
-  align-items: flex-start;
-  gap: 26px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
+/* Each Mileage / Engine / Drive line — label left (white H Medium 14),
+   value right (yellow H Bold 14).  Single-row grid keeps them aligned
+   no matter how long the value is. */
+.specRow {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: baseline;
+  column-gap: 16px;
+  font-size: 14px;
+  line-height: 99.9%;
+  white-space: nowrap;
+}
+.specLabel {
+  font-weight: 500;                            /* Mazzard H Medium */
+  color: #FFFFFF;
+  text-transform: capitalize;
+}
+.specValue {
+  justify-self: end;
+  font-weight: 700;                            /* Mazzard H Bold */
+  color: var(--color-orange-100);
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* legacy classes kept as fallbacks (no longer rendered on desktop) */
 .labelsCol,
 .valuesCol {
   display: flex;
@@ -275,7 +330,7 @@
 /* ── FOOTER ────────────────────────────────────────────────────────────────── */
 .footerRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;                      /* button top aligns to label top (Figma) */
   justify-content: space-between;
   gap: 16px;
   margin-top: auto;
@@ -286,18 +341,22 @@
 .estimatedFinalCostToBulgarParent {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 .estimatedFinalCost {
   position: relative;
-  line-height: 99.9%;
+  font-size: 14px;                              /* H Medium 14 (Figma) */
+  font-weight: 500;
+  color: #FFFFFF;
+  line-height: 1.2;
 }
 .divFinalCost {
   position: relative;
-  font-size: var(--fs-16);
+  font-size: 16px;                              /* H Bold 16 (Figma) */
+  font-weight: 700;
   text-transform: uppercase;
   color: var(--color-orange-100);
-  line-height: 99.9%;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
@@ -391,24 +450,27 @@
   }
   .mobileTimerChip {
     position: absolute;
-    top: 12px;
+    bottom: 12px;                                /* per Figma: chip at BOTTOM-left of image */
     left: 12px;
+    top: auto;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    height: 28px;
-    padding: 0 10px;
-    background-color: var(--color-orange-100);
+    justify-content: center;
+    gap: 8px;
+    width: 138px;                                /* Figma spec — 138 × 32 fixed */
+    height: 32px;
+    padding: 0 12px;
+    background-color: #FEAE00CC;                 /* #FEAE00 @ 80 % opacity */
     color: #000;
-    border-radius: 4px;
+    border-radius: 0;                            /* square corners */
     pointer-events: auto;
     box-sizing: border-box;
   }
   .mobileTimerClock {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     object-fit: contain;
-    /* PNG already rendered in black on transparent — no filter needed. */
+    flex: 0 0 auto;
   }
   .mobileTimerText {
     font-family: var(--font-mazzard);

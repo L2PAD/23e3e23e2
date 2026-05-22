@@ -214,7 +214,7 @@ const SimilarCars = ({ className = '' }) => {
                 <CarCardSkeleton key={`sk-${i}`} />
               ))
             : (isMobile ? items : slice).map((item) => (
-                <CarCard key={item.vin} data={item} />
+                <CarCard key={item.vin} data={item} variant="similar" />
               ))}
         </div>
         {!loading && (isMobile ? mobileTotal > 1 : totalPagesDesktop > 1) && (
@@ -230,9 +230,19 @@ const SimilarCars = ({ className = '' }) => {
               <ArrowLeftCircle filled={prevFilled} disabled={prevDisabled} />
             </button>
             <div className={styles.pageNum}>
-              {isMobile
-                ? `${String(mobileCurrent).padStart(2, '0')}/${String(mobileTotal).padStart(2, '0')}`
-                : `${String(safePage).padStart(2, '0')}/${String(totalPagesDesktop).padStart(2, '0')}`}
+              {(() => {
+                const total = items.length;
+                if (isMobile) {
+                  return `${String(mobileCurrent).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
+                }
+                /* Desktop: show the index of the LAST visible card on the
+                 * current page ("seen 3 of 12") so the indicator reflects
+                 * the real number of similar cars instead of pages.
+                 * Previously this said "01/04" for 12 cars / 3 per page,
+                 * which confused users into thinking only 4 cars existed. */
+                const lastVisible = Math.min(safePage * PAGE_SIZE, total);
+                return `${String(lastVisible).padStart(2, '0')}/${String(total).padStart(2, '0')}`;
+              })()}
             </div>
             <button
               type="button"

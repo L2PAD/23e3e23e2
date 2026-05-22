@@ -56,6 +56,9 @@
   width: 100%;
   max-width: 1720px;               /* hug per Figma 1720 × 1356 spec */
   background-color: var(--color-gray-500);   /* #1D1D1B */
+  /* User spec: unify card radius across the site to 8 px (matches
+   * Similar cars, Catalog, Top-deals, Blog cards, Have-a-question). */
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
