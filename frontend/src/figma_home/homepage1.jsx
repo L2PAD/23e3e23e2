@@ -79,20 +79,6 @@ const Homepage1 = ()=> {
         <FrameComponent21 />
       </section>
       <FrameComponent22 />
-      <img         className={styles.lineiconsaudi}
-        width={123}
-        height={123}
-        sizes="100vw"
-        alt=""
-        src="/figma/lineicons-audi.svg"
-      />
-      <img         className={styles.lineiconsaudi2}
-        width={123}
-        height={123}
-        sizes="100vw"
-        alt=""
-        src="/figma/lineicons-audi.svg"
-      />
       <FrameComponent23 />
       <TurnkeyBanner1 />
       <div className={styles.homepageChild} />

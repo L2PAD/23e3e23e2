@@ -147,7 +147,7 @@ const Card1 = ({
   data,
   // legacy Figma props (used as fallback)
   image15,
-  iconoirclock = "/figma/iconoir-clock.png",
+  iconoirclock = "/figma/iconoir-clock.svg",
   title: titleProp,
   tradingDate: tradingDateProp,
   timer: timerProp,
