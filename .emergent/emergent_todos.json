@@ -9,14 +9,14 @@
   },
   {
     "content": "Run comprehensive frontend testing (4 cabinets + public pages + post-merge regression)",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Address any high/medium priority bugs from testing reports",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Final pre-deploy verification + summary",
-    "status": "pending"
+    "status": "completed"
   }
 ]
