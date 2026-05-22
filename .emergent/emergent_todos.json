@@ -5,11 +5,11 @@
   },
   {
     "content": "Run comprehensive backend testing (all critical APIs: auth, google reviews, google client-id, customer-auth)",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Run comprehensive frontend testing (4 cabinets + public pages + post-merge regression)",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Address any high/medium priority bugs from testing reports",
