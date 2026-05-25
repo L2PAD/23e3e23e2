@@ -366,6 +366,54 @@ export const CustomerLoginPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
+  // ── Step 2 (multi-factor challenge for admin TOTP / team-lead email-OTP) ──
+  // When the staff /api/auth/login returns a `__challenge` payload instead of
+  // a JWT, we switch the UI into the challenge step. The user enters a 6-digit
+  // code; we POST it to /api/auth/2fa/verify (admin) or /api/auth/email-otp/verify
+  // (team_lead) via staffAuth.completeChallenge.
+  //
+  // Persistence: challenge payload is kept in localStorage under
+  // `bibi_staff_challenge` so that an accidental page reload doesn't kick the
+  // team-lead out while they're waiting for the admin to read the OTP. The
+  // record auto-expires after 10 minutes (matching backend OTP TTL).
+  const CHAL_LS_KEY = 'bibi_staff_challenge';
+  const [challenge, setChallengeRaw] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CHAL_LS_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (!obj || !obj.challenge) return null;
+      if (obj.expires_at && Date.now() > obj.expires_at) {
+        localStorage.removeItem(CHAL_LS_KEY);
+        return null;
+      }
+      return obj;
+    } catch { return null; }
+  });
+  // Wrapper that mirrors the challenge state into localStorage.
+  const setChallenge = useCallback((next) => {
+    setChallengeRaw(next);
+    try {
+      if (next) {
+        const ttlSec = Number(next.expires_in_seconds || 600);
+        const payload = { ...next, expires_at: Date.now() + ttlSec * 1000 };
+        localStorage.setItem(CHAL_LS_KEY, JSON.stringify(payload));
+      } else {
+        localStorage.removeItem(CHAL_LS_KEY);
+      }
+    } catch { /* localStorage may be disabled in some browsers */ }
+  }, []);
+  const [challengeCode, setChallengeCode] = useState('');
+  const [challengeBusy, setChallengeBusy] = useState(false);
+  const [challengeError, setChallengeError] = useState('');
+  const [otpResendCooldown, setOtpResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (otpResendCooldown <= 0) return;
+    const id = setTimeout(() => setOtpResendCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearTimeout(id);
+  }, [otpResendCooldown]);
+
   // ── Google Sign-In state ──
   // Public Google config — `clientId` + `enabled`. When admin disables
   // Google sign-in via Admin → Settings → Auth, hide the entire Google
@@ -508,6 +556,86 @@ export const CustomerLoginPage = () => {
     triggerGoogleSignIn();
   };
 
+  // Centralised post-login routing for staff users.
+  const routeStaffUser = useCallback((staffUser) => {
+    const role = (staffUser?.role || '').toLowerCase();
+    if (role === 'manager') navigate('/manager', { replace: true });
+    else if (role === 'team_lead') navigate('/team/dashboard', { replace: true });
+    else if (role === 'admin' || role === 'master_admin') navigate('/admin', { replace: true });
+    else navigate('/admin', { replace: true });
+  }, [navigate]);
+
+  // Step-2 verify (TOTP or email-OTP).
+  const verifyChallenge = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (!challenge) return;
+    setChallengeError('');
+    const code = (challengeCode || '').trim();
+    if (code.length !== 6 || /\D/.test(code)) {
+      setChallengeError('Enter the 6-digit code.');
+      return;
+    }
+    setChallengeBusy(true);
+    try {
+      let user;
+      if (challenge.challenge === 'totp') {
+        user = await staffAuth.completeChallenge('/api/auth/2fa/verify', {
+          user_id: challenge.user_id,
+          code,
+        });
+      } else if (challenge.challenge === 'email_otp') {
+        user = await staffAuth.completeChallenge('/api/auth/email-otp/verify', {
+          challenge_token: challenge.challenge_token,
+          code,
+        });
+      } else {
+        setChallengeError('Unsupported challenge type.');
+        return;
+      }
+      // success — clear challenge state and route the user.
+      setChallenge(null);
+      setChallengeCode('');
+      routeStaffUser(user);
+    } catch (err) {
+      const detail = err?.response?.data?.detail || err?.message || 'Invalid code.';
+      setChallengeError(typeof detail === 'string' ? detail : 'Invalid code.');
+    } finally {
+      setChallengeBusy(false);
+    }
+  };
+
+  // Resend email-OTP code (team_lead). 30s cooldown.
+  const resendEmailOtp = async () => {
+    if (!challenge || challenge.challenge !== 'email_otp') return;
+    if (otpResendCooldown > 0) return;
+    setChallengeBusy(true);
+    setChallengeError('');
+    try {
+      const { data } = await axios.post(`${API_URL}/api/auth/email-otp/request`, {
+        user_id: challenge.user_id,
+      });
+      setChallenge({
+        ...challenge,
+        challenge_token: data.challenge_token,
+        recipient_masked: data.recipient_masked || challenge.recipient_masked,
+      });
+      setChallengeCode('');
+      setOtpResendCooldown(30);
+    } catch (err) {
+      const detail = err?.response?.data?.detail || err?.message || 'Resend failed.';
+      setChallengeError(typeof detail === 'string' ? detail : 'Resend failed.');
+    } finally {
+      setChallengeBusy(false);
+    }
+  };
+
+  const cancelChallenge = () => {
+    setChallenge(null);
+    setChallengeCode('');
+    setChallengeError('');
+    setOtpResendCooldown(0);
+  };
+
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -524,12 +652,16 @@ export const CustomerLoginPage = () => {
       if (isLogin) {
         // 1) Try STAFF login first
         try {
-          const staffUser = await staffAuth.login(email, password);
-          const role = (staffUser?.role || '').toLowerCase();
-          if (role === 'manager') navigate('/manager', { replace: true });
-          else if (role === 'team_lead') navigate('/team/dashboard', { replace: true });
-          else if (role === 'admin' || role === 'master_admin') navigate('/admin', { replace: true });
-          else navigate('/admin', { replace: true });
+          const staffResult = await staffAuth.login(email, password);
+          // Multi-step challenge (admin TOTP / team-lead email-OTP).
+          if (staffResult && staffResult.__challenge) {
+            setChallenge(staffResult);
+            setChallengeCode('');
+            setChallengeError('');
+            setOtpResendCooldown(staffResult.challenge === 'email_otp' ? 30 : 0);
+            return;
+          }
+          routeStaffUser(staffResult);
           return;
         } catch (staffErr) {
           const code = staffErr?.response?.status;
@@ -989,6 +1121,113 @@ export const CustomerLoginPage = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Step-2 challenge modal (TOTP / email-OTP) ──────────────── */}
+      {challenge && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          data-testid="login-challenge-modal"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) cancelChallenge(); }}
+        >
+          <form
+            onSubmit={verifyChallenge}
+            className="w-full max-w-md bg-[#0F0F0D] border border-[#3A3A37] rounded-2xl p-6 sm:p-8 shadow-[0_24px_80px_rgba(0,0,0,0.65)] relative"
+          >
+            <button
+              type="button"
+              onClick={cancelChallenge}
+              className="absolute top-3 right-3 w-9 h-9 rounded-full text-white/60 hover:text-white hover:bg-white/5 flex items-center justify-center"
+              aria-label="Close"
+              data-testid="login-challenge-cancel"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-[#FEAE00]/15 border border-[#FEAE00]/30 flex items-center justify-center text-[#FEAE00]">
+                <Lock size={20} weight="bold" />
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-[#FEAE00]/80">
+                  {challenge.challenge === 'totp' ? 'Two-factor required' : 'Email code required'}
+                </div>
+                <h2 className="text-white text-xl font-semibold leading-tight">
+                  {challenge.challenge === 'totp' ? 'Authenticator code' : 'Verification code'}
+                </h2>
+              </div>
+            </div>
+
+            <p className="text-sm text-white/70 leading-relaxed mt-3">
+              {challenge.challenge === 'totp' ? (
+                <>
+                  Open <strong className="text-white">Google Authenticator</strong> and enter the 6-digit code for{' '}
+                  <strong className="text-white">{challenge.user_email}</strong>.
+                </>
+              ) : (
+                <>
+                  A code was issued for <strong className="text-white">{challenge.user_email}</strong>. Ask the master-admin
+                  {challenge.recipient_masked ? (
+                    <> (<code className="bg-white/10 px-1.5 py-0.5 rounded text-[12px] font-mono">{challenge.recipient_masked}</code>)</>
+                  ) : null}
+                  {' '}for the 6-digit code.
+                </>
+              )}
+            </p>
+
+            <label className="block mt-5 text-[11px] uppercase tracking-[0.14em] text-white/55 font-semibold">
+              6-digit code
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoFocus
+              maxLength={6}
+              value={challengeCode}
+              onChange={(e) => setChallengeCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              data-testid="login-challenge-code"
+              className="mt-2 w-full h-[58px] bg-[#070705] border border-[#3A3A37] rounded-md text-center text-2xl font-mono tracking-[0.5em] text-white outline-none focus:border-[#FEAE00] focus:ring-2 focus:ring-[#FEAE00]/35"
+            />
+
+            {challengeError && (
+              <div className="mt-3 flex items-start gap-2 text-[13px] text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg p-2.5">
+                <Warning size={14} weight="fill" className="flex-shrink-0 mt-0.5" />
+                <span>{challengeError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={challengeBusy || challengeCode.length !== 6}
+              data-testid="login-challenge-submit"
+              className="mt-5 w-full h-[50px] rounded-md bg-[#FEAE00] hover:bg-[#FFC04A] disabled:opacity-50 text-black text-[15px] font-bold tracking-wide transition-colors flex items-center justify-center gap-2"
+            >
+              {challengeBusy ? <SpinnerGap size={18} className="animate-spin" /> : null}
+              {challengeBusy ? 'Verifying…' : 'Verify & sign in'}
+            </button>
+
+            {challenge.challenge === 'email_otp' && (
+              <button
+                type="button"
+                onClick={resendEmailOtp}
+                disabled={challengeBusy || otpResendCooldown > 0}
+                data-testid="login-challenge-resend"
+                className="mt-3 w-full text-[12px] text-white/55 hover:text-white disabled:opacity-40 underline-offset-4 hover:underline"
+              >
+                {otpResendCooldown > 0 ? `Resend code in ${otpResendCooldown}s` : 'Resend code'}
+              </button>
+            )}
+
+            <div className="mt-5 pt-4 border-t border-white/10 text-[11px] text-white/40 leading-relaxed">
+              {challenge.challenge === 'totp' ? (
+                'Codes refresh every 30 seconds. If the code is rejected, wait for the next one.'
+              ) : (
+                'Codes are valid for 10 minutes. Max 5 attempts before a new code must be issued.'
+              )}
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Footer trust strip */}
       <div className="relative z-10 border-t border-[#1A1A18] bg-black/40">

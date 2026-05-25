@@ -292,7 +292,53 @@ async def require_user(
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # ── Daily-reset enforcement for managers (Europe/Sofia 12:00) ─────
+    # JWT carries `iat` (epoch seconds). If a manager's session was
+    # issued before the most recent 12:00 Sofia boundary, treat it as
+    # expired. The frontend interceptor maps this 401 + code to a
+    # "your daily session has expired — please log in again" UX.
+    try:
+        role = (user.get("role") or "").lower()
+        iat = user.get("iat")
+        if role and iat:
+            # Local import to avoid bootstrap cycle (security imported very early).
+            from app.services.auth_policy import (
+                is_token_expired_by_daily_reset, is_manager_role,
+            )
+            if is_manager_role(role) and is_token_expired_by_daily_reset(role, iat):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="session_expired_daily_reset",
+                    headers={
+                        "WWW-Authenticate": "Bearer",
+                        "X-Session-Reset": "daily",
+                    },
+                )
+    except HTTPException:
+        raise
+    except Exception:
+        # Daily-reset must not break auth on any service mishap.
+        pass
     return user
+
+
+# Friendly aliases — used by app/routers/auth_extra.py and other new modules.
+# These do NOT change the behaviour of require_user; they only give callers a
+# more descriptive name (get_current_user) plus an "optional" variant that
+# returns None instead of raising 401. Adding aliases (vs. rewriting routers)
+# keeps the change to security.py additive and unlocks reuse downstream.
+get_current_user = require_user
+
+
+async def get_current_user_optional(
+    creds: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
+    request: Request = None,
+) -> Optional[dict]:
+    if AUTH_MODE == "disabled":
+        return {"source": "disabled", "role": "owner", "id": "dev", "email": "dev@local"}
+    token = _extract_token(creds, request)
+    return _check_token(token)
 
 
 async def require_admin(

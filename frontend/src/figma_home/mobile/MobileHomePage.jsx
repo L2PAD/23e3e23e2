@@ -1697,7 +1697,7 @@ function MobileSearchFromAmericaKorea({ t }) {
           {BRANDS_TO_SHOW.map((b) => (
             <a
               key={b.slug}
-              href={`/catalog?make=${encodeURIComponent(b.slug)}`}
+              href="/catalog"
               data-testid={`mobile-brand-${b.slug}`}
               className="flex items-center justify-center"
               aria-label={b.name}

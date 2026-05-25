@@ -2941,6 +2941,14 @@ async def _main_startup():
     except Exception as e:
         logger.warning(f"[STARTUP] wishlist_deals indexes failed: {e}")
 
+    # ─── Auth policy (login_audit + auth_email_otp) indexes ────────────
+    try:
+        from app.services.auth_policy import ensure_indexes as _auth_ensure
+        await _auth_ensure(db)
+        logger.info("[STARTUP] ✓ auth_policy indexes ensured")
+    except Exception as e:
+        logger.warning(f"[STARTUP] auth_policy indexes failed: {e}")
+
     # ─── Phase 5.4 / C-3A — Google ClientID one-time backfill ───────────
     # If `app_settings.auth.google.clientId` is empty AND the legacy
     # `integration_configs.{provider:"google_oauth"}.credentials.clientId`
@@ -3058,6 +3066,13 @@ async def _seed_staff_from_env():
         },
         "manager": {
             "email": "manager@bibi.cars",
+            # NOTE 2026-05-25: the password policy (>=8 chars, upper+lower+digit+
+            # special) applies ONLY to /api/auth/change-password — i.e. when a
+            # user *changes* their password. Pre-existing seeded passwords are
+            # not blocked by it, so we keep this legacy alphanumeric value so
+            # the operator can still log in with the historical credential.
+            # If you rotate it via the UI, the new value must comply with the
+            # policy.
             "password": "dFbYnse0L59DBE16Mn4kT6cCRaNBZFQR",
             "label": "Manager",
         },
@@ -3831,6 +3846,49 @@ try:
 except Exception as _e:
     logger.exception("[wishlist_deals] failed to mount routers: %s", _e)
 
+# ─── Auth policy: TOTP / email-OTP / login audit / per-user 2FA ────────
+try:
+    from app.routers import auth_extra as _auth_extra_mod
+    fastapi_app.include_router(_auth_extra_mod.router)
+    logger.info("[auth_extra] router mounted: %d routes",
+                sum(1 for _ in _auth_extra_mod.router.routes))
+except Exception as _e:
+    logger.exception("[auth_extra] failed to mount router: %s", _e)
+
+try:
+    from app.routers import login_audit as _login_audit_mod
+    fastapi_app.include_router(_login_audit_mod.admin_router)
+    fastapi_app.include_router(_login_audit_mod.team_router)
+    logger.info(
+        "[login_audit] routers mounted: admin=%d, team=%d",
+        sum(1 for _ in _login_audit_mod.admin_router.routes),
+        sum(1 for _ in _login_audit_mod.team_router.routes),
+    )
+except Exception as _e:
+    logger.exception("[login_audit] failed to mount routers: %s", _e)
+
+try:
+    from app.routers import auth_security_extras as _ase_mod
+    fastapi_app.include_router(_ase_mod.me_router)
+    fastapi_app.include_router(_ase_mod.admin_extra_router)
+    logger.info(
+        "[auth_security_extras] routers mounted: me=%d, admin_extra=%d",
+        sum(1 for _ in _ase_mod.me_router.routes),
+        sum(1 for _ in _ase_mod.admin_extra_router.routes),
+    )
+except Exception as _e:
+    logger.exception("[auth_security_extras] failed to mount routers: %s", _e)
+
+try:
+    from app.routers import auth_password as _auth_password_mod
+    fastapi_app.include_router(_auth_password_mod.router)
+    logger.info(
+        "[auth_password] router mounted: %d routes",
+        sum(1 for _ in _auth_password_mod.router.routes),
+    )
+except Exception as _e:
+    logger.exception("[auth_password] failed to mount router: %s", _e)
+
 try:
     from app.routers import admin_overview as _admin_overview_mod
     fastapi_app.include_router(_admin_overview_mod.router)
@@ -4429,7 +4487,73 @@ async def login(request: Request, response: Response, credentials: Dict[str, Any
         "role": (staff.get("role") or "manager").lower(),
         "managerId": staff.get("id") or staff.get("_id"),
     }
+
+    # ─── Role-based challenge policy ─────────────────────────────────
+    # Password is validated above. Some roles require a second step:
+    #   * admin (if TOTP enabled in own profile) → Google Authenticator
+    #   * team_lead                              → email-OTP fallback
+    #     (code generated and stored; master-admin reads it from the
+    #     admin panel and forwards it to the team-lead)
+    #   * manager                                → no second step;
+    #     a token is issued immediately, but daily-reset at 12:00
+    #     Europe/Sofia is enforced by security.require_user.
+    # If anything goes wrong in this block the caller falls back to the
+    # legacy "issue JWT immediately" path so authentication never breaks
+    # because of policy-layer issues.
+    try:
+        from app.services.auth_policy import AuthPolicyService
+        _policy = AuthPolicyService(db)
+        _challenge = await _policy.required_challenge(user_doc)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[auth/login] policy resolution failed, falling back to JWT-now: {_e}")
+        _challenge = None
+
+    if _challenge == "totp":
+        return {
+            "challenge": "totp",
+            "user_id": user_doc["id"],
+            "user_email": user_doc["email"],
+            "role": user_doc["role"],
+            "hint": "Open Google Authenticator and enter the 6-digit code.",
+        }
+    if _challenge == "email_otp":
+        try:
+            recipient = await _policy.get_team_lead_otp_recipient() or user_doc["email"]
+            _otp = await _policy.otp.issue(
+                user_id=user_doc["id"],
+                user_email=user_doc["email"],
+                role=user_doc["role"],
+                recipient_email=recipient,
+            )
+            # Mask recipient — don't leak the full admin inbox to client.
+            local, _, domain = (recipient or "").partition("@")
+            masked = (local[:1] + "***@" + domain) if domain else "***"
+            return {
+                "challenge": "email_otp",
+                "user_id": user_doc["id"],
+                "user_email": user_doc["email"],
+                "role": user_doc["role"],
+                "challenge_token": _otp["challenge_token"],
+                "recipient_masked": masked,
+                "expires_in_seconds": 600,
+                "hint": "Code was sent to the master-admin — ask them for the 6-digit code.",
+            }
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"[auth/login] email-otp issue failed: {_e}")
+            # fall through to JWT-now if OTP infrastructure unavailable
+
     token = create_jwt(user_doc)
+    # Best-effort: write a richer login audit (login_audit collection) in
+    # addition to the existing security_audit/audit_log. Failure is silent.
+    try:
+        from app.services.auth_policy import AuthPolicyService
+        await AuthPolicyService(db).write_event(
+            user=user_doc, event="login", method="password", success=True,
+            ip=(request.client.host if request.client else None),
+            user_agent=request.headers.get("user-agent"),
+        )
+    except Exception:
+        pass
     try:
         # Phase 5.4 / C-1 — db.audit_log ownership routes through
         # SecurityAuditRepository. login_ok shape: FLAT email/role
@@ -7431,9 +7555,12 @@ async def carfax_request(data: Dict[str, Any] = Body(...)):
 # Contracts
 
 # Auth
-@fastapi_app.post("/api/auth/change-password")
-async def auth_change_password(data: Dict[str, Any] = Body(...)):
-    return {"success": True}
+@fastapi_app.post("/api/auth/change-password-legacy-removed", include_in_schema=False)
+async def _auth_change_password_removed_stub():
+    """The real handler now lives in app/routers/auth_password.py.
+    This placeholder exists only to keep file-line offsets stable for
+    deploy scripts that grep for the old endpoint."""
+    return {"success": True, "deprecated": True}
 
 # Cabinet
 

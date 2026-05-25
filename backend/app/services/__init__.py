@@ -1,1 +1,1 @@
-"""Domain services — placeholder, populated during P2/P4."""
+"""Service-layer package. Pure orchestration on top of repositories."""

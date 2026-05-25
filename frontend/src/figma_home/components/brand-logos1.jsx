@@ -5,8 +5,11 @@
  *   The expanding "show more / hide" grid was removed (June 2026) — power
  *   users go to the full catalog filter via the "OTHER BRANDS +" link
  *   below the grid which jumps straight to `/catalog`.
- * • Each brand card links to `/catalog?make=<slug>` so a click on a logo
- *   pre-filters the catalog by that make.
+ * • Updated 2026-05-25 (stakeholder request): every brand card now links to
+ *   the unfiltered `/catalog` instead of `/catalog?make=<slug>`. The logos
+ *   stay only as a visual entry point — clicking any of them lands the user
+ *   on the full catalogue with no make/sort prefiltering, so they can pick
+ *   their own filters inside the catalog page.
  */
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
@@ -68,7 +71,7 @@ const BrandLogos1 = ({ className = "" }) => {
           <div className={styles.brandsGrid}>
             {ordered.map((b, i) => (
               <Link
-                to={`/catalog?make=${encodeURIComponent(b.slug)}`}
+                to="/catalog"
                 key={b.slug}
                 className={`${styles.brandItem} ${styles.brandReveal}`}
                 aria-label={T.browse(b.name)}

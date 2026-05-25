@@ -1,101 +1,67 @@
 {
-  "summary": "POST-MERGE REGRESSION TEST COMPLETED: After ~700-file merge from nnamedao-a11y/Bibi-Maar, comprehensive testing shows 95%+ functionality intact. All key public pages render correctly, 3/4 role-based logins working (admin/manager/teamlead), all cabinets load with proper navigation, mobile responsive design working. Backend APIs healthy (no 500 errors). Only minor issue: customer account credentials unknown.",
-  
+  "summary": "POST-MERGE REGRESSION TEST (apdate merge) completed. Backend: 19/19 tests passed (100%). Frontend: Public pages load correctly, manager cabinet works, but admin login has UI issue. Zero 500 errors detected. All key APIs respond 2xx. Authentication works for all 4 roles via API.",
   "backend_issues": {
     "critical_bugs": [],
-    "flaky_endpoints": [],
-    "minor_issues": [
-      {
-        "endpoint": "/api/auth/login",
-        "issue": "Customer account (user@bibi.cars) login fails - credentials unknown or account doesn't exist",
-        "impact": "Cannot test customer cabinet functionality",
-        "fix_priority": "LOW",
-        "note": "Non-blocking - admin/manager/teamlead all work correctly"
-      }
-    ]
+    "flaky_endpoints": []
   },
-  
   "frontend_issues": {
     "ui_bugs": [
       {
-        "component": "Mobile login form",
-        "issue": "Cookie consent banner intercepts submit button clicks on mobile viewport",
-        "selector": "[data-testid='cookie-banner']",
-        "fix_priority": "LOW",
-        "note": "Desktop login works fine, mobile login functional after dismissing cookie banner"
+        "component": "Admin Login Form",
+        "issue": "Admin login form submission does not redirect to /admin dashboard. Form stays on /cabinet/login page after clicking 'SIGN IN' button with valid credentials (admin@bibi.cars / Jp3FS_7ZuE2bhHp7rFkJm9B9T_TeiHxu). Backend API /api/auth/login works correctly (verified via curl), so this is a frontend form handling issue.",
+        "selector": "button[type='submit'] on /cabinet/login",
+        "fix_priority": "HIGH",
+        "affected_roles": ["admin"]
       }
     ],
-    "integration_issues": [],
+    "integration_issues": [
+      {
+        "flow": "Welcome page deal cards",
+        "issue": "Deal cards on welcome page (/) do not have data-testid attributes as expected by Card1 component code. Found 0 cards with data-testid='deal-card-*' but 88 article/card elements exist. This suggests cards are rendering but without proper test IDs.",
+        "affected_selectors": ["[data-testid*='deal-card']"],
+        "fix_priority": "MEDIUM"
+      },
+      {
+        "flow": "Catalog to detail page navigation",
+        "issue": "Catalog page cards do not have clickable links to /cars/:vin detail pages. Selector 'a[href*=\"/cars/\"]' returns no results on /catalog page.",
+        "affected_selectors": ["a[href*='/cars/']"],
+        "fix_priority": "MEDIUM"
+      }
+    ],
     "design_issues": []
   },
-  
   "passed_tests": [
-    "Backend: GET /api/public/vehicles → 200 (no 500 errors)",
-    "Backend: GET /api/public/featured → 200",
-    "Backend: GET /api/public/brands → 200 with brands list",
-    "Backend: GET /api/public/google-reviews → 200",
-    "Backend: GET /api/auth/google-client-id → 200",
-    "Backend: GET /api/site-info → 200",
-    "Backend: POST /api/auth/login (admin) → 200 + JWT + role=admin",
-    "Backend: POST /api/auth/login (manager) → 200 + JWT + role=manager",
-    "Backend: POST /api/auth/login (teamlead) → 200 + JWT + role=team_lead",
-    "Backend: GET /api/admin/settings/auth → 200 (with admin token)",
-    "Frontend: /welcome page loads with 'FROM AUCTION TO KEYS' hero",
-    "Frontend: /welcome page shows brand logos (26 elements)",
-    "Frontend: /welcome page shows vehicle cards (101 elements)",
-    "Frontend: /welcome page has all sections (Why You Pay Less, Our Services, Before, After, Reviews)",
-    "Frontend: /catalog page loads with vehicle cards and filters",
-    "Frontend: /catalog shows 8,045 results with working filters",
-    "Frontend: /calculator page renders with vehicle type selector and form",
-    "Frontend: Admin login successful → redirected to /admin dashboard",
-    "Frontend: Admin dashboard shows Control Panel with stats (2 NEW LEADS, 178 FAILED JOBS)",
-    "Frontend: Admin navigation present (Dashboard, CRM, Finance, Calculator, Staff, Team Dashboard, Settings, etc.)",
-    "Frontend: Manager login successful → redirected to /manager",
-    "Frontend: Manager dashboard shows My Workspace with health score and tasks",
-    "Frontend: Teamlead login successful → redirected to /team/dashboard",
-    "Frontend: Teamlead dashboard shows Team Dashboard with Manager Load Board",
-    "Frontend: Mobile /welcome page renders correctly",
-    "Frontend: Mobile menu button works and opens navigation",
-    "Frontend: Mobile /catalog page renders with vehicle cards",
-    "Frontend: Mobile responsive design working (414x896 viewport)"
+    "Backend: All 19 API tests passed (100%)",
+    "Backend: Public endpoints - /api/public/vehicles, /api/public/featured, /api/public/brands, /api/public/google-reviews, /api/auth/google-client-id, /api/site-info all return 200",
+    "Backend: Admin login via API - 200 + JWT + role:admin",
+    "Backend: Manager login via API - 200 + JWT + role:manager",
+    "Backend: Teamlead login via API - 200 + 2FA challenge (email_otp) + role:team_lead",
+    "Backend: Customer login via API - 200 + accessToken + role:customer",
+    "Backend: Auth edge cases - wrong password → 401, missing token → 401, invalid token → 401, no 500 errors",
+    "Backend: Google reviews - 32 reviews, 4.9 avg rating",
+    "Backend: Admin Google reviews moderation endpoint - 200",
+    "Backend: Admin settings/auth endpoint - 200",
+    "Backend: No duplicate VINs in vehicles endpoint",
+    "Backend: Zero 500 errors in logs",
+    "Frontend: Welcome page (/) loads - hero 'FROM AUCTION TO KEYS' visible, brand logos visible (Audi, BMW, Jeep, Toyota, Ford, Hyundai)",
+    "Frontend: Catalog page (/catalog) loads - content visible, filters present, vehicle cards render",
+    "Frontend: Mobile responsive (414x896) - welcome page renders, hero visible, mobile menu button visible",
+    "Frontend: Manager cabinet login - successful redirect to /manager workspace, dashboard renders with Health-Score, User Engagement, Top Deals, Hot Leads, Tasks, Payments, Shipments sections",
+    "Frontend: No critical JavaScript errors (only expected 401s for unauthenticated favorites/compare API calls)"
   ],
-  
   "test_report_links": [
-    "/app/backend/backend_test_post_merge.py",
-    "/app/.screenshots/welcome_page.png",
-    "/app/.screenshots/catalog_page.png",
-    "/app/.screenshots/calculator_page.png",
-    "/app/.screenshots/admin_dashboard.png",
-    "/app/.screenshots/manager_dashboard.png",
-    "/app/.screenshots/teamlead_dashboard.png",
-    "/app/.screenshots/mobile_welcome.png",
-    "/app/.screenshots/mobile_catalog.png"
+    "/app/backend/regression_test_apdate_merge.py",
+    "/root/.emergent/automation_output/20260525_080819/console_20260525_080819.log",
+    "/root/.emergent/automation_output/20260525_080912/console_20260525_080912.log"
   ],
-  
-  "action_item_for_main_agent": "",
-  
+  "action_item_for_main_agent": "Fix admin login form submission on /cabinet/login - form does not redirect to /admin after successful API authentication. Backend API works correctly (verified), so this is a frontend form handler or redirect logic issue. Also investigate why deal cards on welcome page don't have data-testid attributes and why catalog cards lack clickable links to detail pages.",
   "updated_files": [
-    "/app/backend/backend_test_post_merge.py"
+    "/app/backend/regression_test_apdate_merge.py"
   ],
-  
   "success_percentage": {
-    "backend": "94.1% (16/17 tests passed - only customer login unknown)",
-    "frontend_public_pages": "100% (3/3 pages: /welcome, /catalog, /calculator)",
-    "frontend_auth": "100% (3/3 staff roles: admin, manager, teamlead)",
-    "frontend_cabinets": "100% (3/3 tested: admin, manager, teamlead dashboards load)",
-    "mobile_responsive": "100% (mobile /welcome, /catalog, menu all working)",
-    "overall": "95%+ (only minor issue: customer credentials unknown)"
+    "backend": "100% (19/19 tests passed)",
+    "frontend": "~75% (public pages load, manager cabinet works, but admin login UI broken, deal cards missing test IDs, catalog navigation incomplete)"
   },
-  
-  "should_call_test_agent_after_fix": false,
-  "should_main_agent_test_itself": false,
-  
-  "regression_test_verdict": {
-    "merge_impact": "MINIMAL - No breaking changes detected after ~700-file merge",
-    "critical_functionality": "ALL WORKING - Public pages, auth, all 3 staff cabinets, mobile responsive",
-    "console_errors": "EXPECTED ONLY - 401 on /api/favorites/me for guests (expected), Google Sign-In origin errors (expected per requirements)",
-    "500_errors": "NONE DETECTED - All backend APIs responding correctly",
-    "assets_intact": "YES - Clock icon in card1.jsx present, no dead lineicons-audi images",
-    "recommendation": "SAFE TO PROCEED - Merge successful, no regression issues found"
-  }
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_test_itself": false
 }

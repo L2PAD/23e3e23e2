@@ -136,6 +136,10 @@ import UniversalTrackerPage from './pages/manager/UniversalTrackerPage';
 import ManagerEngagementPage from './pages/manager/ManagerEngagementPage';
 import ManagerWishlistPage from './pages/manager/ManagerWishlistPage';
 import TeamWishlistApprovalsPage from './pages/team/TeamWishlistApprovalsPage';
+// Security / audit pages
+import LoginAuditPage from './pages/security/LoginAuditPage';
+import AdminSecurityPage from './pages/security/AdminSecurityPage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 
 import NotificationsPage from './pages/NotificationsPage';
 import ParserTestLab from './pages/ParserTestLab';
@@ -225,8 +229,39 @@ const AuthProvider = ({ children }) => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        // Only logout on explicit 401 from auth endpoints
-        if (error.response?.status === 401 && error.config?.url?.includes('/api/auth/me')) {
+        const status = error.response?.status;
+        const detail = error.response?.data?.detail;
+        const resetHdr = error.response?.headers?.['x-session-reset'];
+        // ── Daily-reset for managers (Europe/Sofia 12:00) ──────────────
+        // Backend signals an expired daily session with:
+        //   401 + detail "session_expired_daily_reset"  OR
+        //   header X-Session-Reset: daily
+        // In either case we wipe the local session, tell the user, and
+        // bounce them to /login. This is intentionally global so EVERY
+        // axios call (catalog, deals, cabinet, etc) triggers the same
+        // UX, not just /api/auth/me.
+        if (
+          status === 401 &&
+          (detail === 'session_expired_daily_reset' || resetHdr === 'daily')
+        ) {
+          try {
+            // Lazy import to avoid pulling sonner into the bootstrap path.
+            import('sonner').then(({ toast }) => {
+              toast.warning('Your daily session has expired. Please log in again.');
+            }).catch(() => {});
+          } catch { /* ignore */ }
+          localStorage.removeItem('token');
+          delete axios.defaults.headers.common['Authorization'];
+          setToken(null);
+          setUser(null);
+          // Hard navigate so all in-memory queries are flushed.
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            window.location.assign('/login?reason=daily_reset');
+          }
+          return Promise.reject(error);
+        }
+        // Standard /me-only logout (existing behaviour)
+        if (status === 401 && error.config?.url?.includes('/api/auth/me')) {
           logout();
         }
         return Promise.reject(error);
@@ -251,7 +286,18 @@ const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const res = await axios.post(`${API_URL}/api/auth/login`, { email, password });
-    const { access_token, user } = res.data;
+    const data = res.data || {};
+    // ── Multi-step login ───────────────────────────────────────────────
+    // Backend returns either an access_token (single-step roles like
+    // manager, or admin without TOTP), or a `challenge` payload that
+    // tells the UI to gather a second factor:
+    //   { challenge: 'totp',      user_id, role, ... }
+    //   { challenge: 'email_otp', challenge_token, recipient_masked, ... }
+    // We propagate that payload up so the LoginPage can render step 2.
+    if (data.challenge) {
+      return { __challenge: true, ...data };
+    }
+    const { access_token, user } = data;
     localStorage.setItem('token', access_token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     setToken(access_token);
@@ -259,7 +305,24 @@ const AuthProvider = ({ children }) => {
     return user;
   };
 
-  const logout = () => {
+  // Complete a multi-step login by exchanging a verified challenge
+  // response for a JWT. Mirrors `login()` for the second step.
+  const completeChallenge = async (path, body) => {
+    const res = await axios.post(`${API_URL}${path}`, body);
+    const { access_token, user } = res.data || {};
+    if (!access_token) throw new Error('No access_token in challenge response');
+    localStorage.setItem('token', access_token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+    setToken(access_token);
+    setUser(user);
+    return user;
+  };
+
+  const logout = async () => {
+    // best-effort logout audit
+    try {
+      await axios.post(`${API_URL}/api/auth/logout`, {});
+    } catch { /* ignore */ }
     localStorage.removeItem('token');
     delete axios.defaults.headers.common['Authorization'];
     setToken(null);
@@ -267,7 +330,7 @@ const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, completeChallenge }}>
       {children}
     </AuthContext.Provider>
   );
@@ -468,7 +531,10 @@ function App() {
               <Route path="kpi" element={<KPIDashboard />} />
               <Route path="call-board" element={<CallBoardPage />} />
               <Route path="predictive-leads" element={<PredictiveLeadsPage />} />
-              <Route path="security" element={<SecuritySettings />} />
+              <Route path="security" element={<AdminSecurityPage />} />
+              <Route path="security-legacy" element={<SecuritySettings />} />
+              <Route path="login-audit" element={<LoginAuditPage scope="admin" />} />
+              <Route path="profile/password" element={<ChangePasswordPage />} />
               <Route path="notification-settings" element={<NotificationSettings />} />
               <Route path="carfax" element={<CarfaxAdminPage />} />
               <Route path="team-lead" element={<TeamLeadDashboard />} />
@@ -533,6 +599,8 @@ function App() {
               <Route path="performance" element={<TeamPerformancePage />} />
               <Route path="orders" element={<TeamOrdersPage />} />
               <Route path="wishlist-approvals" element={<TeamWishlistApprovalsPage />} />
+              <Route path="login-audit" element={<LoginAuditPage scope="team" />} />
+              <Route path="profile/password" element={<ChangePasswordPage />} />
             </Route>
 
             {/* ====== MANAGER WORKSPACE ====== */}
@@ -547,6 +615,7 @@ function App() {
               <Route path="tracking" element={<UniversalTrackerPage />} />
               <Route path="engagement" element={<ManagerEngagementPage />} />
               <Route path="wishlist" element={<ManagerWishlistPage />} />
+              <Route path="profile/password" element={<ChangePasswordPage />} />
             </Route>
 
             {/* ====== CUSTOMER CABINET (CLIENT PORTAL) ====== */}

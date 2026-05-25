@@ -61,7 +61,8 @@ import {
   User,
   Warning,
   Gauge,
-  Scales
+  Scales,
+  LockKey
 } from '@phosphor-icons/react';
 
 const Layout = () => {
@@ -388,6 +389,8 @@ const Layout = () => {
           roles: ['master_admin', 'admin'],
         },
         { path: '/admin/parser', icon: Database, label: t('i18n_vin_parser_4ae3fa') },
+        { path: '/admin/security', icon: Shield, label: 'Security & 2FA', roles: ['master_admin', 'admin'] },
+        { path: '/admin/login-audit', icon: Shield, label: 'Login Audit', roles: ['master_admin', 'admin'] },
         // Unified System hub: combines old "System" + "Auth & URLs" + "Email outbox"
         { path: '/admin/settings', icon: Wrench, label: 'System', matchPrefix: true, roles: ['master_admin', 'admin'] },
         { path: '/admin/info', icon: FileText, label: 'Info' },
@@ -472,28 +475,44 @@ const Layout = () => {
 
   const activePath = React.useMemo(() => {
     const urlTab = new URLSearchParams(location.search).get('tab');
-    // Each candidate has a {path, matchPrefix, alias?} shape; a candidate
-    // matches when its alias (if present) or its base pathname equals the
-    // current pathname OR when matchPrefix is on and the current pathname
-    // starts with it.
-    const candidates = allNavPaths.filter(({ path, alias, matchPrefix }) => {
+    // Each candidate has a {path, matchPrefix, alias?} shape; we track
+    // whether it's an EXACT match (basePath equals current pathname) or
+    // a PREFIX match (startsWith basePath + '/'). Exact wins over prefix
+    // always — otherwise a generic "/manager" workspace entry would steal
+    // the highlight from a specific child like "/manager/engagement".
+    const candidates = [];
+    for (const item of allNavPaths) {
+      const { path, alias, matchPrefix } = item;
       const target = alias || path;
       const basePath = target.split('?')[0];
-      if (basePath === location.pathname) return true;
-      if (matchPrefix && location.pathname.startsWith(basePath + '/')) return true;
-      return false;
-    });
+      if (basePath === location.pathname) {
+        candidates.push({ ...item, basePath, exact: true });
+      } else if (matchPrefix && location.pathname.startsWith(basePath + '/')) {
+        candidates.push({ ...item, basePath, exact: false });
+      }
+    }
     if (candidates.length === 0) return null;
-    if (candidates.length === 1) return candidates[0].path;
+
+    // Prefer EXACT matches over PREFIX matches.
+    const exacts = candidates.filter((c) => c.exact);
+    const pool = exacts.length > 0 ? exacts : candidates;
+
+    if (pool.length === 1) return pool[0].path;
+
     // Multi-candidate → prefer the one whose ?tab= matches the URL's tab.
-    const matchTab = candidates.find(({ path }) => {
+    const matchTab = pool.find(({ path }) => {
       const params = new URLSearchParams(path.split('?')[1] || '');
       return urlTab != null && params.get('tab') === urlTab;
     });
     if (matchTab) return matchTab.path;
-    // Otherwise fall through to the "main" candidate (no ?tab=).
-    const mainItem = candidates.find(({ path }) => !path.includes('?tab='));
-    return mainItem ? mainItem.path : candidates[0].path;
+
+    // Otherwise prefer the "main" candidate (no ?tab=)…
+    const mainItem = pool.find(({ path }) => !path.includes('?tab='));
+    if (mainItem) return mainItem.path;
+
+    // …else just the longest basePath (most specific URL).
+    pool.sort((a, b) => b.basePath.length - a.basePath.length);
+    return pool[0].path;
   }, [allNavPaths, location.pathname, location.search]);
 
   const isItemActive = React.useCallback(
@@ -651,6 +670,18 @@ const Layout = () => {
         {/* User footer */}
         <div className="p-3 md:p-4 border-t border-[#E4E4E7]">
           <div className="text-xs text-[#A1A1AA] px-3 mb-2">{roleLabels[user?.role] || user?.role}</div>
+          <NavLink
+            to={
+              (user?.role || '').toLowerCase() === 'manager'  ? '/manager/profile/password' :
+              (user?.role || '').toLowerCase() === 'team_lead' ? '/team/profile/password'    :
+                                                                  '/admin/profile/password'
+            }
+            className="w-full flex items-center gap-2 px-3 py-2.5 mb-1 text-sm font-medium text-[#52525B] hover:text-[#18181B] rounded-xl hover:bg-[#F4F4F5] transition-all"
+            data-testid="change-password-link"
+          >
+            <LockKey size={18} weight="duotone" />
+            <span>Change password</span>
+          </NavLink>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-[#71717A] hover:text-[#DC2626] rounded-xl hover:bg-[#FEE2E2] transition-all"

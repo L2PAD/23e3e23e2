@@ -132,7 +132,16 @@ export default function CatalogPage() {
 
   // Accumulate pages 1..page from cache so the grid renders ALL loaded
   // items, not just the tip page. Earlier pages sit warm in cache.
+  //
+  // Defensive dedup-by-VIN: if the backend serves a stable order and our
+  // page slices don't overlap, accumulation is safe. But if a worker
+  // inserts a new vehicle between the page-1 and page-2 fetch, the
+  // backend's `skip/limit` window can shift by one row and the same VIN
+  // could appear on consecutive pages. We collapse by VIN (falling back
+  // to lot_number / id) so the user never sees the same car twice. This
+  // is a no-op when there is no overlap.
   useEffect(() => {
+    const seen = new Set();
     const acc = [];
     let lastTotal = 0;
     let lastMeta = null;
@@ -142,7 +151,14 @@ export default function CatalogPage() {
         'public/vehicles',
         { ...baseParams, skip, limit: PAGE_SIZE },
       ]);
-      if (cached?.items?.length) acc.push(...cached.items);
+      if (cached?.items?.length) {
+        for (const it of cached.items) {
+          const k = it.vin || it.lot_number || it.id;
+          if (k && seen.has(k)) continue;
+          if (k) seen.add(k);
+          acc.push(it);
+        }
+      }
       if (cached?.total) lastTotal = cached.total;
       if (cached?.meta)  lastMeta  = cached.meta;
     }
