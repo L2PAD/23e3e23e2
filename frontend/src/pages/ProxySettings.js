@@ -18,6 +18,7 @@ import {
   Eye,
   EyeSlash
 } from '@phosphor-icons/react';
+import WhiteSelect from '../components/ui/WhiteSelect';
 
 const ProxySettings = () => {
   const { t } = useLang();
@@ -275,15 +276,11 @@ const ProxySettings = () => {
                 {/* Protocol */}
                 <div>
                   <label className="block text-sm font-medium text-[#18181B] mb-2">{t('adm_protocol')}</label>
-                  <select
-                    value={newProxy.protocol}
-                    onChange={e => setNewProxy({ ...newProxy, protocol: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-[#F4F4F5] border-0 rounded-lg text-sm focus:ring-2 focus:ring-[#0A0A0B] outline-none"
-                  >
+                  <WhiteSelect value={newProxy.protocol} onChange={e => setNewProxy({ ...newProxy, protocol: e.target.value })} className="w-full">
                     <option value="http">HTTP</option>
                     <option value="https">HTTPS</option>
                     <option value="socks5">{t('adm_socks5')}</option>
-                  </select>
+                  </WhiteSelect>
                 </div>
 
                 {/* IP Address */}
@@ -407,7 +404,7 @@ const ProxySettings = () => {
                 return (
                   <tr key={proxy.id} className="hover:bg-[#FAFAFA] transition-colors">
                     <td className="px-6 py-4">
-                      <span className="text-sm font-mono text-[#18181B]">#{proxy.id}</span>
+                      <span className="text-sm text-[#18181B]">#{proxy.id}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -434,15 +431,11 @@ const ProxySettings = () => {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <select
-                        value={proxy.priority}
-                        onChange={e => handleSetPriority(proxy.id, parseInt(e.target.value))}
-                        className="text-sm bg-[#F4F4F5] px-2 py-1 rounded border-0 focus:ring-1 focus:ring-[#0A0A0B]"
-                      >
+                      <WhiteSelect value={proxy.priority} onChange={e => handleSetPriority(proxy.id, parseInt(e.target.value))}>
                         {[1,2,3,4,5,6,7,8,9,10].map(p => (
                           <option key={p} value={p}>{p}</option>
                         ))}
-                      </select>
+                      </WhiteSelect>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

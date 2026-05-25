@@ -224,28 +224,30 @@ export default function JourneyPanel({ shipmentId, initialJourney = null, liveUp
             }}
             liveUpdate={liveUpdate}
           />
-          {/* Live tracking overlay — top-right corner, glassmorphism style.
-              Gives the user the 3-second "where is my car right now" answer. */}
+          {/* Live tracking overlay — top-right corner, dark glassmorphism.
+              Phase B3.1: switched from bg-white/95 to bg-[#1A1B19]/92 so
+              the card sits inside the cabinet's dark theme instead of
+              flashing as a white block on a black map. */}
           {(curVessel?.name || curPos?.lat != null) && (
             <div
-              className="absolute top-3 right-3 max-w-[260px] bg-white/95 backdrop-blur-md border border-white/60 shadow-lg rounded-xl p-3 text-xs z-[1000]"
+              className="absolute top-3 right-3 max-w-[260px] bg-[#1A1B19]/92 backdrop-blur-md border border-[#34343A] shadow-[0_12px_28px_rgba(0,0,0,0.55)] rounded-xl p-3 text-xs z-[1000]"
               data-testid="live-overlay"
               style={{ pointerEvents: 'none' }}
             >
               <div className="flex items-center gap-2 mb-1.5">
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    health === 'live' || health === 'ok' ? 'bg-emerald-500 animate-pulse'
-                    : health === 'stale' ? 'bg-rose-500 animate-pulse'
+                    health === 'live' || health === 'ok' ? 'bg-emerald-400 animate-pulse'
+                    : health === 'stale' ? 'bg-rose-400 animate-pulse'
                     : health === 'estimated' ? 'bg-amber-400'
-                    : 'bg-slate-400'
+                    : 'bg-zinc-500'
                   }`}
                 />
                 <span className={`font-semibold text-[11px] uppercase tracking-wide ${
-                  health === 'live' || health === 'ok' ? 'text-emerald-700'
-                  : health === 'stale' ? 'text-rose-700'
-                  : health === 'estimated' ? 'text-amber-700'
-                  : 'text-slate-600'
+                  health === 'live' || health === 'ok' ? 'text-emerald-300'
+                  : health === 'stale' ? 'text-rose-300'
+                  : health === 'estimated' ? 'text-amber-300'
+                  : 'text-zinc-400'
                 }`}>
                   {health === 'live' || health === 'ok' ? 'Live tracking'
                   : health === 'stale' ? t('adm3_60019e5599')
@@ -254,33 +256,33 @@ export default function JourneyPanel({ shipmentId, initialJourney = null, liveUp
                 </span>
               </div>
               {curVessel?.name && (
-                <div className="flex items-center gap-1.5 text-zinc-900 font-semibold mb-1">
-                  <Anchor size={14} weight="fill" className="text-sky-600" />
+                <div className="flex items-center gap-1.5 text-zinc-50 font-semibold mb-1">
+                  <Anchor size={14} weight="fill" className="text-sky-400" />
                   {curVessel.name}
                 </div>
               )}
-              <div className="space-y-0.5 text-zinc-700">
+              <div className="space-y-0.5 text-zinc-300">
                 {speedKn != null && Number.isFinite(Number(speedKn)) && (
                   <div>
                     <span className="text-zinc-500">{t('cmp_speed')}</span>{' '}
-                    <span className="font-semibold">{Number(speedKn).toFixed(1)} kn</span>{' '}
-                    <span className="text-zinc-400">(~{Math.round(Number(speedKn) * 1.852)} {t('r9_km_h')})</span>
+                    <span className="font-semibold text-zinc-100">{Number(speedKn).toFixed(1)} kn</span>{' '}
+                    <span className="text-zinc-500">(~{Math.round(Number(speedKn) * 1.852)} {t('r9_km_h')})</span>
                   </div>
                 )}
                 {course != null && Number.isFinite(Number(course)) && (
                   <div>
                     <span className="text-zinc-500">{t('cmp_course')}</span>{' '}
-                    <span className="font-semibold">{Math.round(Number(course))}°</span>
+                    <span className="font-semibold text-zinc-100">{Math.round(Number(course))}°</span>
                   </div>
                 )}
                 {regionLabel && (
                   <div className="flex items-center gap-1">
-                    <MapPin size={11} className="text-zinc-400" />
-                    <span className="truncate">{regionLabel}</span>
+                    <MapPin size={11} className="text-zinc-500" />
+                    <span className="truncate text-zinc-200">{regionLabel}</span>
                   </div>
                 )}
                 {updatedAt && (
-                  <div className="text-[10px] text-zinc-400 mt-0.5" title={fmtTime(updatedAt)}>
+                  <div className="text-[10px] text-zinc-500 mt-0.5" title={fmtTime(updatedAt)}>
                     ⏱ {t('r9_updated')} {fmtRelative(updatedAt, t)}
                   </div>
                 )}

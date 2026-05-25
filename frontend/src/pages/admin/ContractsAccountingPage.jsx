@@ -25,6 +25,12 @@ import {
   Users,
   FileText,
 } from 'lucide-react';
+import WhiteSelect from '../../components/ui/WhiteSelect';
+import RefreshButton from '../../components/ui/RefreshButton';
+import {
+  AdminPageHeader,
+  AdminCard,
+} from '../../components/ui/AdminPagePrimitives';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -123,65 +129,72 @@ export default function ContractsAccountingPage() {
   const priceStats = data?.priceStats || {};
 
   return (
-    <div className="space-y-6" data-testid="contracts-accounting-page">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-100 rounded-lg">
-            <FileSignature className="w-6 h-6 text-indigo-600" />
+    <div className="space-y-4 sm:space-y-5" data-testid="contracts-accounting-page">
+      {/*
+        Header — custom inline layout (June 2026).
+        Mobile/Desktop:  [icon] Title + subtitle  ←—————→  [Refresh]
+        Then a toolbar row below: [30 days] [All statuses] [Export]
+        Refresh is always pinned top-right; the wider controls live in
+        the toolbar row so they never squeeze the title into letter-wrap.
+      */}
+      <header
+        className="bg-white border border-[#E4E4E7] rounded-2xl p-4 sm:p-5"
+        data-testid="contracts-header"
+      >
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <FileSignature size={18} weight="duotone" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {lang === 'uk' ? t('adm2_48f16e3532') : lang === 'bg' ? t('adm2_ae67832aaf') : 'Contracts Accounting'}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-[17px] sm:text-[19px] font-semibold tracking-tight text-[#18181B] leading-tight break-words">
+              {lang === 'uk' ? t('adm2_48f16e3532') : lang === 'bg' ? t('adm2_ae67832aaf') : 'Contracts accounting'}
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="mt-1 text-[12.5px] sm:text-[13px] text-[#71717A] leading-relaxed break-words">
               {lang === 'uk' ? t('adm2_bfa494e8c3') : 'Signature control & statistics'}
             </p>
           </div>
+          <div className="shrink-0">
+            <RefreshButton
+              onClick={fetchData}
+              ariaLabel={lang === 'uk' ? t('adm2_b6bf91f845') : 'Refresh'}
+              testId="contracts-refresh-btn"
+            />
+          </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Period Filter */}
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="7">7 {lang === 'uk' ? t('adm2_e85d4cee49') : 'days'}</option>
-            <option value="30">30 {lang === 'uk' ? t('adm2_e85d4cee49') : 'days'}</option>
-            <option value="90">90 {lang === 'uk' ? t('adm2_e85d4cee49') : 'days'}</option>
-          </select>
-          
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">{lang === 'uk' ? t('adm2_602a3f7399') : 'All statuses'}</option>
-            <option value="signed">{lang === 'uk' ? t('adm2_d9fbeffdf6') : 'Signed'}</option>
-            <option value="sent">{lang === 'uk' ? t('adm2_cecde526be') : 'Pending'}</option>
-            <option value="rejected">{lang === 'uk' ? t('adm2_49c59ac5d0') : 'Rejected'}</option>
-          </select>
-          
-          {/* Export Button */}
+        {/* Toolbar row: [days] [status] [export]. Wraps cleanly on mobile,
+            inline on desktop. Period+status are roughly 50/50, Export
+            stays compact on the right. */}
+        <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2 sm:gap-3">
+          <div className="w-full sm:w-[120px] shrink-0">
+            <WhiteSelect
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+            >
+              <option value="7">7 {lang === 'uk' ? t('adm2_e85d4cee49') : 'days'}</option>
+              <option value="30">30 {lang === 'uk' ? t('adm2_e85d4cee49') : 'days'}</option>
+              <option value="90">90 {lang === 'uk' ? t('adm2_e85d4cee49') : 'days'}</option>
+            </WhiteSelect>
+          </div>
+          <div className="w-full sm:w-[150px] shrink-0">
+            <WhiteSelect
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">{lang === 'uk' ? t('adm2_602a3f7399') : 'All statuses'}</option>
+              <option value="signed">{lang === 'uk' ? t('adm2_d9fbeffdf6') : 'Signed'}</option>
+              <option value="sent">{lang === 'uk' ? t('adm2_cecde526be') : 'Pending'}</option>
+              <option value="rejected">{lang === 'uk' ? t('adm2_49c59ac5d0') : 'Rejected'}</option>
+            </WhiteSelect>
+          </div>
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm"
+            className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl border border-[#E4E4E7] bg-white hover:bg-[#FAFAFA] text-[13px] font-medium text-[#18181B] whitespace-nowrap focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
           >
-            <Download className="w-4 h-4" />
-            {lang === 'uk' ? t('adm2_b51156b39b') : 'Export'}
-          </button>
-          
-          {/* Refresh */}
-          <button
-            onClick={fetchData}
-            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-          >
-            <RefreshCw className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5" />
+            <span>{lang === 'uk' ? t('adm2_b51156b39b') : 'Export'}</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -222,13 +235,13 @@ export default function ContractsAccountingPage() {
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pending Contracts - Need Action */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg border border-gray-200">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Clock className="w-5 h-5 text-blue-500" />
               {lang === 'uk' ? t('adm2_dd52fb6913') : 'Awaiting Signature'}
               {data?.pendingContracts?.length > 0 && (
-                <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full">
+                <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-md">
                   {data.pendingContracts.length}
                 </span>
               )}
@@ -254,7 +267,7 @@ export default function ContractsAccountingPage() {
         </div>
 
         {/* Recently Signed */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg border border-gray-200">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-emerald-500" />
@@ -283,7 +296,7 @@ export default function ContractsAccountingPage() {
 
       {/* Overdue Contracts Alert */}
       {data?.overdueContracts?.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-3">
             <AlertTriangle className="w-5 h-5 text-red-600" />
             <h3 className="font-semibold text-red-900">
@@ -334,7 +347,7 @@ function StatCard({ title, value, icon: Icon, color, trend, alert }) {
   };
 
   return (
-    <div className={`p-4 rounded-xl border ${colorClasses[color]} ${alert ? 'animate-pulse' : ''}`}>
+    <div className={`p-4 rounded-lg border ${colorClasses[color]} ${alert ? 'animate-pulse' : ''}`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm opacity-80">{title}</p>
@@ -377,7 +390,7 @@ function ContractRow({ contract, lang, onClick }) {
       </div>
       <div className="flex items-center gap-3">
         <div className="text-right">
-          <span className={`px-2 py-1 text-xs rounded-full bg-${status.color}-100 text-${status.color}-700`}>
+          <span className={`px-2 py-1 text-xs rounded-md bg-${status.color}-100 text-${status.color}-700`}>
             {status.label[lang] || status.label.en}
           </span>
           <div className="text-xs text-gray-400 mt-1">
@@ -397,13 +410,13 @@ function ContractDetailModal({ contract, lang, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div 
-        className="bg-white rounded-2xl max-w-lg w-full overflow-hidden"
+        className="bg-white rounded-lg max-w-lg w-full overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className={`p-4 bg-${status.color}-50 border-b`}>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">{contract.title}</h3>
-            <span className={`px-2 py-1 text-xs rounded-full bg-${status.color}-200 text-${status.color}-700`}>
+            <span className={`px-2 py-1 text-xs rounded-md bg-${status.color}-200 text-${status.color}-700`}>
               {status.label[lang] || status.label.en}
             </span>
           </div>

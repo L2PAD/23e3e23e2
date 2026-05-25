@@ -92,8 +92,8 @@ const FrameComponent26 = ({
                 <div className={styles.cheaperAdvantage}>
                   <img                     className={styles.image79Icon}
                     loading="lazy"
-                    width={390.8}
-                    height={390.8}
+                    width={391}
+                    height={391}
                     sizes="100vw"
                     alt=""
                     src="/figma/image-79@2x.webp"
@@ -107,9 +107,17 @@ const FrameComponent26 = ({
                         {t.muchCheaperDesc2}
                       </h2>
                     </div>
-                    <h2 className={styles.transparentHistory}>
-                      {t.transparentHistory}
-                    </h2>
+                    {/* Transparent history + VIN checks are GROUPED so the
+                        8 px header→body gap can never fall apart — exactly
+                        like Much cheaper / Even taking into account above. */}
+                    <div className={styles.titleAdvantage}>
+                      <h2 className={styles.transparentHistory}>
+                        {t.transparentHistory}
+                      </h2>
+                      <h2 className={styles.vinChecksCarfax}>
+                        {t.vinChecks}
+                      </h2>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -121,12 +129,7 @@ const FrameComponent26 = ({
                   <br />
                   {t.moreOptionsBetterMultimedia3}
                 </h2>
-                <div className={styles.vINTool}>
-                  <h2 className={styles.vinChecksCarfax}>
-                    {t.vinChecks}
-                    <br />
-                  </h2>
-                </div>
+                <div className={styles.vINTool} aria-hidden="true" />
               </section>
             </div>
           </div>

@@ -313,24 +313,24 @@ const ExtensionStatusCard = ({ extension, canManage, onOpenExtensionTab }) => {
               className="mt-2 flex flex-wrap gap-2 text-[11px]"
               data-testid="ext-aggregate-health"
             >
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-[#E4E4E7] bg-[#FAFAFA] font-medium text-[#3F3F46]">
+              <span className="inline-flex items-center gap-1.5 text-[#71717A]">
                 <span
                   className="inline-block w-1.5 h-1.5 rounded-full"
                   style={{ background: isStale ? '#DC2626' : '#A1A1AA' }}
                 />
                 Last seen:{' '}
-                <span className="font-mono text-[#18181B]">
+                <span className="font-semibold text-[#18181B]">
                   {minAge === null ? 'never' : `${fmtAge(minAge)} ago`}
                 </span>
               </span>
               {avgSr !== null && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-[#E4E4E7] bg-[#FAFAFA] font-medium text-[#3F3F46]">
+                <span className="inline-flex items-center gap-1.5 text-[#71717A]">
                   <span
                     className="inline-block w-1.5 h-1.5 rounded-full"
                     style={{ background: avgSr >= 0.9 ? '#16A34A' : avgSr >= 0.6 ? '#F59E0B' : '#DC2626' }}
                   />
                   Success rate:{' '}
-                  <span className="font-mono text-[#18181B]">
+                  <span className="font-semibold text-[#18181B]">
                     {Math.round(avgSr * 100)}%
                   </span>
                 </span>
@@ -342,13 +342,13 @@ const ExtensionStatusCard = ({ extension, canManage, onOpenExtensionTab }) => {
                 data-testid="ext-critical-reason"
               >
                 Cloudflare sources DISABLED ·{' '}
-                <span className="font-mono text-[#18181B]">{t('adm_poctra_cfw_aah_salvagebid')}</span>{' '}
+                <span className="text-[#18181B] font-medium">{t('adm_poctra_cfw_aah_salvagebid')}</span>{' '}
                 will not answer until a client registers.
               </p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
+        <div className="flex items-center gap-2 self-stretch sm:self-auto sm:flex-shrink-0 w-full sm:w-auto">
           <button
             type="button"
             onClick={async () => {
@@ -371,22 +371,23 @@ const ExtensionStatusCard = ({ extension, canManage, onOpenExtensionTab }) => {
                 toast.error(`${t('r9_load_error_msg')}: ${err?.response?.status || err.message}`);
               }
             }}
-            className="px-4 py-2 text-[12.5px] font-semibold rounded-lg flex items-center gap-2 transition-colors bg-[#18181B] text-white hover:bg-[#3F3F46]"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-[#18181B] text-[13px] font-medium text-white hover:bg-[#27272A] transition-colors flex-1 sm:flex-none focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
             data-testid="ext-download-cta"
             title={t('adm_download_the_extension_zip_archive_for_installatio')}
           >
             <Download size={14} weight="bold" />
-            {t('adm_download_extension')}
+            <span className="hidden xs:inline sm:inline">{t('adm_download_extension')}</span>
+            <span className="xs:hidden sm:hidden">Download</span>
           </button>
           {canManage && (
             <button
               type="button"
               onClick={() => onOpenExtensionTab && onOpenExtensionTab()}
-              className="px-4 py-2 text-[12.5px] font-semibold rounded-lg flex items-center gap-2 transition-colors bg-white text-[#3F3F46] border border-[#E4E4E7] hover:bg-[#FAFAFA]"
+              className="inline-flex items-center justify-center gap-1 h-10 px-3 sm:px-4 rounded-xl border border-[#E4E4E7] bg-white text-[13px] font-medium text-[#18181B] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
               data-testid="ext-setup-cta"
             >
-              {isCritical ? 'Setup Extension' : 'Manage'}
-              <CaretRight size={14} />
+              <span>{isCritical ? 'Setup' : 'Manage'}</span>
+              <CaretRight size={13} />
             </button>
           )}
         </div>
@@ -402,18 +403,18 @@ const ExtensionStatusCard = ({ extension, canManage, onOpenExtensionTab }) => {
             return (
               <div
                 key={c.client_id}
-                className="flex items-center justify-between bg-white border border-[#E4E4E7] rounded-md px-3 py-2"
+                className="flex items-center justify-between bg-white border border-[#E4E4E7] rounded-xl px-3 py-2.5"
                 data-testid={`ext-client-${c.client_id}`}
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-mono text-[#18181B] truncate">
+                  <p className="text-[13px] font-medium text-[#18181B] truncate">
                     {(c.label || c.client_id).slice(0, 28)}
                   </p>
-                  <p className="text-[10px] text-[#A1A1AA]">
+                  <p className="text-[10.5px] text-[#A1A1AA]">
                     {c.version || '—'}
                     <span className="mx-1.5 text-[#D4D4D8]">·</span>
                     <span
-                      className={stale ? 'text-red-600 font-semibold' : ''}
+                      className={stale ? 'text-[#DC2626] font-semibold' : ''}
                     >
                       seen {fmtAge(age)} ago
                     </span>
@@ -421,9 +422,9 @@ const ExtensionStatusCard = ({ extension, canManage, onOpenExtensionTab }) => {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span
-                    className={`text-[10px] font-mono ${
+                    className={`text-[11px] tabular-nums ${
                       sr !== null && sr !== undefined && sr < 0.6
-                        ? 'text-red-600 font-semibold'
+                        ? 'text-[#DC2626] font-semibold'
                         : 'text-[#71717A]'
                     }`}
                     title="Success rate (last 20 jobs)"
@@ -464,20 +465,20 @@ const SourceRow = ({ row }) => {
   const tierMeta = TIER_META[row.tier] || TIER_META.HTTP;
   return (
     <div
-      className="bg-white rounded-xl border border-[#E4E4E7] p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+      className="bg-white rounded-xl border border-[#E4E4E7] p-3 sm:p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
       data-testid={`source-row-${row.key}`}
     >
-      <div className="flex items-center gap-3 sm:w-72 min-w-0">
+      <div className="flex items-center gap-2.5 sm:gap-3 sm:w-60 lg:w-72 min-w-0">
         <div
           className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${preset.dot} ${
             row.status === 'down' ? 'animate-pulse' : ''
           }`}
         />
-        <div className="w-9 h-9 rounded-lg bg-[#F4F4F5] flex items-center justify-center flex-shrink-0">
-          <TierIcon size={16} weight="duotone" className="text-[#18181B]" />
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#F4F4F5] flex items-center justify-center flex-shrink-0">
+          <TierIcon size={15} weight="duotone" className="text-[#18181B]" />
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-[#18181B] truncate">
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] sm:text-sm font-semibold text-[#18181B] truncate">
             {row.label}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -492,36 +493,48 @@ const SourceRow = ({ row }) => {
             </span>
           </div>
         </div>
+        {/* Mobile status pill — inline with title */}
+        <span
+          className={`sm:hidden text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider shrink-0 ${preset.bgSoft} ${preset.text} border ${preset.border}`}
+        >
+          {row.status === 'ok'
+            ? 'OK'
+            : row.status === 'down'
+            ? 'DOWN'
+            : row.status === 'drift'
+            ? 'DRIFT'
+            : 'WARN'}
+        </span>
       </div>
-      <div className="grid grid-cols-4 gap-3 sm:gap-6 flex-1">
-        <div>
-          <p className="text-[10px] text-[#A1A1AA] uppercase tracking-wide">
+      <div className="grid grid-cols-4 gap-2 sm:gap-6 flex-1 min-w-0">
+        <div className="min-w-0">
+          <p className="text-[10px] text-[#A1A1AA] uppercase tracking-wide truncate">
             {t('cmp_p50')}
           </p>
-          <p className="text-sm font-bold font-mono text-[#18181B]">
+          <p className="text-[13px] sm:text-sm font-bold text-[#18181B] truncate tabular-nums">
             {row.latency_p50_ms ? `${row.latency_p50_ms}ms` : '—'}
           </p>
         </div>
-        <div>
-          <p className="text-[10px] text-[#A1A1AA] uppercase tracking-wide">
+        <div className="min-w-0">
+          <p className="text-[10px] text-[#A1A1AA] uppercase tracking-wide truncate">
             {t('adm_hit')}
           </p>
-          <p className="text-sm font-bold text-emerald-600">
+          <p className="text-[13px] sm:text-sm font-bold text-emerald-600 truncate">
             {row.calls > 0 ? `${Math.round((row.hit_ratio || 0) * 100)}%` : '—'}
           </p>
         </div>
-        <div>
-          <p className="text-[10px] text-[#A1A1AA] uppercase tracking-wide">
+        <div className="min-w-0">
+          <p className="text-[10px] text-[#A1A1AA] uppercase tracking-wide truncate">
             {t('adm_calls')}
           </p>
-          <p className="text-sm font-bold text-[#18181B]">{row.calls}</p>
+          <p className="text-[13px] sm:text-sm font-bold text-[#18181B] truncate">{row.calls}</p>
         </div>
-        <div>
-          <p className="text-[10px] text-[#A1A1AA] uppercase tracking-wide">
+        <div className="min-w-0">
+          <p className="text-[10px] text-[#A1A1AA] uppercase tracking-wide truncate">
             {t('adm_errors')}
           </p>
           <p
-            className={`text-sm font-bold ${
+            className={`text-[13px] sm:text-sm font-bold truncate ${
               row.errors > 0 ? 'text-red-600' : 'text-[#18181B]'
             }`}
           >
@@ -529,7 +542,7 @@ const SourceRow = ({ row }) => {
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
         <span
           className={`text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider ${preset.bgSoft} ${preset.text} border ${preset.border}`}
         >
@@ -570,21 +583,21 @@ const SourcesGrid = ({ sources }) => {
 
   return (
     <div data-testid="sources-grid">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-3">
         <h2
           className="text-sm font-bold text-[#18181B] tracking-tight"
           style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}
         >
           SOURCES
         </h2>
-        <p className="text-[11px] text-[#A1A1AA]">
+        <p className="text-[11px] text-[#A1A1AA] leading-snug">
           {t('adm_resolver_chain_order_live_index_http_ext')}
         </p>
       </div>
 
       {effectiveDisabled > 0 && (
         <div
-          className="mb-3 bg-white border border-[#E4E4E7] rounded-lg px-3.5 py-2.5 flex items-center gap-2.5"
+          className="mb-3 bg-white border border-[#E4E4E7] rounded-xl px-3.5 py-2.5 flex items-center gap-2.5"
           data-testid="sources-disabled-banner"
         >
           <span
@@ -598,7 +611,7 @@ const SourcesGrid = ({ sources }) => {
             {extSubsources > 0 && (
               <span className="text-[#71717A]">
                 {' '}— Cloudflare group:{' '}
-                <span className="font-mono text-[#3F3F46]">
+                <span className="font-semibold text-[#3F3F46]">
                   {extOff.subsources.join(' · ')}
                 </span>
               </span>
@@ -780,6 +793,7 @@ const OpsGuardianPanel = ({ canTest }) => {
   const { t } = useLang();
   const [status, setStatus] = useState(null);
   const [testing, setTesting] = useState(false);
+  const [expandedAudit, setExpandedAudit] = useState(null); // index of expanded row
 
   const loadStatus = useCallback(async () => {
     try {
@@ -824,49 +838,81 @@ const OpsGuardianPanel = ({ canTest }) => {
   const loopAge = status?.last_loop_age_sec;
   const loopStale = loopAge === null || loopAge === undefined || loopAge > (status?.interval_sec || 60) * 2;
 
-  const chips = [
+  const dotByTone = {
+    ok: '#16A34A',
+    warn: '#F59E0B',
+    down: '#DC2626',
+    neutral: '#A1A1AA',
+  };
+
+  const statusItems = [
     {
-      label: 'guardian',
-      on: enabled,
-      onTxt: enabled ? 'running' : 'disabled',
+      label: 'Guardian',
+      value: enabled ? 'running' : 'disabled',
       tone: enabled ? (loopStale ? 'warn' : 'ok') : 'down',
     },
     {
-      label: 'telegram',
-      on: telegramOn,
-      onTxt: telegramOn ? 'wired' : 'not set',
+      label: 'Telegram',
+      value: telegramOn ? 'wired' : 'not set',
       tone: telegramOn ? 'ok' : 'warn',
     },
     {
-      label: 'webhook',
-      on: webhookOn,
-      onTxt: webhookOn ? 'wired' : 'not set',
+      label: 'Webhook',
+      value: webhookOn ? 'wired' : 'not set',
       tone: webhookOn ? 'ok' : 'warn',
+    },
+    {
+      label: 'Tick',
+      value: loopAge !== null && loopAge !== undefined ? `${loopAge}s ago` : 'never',
+      tone: loopStale ? 'warn' : 'ok',
+    },
+    {
+      label: 'Alerts',
+      value: String(status?.counters?.total_alerts_sent || 0),
+      tone: 'neutral',
+    },
+    {
+      label: 'Heals',
+      value: String(status?.counters?.total_heal_actions || 0),
+      tone: 'neutral',
     },
   ];
 
-  const toneCls = {
-    ok: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    warn: 'bg-amber-50 text-amber-800 border-amber-200',
-    down: 'bg-red-50 text-red-700 border-red-200',
+  const audit = status?.recent_audit || [];
+
+  // Compact, human-readable label for each audit kind. Unknown kinds fall back
+  // to a Title-Cased version of the raw kind (so long machine names like
+  // "alert_log_only" become a clean "Alert Log Only" instead of overflowing).
+  const auditKindMeta = {
+    alert_emitted: { label: 'Alert', dot: '#DC2626' },
+    heal_action: { label: 'Heal', dot: '#F59E0B' },
+    test_alert: { label: 'Test', dot: '#71717A' },
+    alert_log_only: { label: 'Logged', dot: '#A1A1AA' },
+  };
+  const formatKindLabel = (k) => {
+    if (!k) return 'Event';
+    if (auditKindMeta[k]) return auditKindMeta[k].label;
+    return String(k)
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
   return (
     <div data-testid="ops-guardian-panel">
       <div className="flex items-center justify-between mb-3">
         <h2
-          className="text-sm font-bold text-[#18181B] tracking-tight flex items-center gap-2"
+          className="text-sm font-semibold text-[#18181B] tracking-tight flex items-center gap-2"
           style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}
         >
-          <Siren size={16} weight="duotone" />
-          OPS GUARDIAN · alerts &amp; auto-heal
+          <Siren size={16} weight="duotone" className="text-[#18181B]" />
+          OPS Guardian · alerts &amp; auto-heal
         </h2>
         {canTest && (
           <button
             onClick={runTest}
             disabled={testing}
             data-testid="ops-test-alert"
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-md bg-[#18181B] text-white hover:bg-[#27272A] disabled:opacity-50 flex items-center gap-1.5"
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-[#18181B] text-xs font-medium text-white hover:bg-[#27272A] transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
           >
             {testing ? (
               <CircleNotch size={12} className="animate-spin" />
@@ -877,75 +923,153 @@ const OpsGuardianPanel = ({ canTest }) => {
           </button>
         )}
       </div>
-      <div className="bg-white border border-[#E4E4E7] rounded-xl p-4">
-        <div className="flex flex-wrap gap-2 mb-3">
-          {chips.map((c) => (
-            <span
-              key={c.label}
-              className={`text-[11px] px-2.5 py-1 rounded-md font-semibold border ${toneCls[c.tone]}`}
-              data-testid={`ops-chip-${c.label}`}
-            >
-              <span className="uppercase tracking-wide">{c.label}</span>
-              <span className="mx-1.5 text-[#D4D4D8]">·</span>
-              <span>{c.onTxt}</span>
-            </span>
+
+      <div className="bg-white border border-[#E4E4E7] rounded-2xl p-4 sm:p-5 md:p-6">
+        {/* ── Status mini-grid: borderless meta-rows ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3 sm:gap-y-4">
+          {statusItems.map((it) => (
+            <div key={it.label} className="min-w-0" data-testid={`ops-chip-${it.label.toLowerCase()}`}>
+              <div className="text-[10px] uppercase tracking-[0.15em] text-[#A1A1AA] font-semibold mb-1">
+                {it.label}
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ background: dotByTone[it.tone] }}
+                />
+                <span className="text-[13px] font-semibold text-[#18181B] truncate">
+                  {it.value}
+                </span>
+              </div>
+            </div>
           ))}
-          <span className="text-[11px] px-2.5 py-1 rounded-md font-mono text-[#71717A] bg-[#FAFAFA] border border-[#E4E4E7]">
-            tick {loopAge !== null && loopAge !== undefined ? `${loopAge}s ago` : 'never'}
-          </span>
-          <span className="text-[11px] px-2.5 py-1 rounded-md font-mono text-[#71717A] bg-[#FAFAFA] border border-[#E4E4E7]">
-            alerts {status?.counters?.total_alerts_sent || 0}
-          </span>
-          <span className="text-[11px] px-2.5 py-1 rounded-md font-mono text-[#71717A] bg-[#FAFAFA] border border-[#E4E4E7]">
-            heals {status?.counters?.total_heal_actions || 0}
-          </span>
         </div>
+
+        {/* ── No channels warning ── */}
         {(!telegramOn && !webhookOn) && (
-          <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
-            ⚠ No external alert channels configured. Set{' '}
-            <code className="font-mono">TELEGRAM_BOT_TOKEN</code> +{' '}
-            <code className="font-mono">TELEGRAM_CHAT_ID</code> or{' '}
-            <code className="font-mono">ALERT_WEBHOOK_URL</code> in backend env
-            and restart to receive pages when the system degrades.
-          </p>
-        )}
-        {status?.recent_audit?.length > 0 && (
-          <div className="mt-3">
-            <p className="text-[10px] uppercase tracking-[0.15em] text-[#A1A1AA] mb-1.5 font-semibold">
-              Recent audit ({status.recent_audit.length})
+          <div className="mt-4 rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] p-3 flex items-start gap-2.5">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#F59E0B] mt-1.5 shrink-0" />
+            <p className="text-[12px] text-[#3F3F46] leading-relaxed">
+              <span className="font-semibold text-[#18181B]">No external alert channels configured.</span> Set{' '}
+              <span className="font-semibold text-[#18181B]">TELEGRAM_BOT_TOKEN</span>{' '}
+              +{' '}
+              <span className="font-semibold text-[#18181B]">TELEGRAM_CHAT_ID</span>{' '}
+              or{' '}
+              <span className="font-semibold text-[#18181B]">ALERT_WEBHOOK_URL</span>{' '}
+              in backend env and restart to receive pages when the system degrades.
             </p>
-            <ul className="space-y-1">
-              {status.recent_audit.slice(0, 5).map((row, i) => (
-                <li
-                  key={i}
-                  className="text-[11px] text-[#52525B] flex items-start gap-2"
-                >
-                  <span className="font-mono text-[#A1A1AA] flex-shrink-0 w-14">
-                    {row.ts
-                      ? new Date(row.ts * 1000).toLocaleTimeString('en-GB', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                        })
-                      : '—'}
-                  </span>
-                  <span
-                    className={`font-bold text-[10px] uppercase tracking-wider flex-shrink-0 w-28 ${
-                      row.kind === 'alert_emitted'
-                        ? 'text-red-600'
-                        : row.kind === 'heal_action'
-                        ? 'text-amber-700'
-                        : 'text-[#71717A]'
-                    }`}
-                  >
-                    {row.kind || '—'}
-                  </span>
-                  <span className="truncate">
-                    {row.title || row.action || row.fingerprint || '—'}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          </div>
+        )}
+
+        {/* ── Recent audit — scrollable list with expandable details ── */}
+        {audit.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-[#F4F4F5]">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[10.5px] uppercase tracking-[0.15em] text-[#71717A] font-semibold">
+                Recent audit
+                <span className="ml-1 text-[#A1A1AA] normal-case tracking-normal font-normal">({audit.length})</span>
+              </p>
+              <span className="text-[10.5px] text-[#A1A1AA]">tap row for details</span>
+            </div>
+            <div
+              className="rounded-xl border border-[#E4E4E7] bg-white divide-y divide-[#F4F4F5]"
+              style={{
+                maxHeight: '320px',
+                overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain',
+                touchAction: 'pan-y',
+              }}
+            >
+              {audit.map((row, i) => {
+                const isExpanded = expandedAudit === i;
+                const kindMeta = auditKindMeta[row.kind] || { dot: '#A1A1AA' };
+                const kindLabel = formatKindLabel(row.kind);
+                const ts = row.ts ? new Date(row.ts * 1000) : null;
+                const titleText = row.title || row.action || row.fingerprint || row.message || '—';
+                return (
+                  <div key={i}>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedAudit(isExpanded ? null : i)}
+                      className="w-full text-left px-3 py-2.5 hover:bg-zinc-50/60 transition-colors focus:outline-none focus-visible:bg-zinc-50"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ background: kindMeta.dot || '#A1A1AA' }}
+                        />
+                        <span className="text-[10.5px] text-[#71717A] tabular-nums shrink-0">
+                          {ts
+                            ? ts.toLocaleTimeString('en-GB', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })
+                            : '—'}
+                        </span>
+                        <span className="text-[9.5px] uppercase tracking-wider font-semibold text-[#52525B] bg-zinc-100 rounded px-1.5 py-0.5 shrink-0">
+                          {kindLabel}
+                        </span>
+                        <CaretRight
+                          size={12}
+                          className={`text-[#A1A1AA] shrink-0 ml-auto transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                        />
+                      </div>
+                      <div className="pl-[14px] text-[12.5px] text-[#3F3F46] leading-snug break-words line-clamp-2">
+                        {titleText}
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="px-3 pb-3 pl-[28px] space-y-1.5 bg-zinc-50/40">
+                        {row.severity && (
+                          <div className="flex items-baseline gap-2 text-[11.5px]">
+                            <span className="text-[#71717A] w-20 shrink-0">Severity</span>
+                            <span className="text-[#18181B] font-medium capitalize">{row.severity}</span>
+                          </div>
+                        )}
+                        {row.action && (
+                          <div className="flex items-baseline gap-2 text-[11.5px]">
+                            <span className="text-[#71717A] w-20 shrink-0">Action</span>
+                            <span className="text-[#18181B]">{row.action}</span>
+                          </div>
+                        )}
+                        {row.fingerprint && (
+                          <div className="flex items-baseline gap-2 text-[11.5px]">
+                            <span className="text-[#71717A] w-20 shrink-0">Fingerprint</span>
+                            <span className="text-[#18181B] text-[10.5px] break-all">{row.fingerprint}</span>
+                          </div>
+                        )}
+                        {row.message && (
+                          <div className="flex items-baseline gap-2 text-[11.5px]">
+                            <span className="text-[#71717A] w-20 shrink-0">Message</span>
+                            <span className="text-[#3F3F46] leading-relaxed">{row.message}</span>
+                          </div>
+                        )}
+                        {row.reason && (
+                          <div className="flex items-baseline gap-2 text-[11.5px]">
+                            <span className="text-[#71717A] w-20 shrink-0">Reason</span>
+                            <span className="text-[#3F3F46] leading-relaxed">{row.reason}</span>
+                          </div>
+                        )}
+                        {row.dispatched != null && (
+                          <div className="flex items-baseline gap-2 text-[11.5px]">
+                            <span className="text-[#71717A] w-20 shrink-0">Dispatched</span>
+                            <span className="text-[#18181B]">{row.dispatched ? 'yes' : 'no (audit only)'}</span>
+                          </div>
+                        )}
+                        {ts && (
+                          <div className="flex items-baseline gap-2 text-[11.5px]">
+                            <span className="text-[#71717A] w-20 shrink-0">Timestamp</span>
+                            <span className="text-[#3F3F46] tabular-nums">{ts.toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -1013,7 +1137,7 @@ const DebugPanel = ({ canProbe }) => {
         <MagnifyingGlass size={16} weight="duotone" />
         {t('adm_debug_vin_lot_probe')}
       </h2>
-      <div className="bg-white border border-[#E4E4E7] rounded-xl p-4">
+      <div className="bg-white border border-[#E4E4E7] rounded-2xl p-4 sm:p-5">
         {!canProbe && (
           <div
             className="mb-3 px-3 py-2 rounded-md bg-[#FAFAFA] border border-[#E4E4E7] text-[11px] text-[#71717A] flex items-center gap-2"
@@ -1031,13 +1155,13 @@ const DebugPanel = ({ canProbe }) => {
             placeholder="VIN (17 chars) or LOT number"
             data-testid="debug-input"
             disabled={!canProbe}
-            className="flex-1 px-3 py-2 text-sm font-mono border border-[#E4E4E7] rounded-lg focus:outline-none focus:border-[#18181B] disabled:bg-[#FAFAFA] disabled:text-[#A1A1AA] disabled:cursor-not-allowed"
+            className="flex-1 h-11 px-3.5 py-2.5 text-sm tracking-wide border border-[#E4E4E7] bg-white rounded-xl text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 disabled:bg-[#FAFAFA] disabled:text-[#A1A1AA] disabled:cursor-not-allowed transition-colors"
           />
           <button
             onClick={() => run()}
             disabled={running || !canProbe}
             data-testid="debug-run"
-            className="px-5 py-2 text-xs font-semibold bg-[#18181B] text-white rounded-lg hover:bg-[#27272A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center"
+            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-[#18181B] text-sm font-medium text-white hover:bg-[#27272A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
           >
             {running ? (
               <>
@@ -1069,9 +1193,9 @@ const DebugPanel = ({ canProbe }) => {
                 <>
                   <span className="text-xs text-[#71717A]">
                     via{' '}
-                    <code className="font-mono font-semibold text-[#18181B]">
+                    <span className="font-semibold text-[#18181B]">
                       {result.source}
-                    </code>
+                    </span>
                   </span>
                   <span className="text-xs text-[#71717A]">
                     {result.latency_ms}ms
@@ -1241,32 +1365,41 @@ const ExtensionSetupTab = () => {
     <button
       type="button"
       onClick={() => copyToClipboard(value, field, label)}
-      className="inline-flex items-center justify-center w-6 h-6 rounded text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+      className="inline-flex items-center justify-center h-8 w-8 shrink-0 rounded-lg border border-[#E4E4E7] bg-white text-[#18181B] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
       title={t('adm_copy_2')}
     >
-      {copiedField === field ? <Check size={13} weight="bold" /> : <Copy size={13} />}
+      {copiedField === field ? <Check size={13} weight="bold" className="text-[#16A34A]" /> : <Copy size={13} />}
     </button>
   );
 
   return (
-    <div className="space-y-5" data-testid="ext-setup-tab">
-      {/* ─── Download card ─────────────────────────────────────── */}
-      <div className="bg-white border border-[#E4E4E7] rounded-xl p-5">
-        <div className="flex items-start justify-between flex-wrap gap-4">
+    <div className="space-y-4 sm:space-y-5" data-testid="ext-setup-tab">
+      {/* ─── HERO card ─────────────────────────────────────── */}
+      <div className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5 md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Browser size={20} weight="duotone" className="text-[#18181B]" />
-              <h3 className="text-base font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-                Chrome Extension v{info?.version || '4.1.0'}
-              </h3>
-              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                {t('adm_multisource_cfbypass')}
-              </span>
+            <div className="flex items-center gap-2.5">
+              <div className="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#F4F4F5] shrink-0">
+                <Browser size={18} weight="duotone" className="text-[#18181B]" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-[15px] sm:text-base md:text-lg font-semibold text-[#18181B] leading-tight" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+                  Chrome Extension
+                </h3>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[#71717A]">
+                  <span className="font-medium">v{info?.version || '4.1.0'}</span>
+                  <span className="text-[#D4D4D8]">·</span>
+                  <span className="inline-flex items-center gap-1 text-[10.5px] uppercase tracking-wider font-medium">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                    Multi-source CF bypass
+                  </span>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-[#52525B] max-w-2xl">
+            <p className="mt-3 text-[12.5px] sm:text-[13px] text-[#52525B] max-w-2xl leading-relaxed">
               {t('adm3_9b55233b99')}
             </p>
-            <p className="mt-2 text-[11px] font-mono text-[#A1A1AA]">
+            <p className="mt-2 text-[10.5px] text-[#A1A1AA]">
               {t('r9_zip_size')}: {fmtSize(info?.file_size)}
               {info?.file_count ? ` · ${info.file_count} ${t('r9_files_label')}` : ''} · {t('r9_without_legacy')}
             </p>
@@ -1274,78 +1407,82 @@ const ExtensionSetupTab = () => {
           <button
             onClick={handleDownload}
             data-testid="setup-download-extension"
-            className="px-4 py-2.5 text-sm font-semibold rounded-lg flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-colors"
+            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-[#18181B] text-sm font-medium text-white hover:bg-[#27272A] transition-colors w-full md:w-auto shrink-0 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
           >
-            <Download size={16} weight="bold" />
+            <Download size={15} weight="bold" />
             {t('adm_download_zip')}
           </button>
         </div>
       </div>
 
       {/* ─── Install steps ─────────────────────────────────────── */}
-      <div className="bg-white border border-[#E4E4E7] rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Lightning size={18} weight="duotone" className="text-amber-500" />
-          <h3 className="text-base font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+      <div className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5 md:p-6">
+        <div className="flex items-center gap-2 mb-4 sm:mb-5">
+          <Lightning size={16} weight="duotone" className="text-[#F59E0B]" />
+          <h3 className="text-[15px] sm:text-base font-semibold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
             {t('adm3_d2554c9904')}
           </h3>
         </div>
-        <ol className="space-y-2.5 text-sm text-[#3F3F46]">
-          <li className="flex gap-2">
-            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#18181B] text-white text-[11px] font-bold flex items-center justify-center">1</span>
-            <span>{t('adm_download_the_zip_using_the_button_above')}</span>
-          </li>
-          <li className="flex gap-2">
-            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#18181B] text-white text-[11px] font-bold flex items-center justify-center">2</span>
-            <span>{t('adm_unpack_the_archive_into_any_convenient_folder')}</span>
-          </li>
-          <li className="flex gap-2">
-            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#18181B] text-white text-[11px] font-bold flex items-center justify-center">3</span>
-            <span>
-              {t('r9_open_4b8a9c')}{' '}
-              <code className="bg-[#F4F4F5] px-1.5 py-0.5 rounded font-mono text-xs">
-                chrome://extensions/
-              </code>{' '}
-              {t('r9_in_chrome_1f2c3d')}
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#18181B] text-white text-[11px] font-bold flex items-center justify-center">4</span>
-            <span>{t('adm_enable')} <strong>{t('adm_developer_mode')}</strong> (top-right).</span>
-          </li>
-          <li className="flex gap-2">
-            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#18181B] text-white text-[11px] font-bold flex items-center justify-center">5</span>
-            <span>{t('adm_click')} <strong>{t('adm_download_unpacked')}</strong> {t('adm_and_select_the_unzipped_folder_2')}</span>
-          </li>
-          <li className="flex gap-2">
-            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#18181B] text-white text-[11px] font-bold flex items-center justify-center">6</span>
-            <span>{t('adm_click_the_bibi_icon_in_the_toolbar_a_popup_will_op')}</span>
-          </li>
-          <li className="flex gap-2">
-            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#18181B] text-white text-[11px] font-bold flex items-center justify-center">7</span>
-            <div className="flex-1 space-y-2">
-              <span>{t('adm2_popup_1500a85eae')}</span>
-              <div className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-semibold text-[#52525B] w-24 flex-shrink-0">{t('adm_backend_url')}</span>
-                  <code className="flex-1 bg-white border border-[#E4E4E7] px-2 py-1 rounded font-mono text-xs text-[#18181B] break-all">
-                    {backendUrl}
+        <ol className="space-y-3 sm:space-y-3.5">
+          {[
+            { n: 1, text: t('adm_download_the_zip_using_the_button_above') },
+            { n: 2, text: t('adm_unpack_the_archive_into_any_convenient_folder') },
+          ].map((s) => (
+            <Step key={s.n} n={s.n}>{s.text}</Step>
+          ))}
+          <Step n={3}>
+            {t('r9_open_4b8a9c')}{' '}
+            <span className="bg-zinc-100 px-1.5 py-0.5 rounded text-[11.5px] text-[#18181B] font-medium">chrome://extensions/</span>{' '}
+            {t('r9_in_chrome_1f2c3d')}
+          </Step>
+          <Step n={4}>
+            {t('adm_enable')} <strong className="font-semibold text-[#18181B]">{t('adm_developer_mode')}</strong> (top-right).
+          </Step>
+          <Step n={5}>
+            {t('adm_click')} <strong className="font-semibold text-[#18181B]">{t('adm_download_unpacked')}</strong> {t('adm_and_select_the_unzipped_folder_2')}
+          </Step>
+          <Step n={6}>{t('adm_click_the_bibi_icon_in_the_toolbar_a_popup_will_op')}</Step>
+
+          {/* Step 7 — Popup configuration panel */}
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[#18181B] text-white text-[11.5px] font-semibold">7</span>
+            <div className="flex-1 min-w-0 space-y-3">
+              <p className="text-[13px] sm:text-sm text-[#3F3F46] leading-relaxed">
+                {t('adm2_popup_1500a85eae')}
+              </p>
+              <div className="rounded-xl border border-[#E4E4E7] bg-zinc-50/40 p-3 sm:p-3.5 space-y-2.5">
+                {/* BACKEND URL — label + auto-detected hint + copy */}
+                <KeyRow
+                  label={t('adm_backend_url')}
+                  copyValue={backendUrl}
+                  copyField="backend"
+                  copyLabel={t('adm_backend_url_copied')}
+                  CopyBtn={CopyBtn}
+                >
+                  <code className="flex-1 min-w-0 bg-white border border-[#E4E4E7] px-2.5 py-1.5 rounded-lg text-[11px] text-[#71717A] truncate" title={backendUrl}>
+                    auto-detected · {new URL(backendUrl).host}
                   </code>
-                  <CopyBtn value={backendUrl} field="backend" label={t('adm_backend_url_copied')} />
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-semibold text-[#52525B] w-24 flex-shrink-0">{t('adm_client_label')}</span>
-                  <code className="flex-1 bg-white border border-[#E4E4E7] px-2 py-1 rounded font-mono text-xs text-[#A1A1AA]">
+                </KeyRow>
+
+                {/* CLIENT LABEL */}
+                <KeyRow
+                  label={t('adm_client_label')}
+                  CopyBtn={CopyBtn}
+                >
+                  <code className="flex-1 min-w-0 bg-white border border-[#E4E4E7] px-2.5 py-1.5 rounded-lg text-[11.5px] text-[#A1A1AA]">
                     owner-laptop
                   </code>
-                  <span className="text-[10px] text-[#A1A1AA]">{t('adm_any_name')}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-semibold text-[#52525B] w-24 flex-shrink-0">{t('adm_hmac_secret')}</span>
+                  <span className="text-[10.5px] text-[#A1A1AA] shrink-0 hidden sm:inline">
+                    {t('adm_any_name')}
+                  </span>
+                </KeyRow>
+
+                {/* HMAC SECRET */}
+                <KeyRow label={t('adm_hmac_secret')} CopyBtn={CopyBtn}>
                   {info?.hmac_secret ? (
                     <>
                       <code
-                        className="flex-1 bg-white border border-[#E4E4E7] px-2 py-1 rounded font-mono text-xs text-[#18181B] break-all"
+                        className="flex-1 min-w-0 bg-white border border-[#E4E4E7] px-2.5 py-1.5 rounded-lg text-[11px] text-[#18181B] break-all tracking-wide"
                         data-testid="hmac-secret-value"
                       >
                         {info.hmac_secret}
@@ -1353,50 +1490,51 @@ const ExtensionSetupTab = () => {
                       <CopyBtn value={info.hmac_secret} field="hmac" label={t('adm_hmac_secret_copied')} />
                     </>
                   ) : (
-                    <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
+                    <span className="text-[11px] text-[#92400E] bg-[#FFFBEB] border border-[#FDE68A] px-2.5 py-1.5 rounded-lg w-full">
                       {t('adm_ext_shared_secret_is_not_set_in_backendenv')}
                     </span>
                   )}
-                </div>
+                </KeyRow>
               </div>
             </div>
           </li>
-          <li className="flex gap-2">
-            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#18181B] text-white text-[11px] font-bold flex items-center justify-center">8</span>
-            <span>
-              {t('adm_click')} <strong>{t('adm_save_2')}</strong> {t('adm3_9f23a06622')}
-              <code className="bg-[#F4F4F5] px-1 rounded font-mono text-xs">/api/ext/register</code>{t('adm3_9d689ddf04')}
-            </span>
-          </li>
+
+          <Step n={8}>
+            {t('adm_click')} <strong className="font-semibold text-[#18181B]">{t('adm_save_2')}</strong> {t('adm3_9f23a06622')}
+            <span className="bg-zinc-100 px-1 rounded text-[11.5px] text-[#18181B] font-medium">/api/ext/register</span>{t('adm3_9d689ddf04')}
+          </Step>
         </ol>
 
-        <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg px-3.5 py-2.5 flex items-start gap-2">
-          <CheckCircle size={16} className="text-emerald-600 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-emerald-900">
-            {t('adm_after_successful_connection_on_this_page_in_the_bl')} <strong>{t('adm_extension_status')}</strong> {t('adm_1_online_client_with_last_seen_5_s_will_appear_and')}
+        {/* Success hint */}
+        <div className="mt-5 rounded-xl border border-[#E4E4E7] bg-white px-3.5 py-2.5 flex items-start gap-2.5">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#16A34A] mt-2 shrink-0" />
+          <p className="text-[12px] sm:text-[12.5px] text-[#3F3F46] leading-relaxed">
+            {t('adm_after_successful_connection_on_this_page_in_the_bl')} <strong className="font-semibold text-[#18181B]">{t('adm_extension_status')}</strong> {t('adm_1_online_client_with_last_seen_5_s_will_appear_and')}
           </p>
         </div>
       </div>
 
-      {/* ─── Sources ─────────────────────────────────────── */}
-      <div className="bg-white border border-[#E4E4E7] rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Plugs size={18} weight="duotone" className="text-[#18181B]" />
-          <h3 className="text-base font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+      {/* ─── Supported sources ─────────────────────────────────────── */}
+      <div className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5 md:p-6">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+          <Plugs size={16} weight="duotone" className="text-[#18181B]" />
+          <h3 className="text-[15px] sm:text-base font-semibold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
             {t('adm_supported_sources')}
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
           {SOURCES.map((s) => (
             <div
               key={s.id}
-              className="flex items-center justify-between p-2.5 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA]"
+              className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-xl border border-[#E4E4E7] bg-white"
             >
-              <div className="flex items-center gap-2">
-                <CheckCircle size={15} weight="fill" className="text-emerald-500" />
-                <span className="text-sm font-medium text-[#18181B]">{s.label}</span>
-              </div>
-              <span className="text-[10px] font-mono text-[#71717A] bg-white border border-[#E4E4E7] px-1.5 py-0.5 rounded">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#16A34A] shrink-0">
+                <CheckCircle size={11} weight="fill" className="text-white" />
+              </span>
+              <span className="flex-1 text-[13px] sm:text-sm font-medium text-[#18181B] truncate" title={s.label}>
+                {s.label}
+              </span>
+              <span className="text-[9.5px] text-[#71717A] bg-zinc-50 border border-[#E4E4E7] px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap tracking-wider font-semibold uppercase">
                 {s.role}
               </span>
             </div>
@@ -1404,48 +1542,96 @@ const ExtensionSetupTab = () => {
         </div>
       </div>
 
-      {/* ─── Troubleshooting ─────────────────────────────────────── */}
-      <div className="bg-white border border-[#E4E4E7] rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Warning size={18} weight="duotone" className="text-amber-500" />
-          <h3 className="text-base font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+      {/* ─── Common issues ─────────────────────────────────────── */}
+      <div className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5 md:p-6">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+          <Warning size={16} weight="duotone" className="text-[#F59E0B]" />
+          <h3 className="text-[15px] sm:text-base font-semibold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
             {t('adm_common_issues')}
           </h3>
         </div>
-        <div className="space-y-3 text-sm text-[#3F3F46]">
-          <div>
-            <p className="font-semibold text-[#18181B] mb-1">{t('adm_1_popup_shows_nothing')}</p>
-            <ul className="list-disc list-inside text-xs text-[#52525B] space-y-0.5 ml-2">
-              <li>{t('adm_reload_the_extension_in_chromeextensions')}</li>
-              <li>{t('adm_make_sure_the_backend_url_is_specified_correctly_a')}</li>
-              <li>{t('adm_open_inspect_views_background_check_registration_l')}</li>
-            </ul>
-          </div>
-          <div>
-            <p className="font-semibold text-[#18181B] mb-1">{t('adm_2_in_status_above_0_clients')}</p>
-            <ul className="list-disc list-inside text-xs text-[#52525B] space-y-0.5 ml-2">
-              <li>{t('adm_the_hmac_secret_in_the_popup_must_exactly_match_th')} <code className="bg-[#F4F4F5] px-1 rounded font-mono text-[10px]">EXT_SHARED_SECRET</code> {t('adm2_22842a6c50')} <code className="bg-[#F4F4F5] px-1 rounded font-mono text-[10px]">{t('adm_backendenv')}</code>.</li>
-              <li>{t('adm_in_the_network_tab_background_pages_must_post_to')} <code className="bg-[#F4F4F5] px-1 rounded font-mono text-[10px]">/api/ext/heartbeat</code> {t('adm2_60_200_ok_39dbe1ae6b')}</li>
-            </ul>
-          </div>
-          <div>
-            <p className="font-semibold text-[#18181B] mb-1">{t('adm_3_json_parse_error_unexpected_nonwhitespace')}</p>
-            <p className="text-xs text-[#52525B] ml-2">{t('adm2_v3_x_v4_0_chrome_extens_95f860ec9f')}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-[#18181B] mb-1">{t('adm_4_410_gone_on_old_endpoints')}</p>
-            <p className="text-xs text-[#52525B] ml-2">
+        <div className="space-y-3">
+          <Issue n={1} title={t('adm_1_popup_shows_nothing')}>
+            <li>{t('adm_reload_the_extension_in_chromeextensions')}</li>
+            <li>{t('adm_make_sure_the_backend_url_is_specified_correctly_a')}</li>
+            <li>{t('adm_open_inspect_views_background_check_registration_l')}</li>
+          </Issue>
+          <Issue n={2} title={t('adm_2_in_status_above_0_clients')}>
+            <li>
+              {t('adm_the_hmac_secret_in_the_popup_must_exactly_match_th')}{' '}
+              <span className="bg-zinc-100 px-1 rounded text-[10.5px] text-[#18181B] font-medium">EXT_SHARED_SECRET</span>{' '}
+              {t('adm2_22842a6c50')}{' '}
+              <span className="bg-zinc-100 px-1 rounded text-[10.5px] text-[#18181B] font-medium">{t('adm_backendenv')}</span>.
+            </li>
+            <li>
+              {t('adm_in_the_network_tab_background_pages_must_post_to')}{' '}
+              <span className="bg-zinc-100 px-1 rounded text-[10.5px] text-[#18181B] font-medium">/api/ext/heartbeat</span>{' '}
+              {t('adm2_60_200_ok_39dbe1ae6b')}
+            </li>
+          </Issue>
+          <Issue n={3} title={t('adm_3_json_parse_error_unexpected_nonwhitespace')}>
+            <li className="list-none -ml-4">{t('adm2_v3_x_v4_0_chrome_extens_95f860ec9f')}</li>
+          </Issue>
+          <Issue n={4} title={t('adm_4_410_gone_on_old_endpoints')}>
+            <li className="list-none -ml-4">
               {t('r9_not_error_v4_legacy_8e7f6a')}{' '}
-              <code className="bg-[#F4F4F5] px-1 rounded font-mono text-[10px]">/api/copart/*</code>,{' '}
-              <code className="bg-[#F4F4F5] px-1 rounded font-mono text-[10px]">/api/bidcars/*</code>,{' '}
-              <code className="bg-[#F4F4F5] px-1 rounded font-mono text-[10px]">/api/carfast/*</code> {t('adm_return_json_410_gone_so_old_clients_explicitly_see')}
-            </p>
-          </div>
+              <span className="bg-zinc-100 px-1 rounded text-[10.5px] text-[#18181B] font-medium">/api/copart/*</span>,{' '}
+              <span className="bg-zinc-100 px-1 rounded text-[10.5px] text-[#18181B] font-medium">/api/bidcars/*</span>,{' '}
+              <span className="bg-zinc-100 px-1 rounded text-[10.5px] text-[#18181B] font-medium">/api/carfast/*</span>{' '}
+              {t('adm_return_json_410_gone_so_old_clients_explicitly_see')}
+            </li>
+          </Issue>
         </div>
       </div>
     </div>
   );
 };
+
+// --- helpers for ExtensionSetupTab ---
+function Step({ n, children }) {
+  return (
+    <li className="flex gap-3">
+      <span className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[#18181B] text-white text-[11.5px] font-semibold">
+        {n}
+      </span>
+      <span className="flex-1 min-w-0 text-[13px] sm:text-sm text-[#3F3F46] leading-relaxed [overflow-wrap:anywhere]">
+        {children}
+      </span>
+    </li>
+  );
+}
+
+function KeyRow({ label, children, copyValue, copyField, copyLabel, CopyBtn }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+      <span className="text-[10px] sm:text-[10.5px] font-semibold text-[#71717A] sm:w-24 sm:flex-shrink-0 uppercase tracking-wider">
+        {label}
+      </span>
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        {children}
+        {copyValue && CopyBtn && (
+          <CopyBtn value={copyValue} field={copyField} label={copyLabel} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Issue({ n, title, children }) {
+  return (
+    <div className="rounded-xl border border-[#E4E4E7] bg-zinc-50/40 px-3 py-3 sm:px-3.5 sm:py-3.5">
+      <p className="font-semibold text-[#18181B] text-[13px] sm:text-sm mb-1 flex items-center gap-2">
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white border border-[#E4E4E7] text-[10.5px] font-semibold text-[#18181B] shrink-0">
+          {n}
+        </span>
+        <span className="min-w-0">{title}</span>
+      </p>
+      <ul className="list-disc list-outside text-[11.5px] sm:text-[12px] text-[#52525B] space-y-1 ml-7 leading-relaxed">
+        {children}
+      </ul>
+    </div>
+  );
+}
 
 
 
@@ -1535,13 +1721,13 @@ const ParserControl = () => {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="space-y-6"
+      className="space-y-4 sm:space-y-6"
     >
       {/* Header with freshness indicator */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <h1
-            className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B]"
+            className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-[#18181B] leading-tight"
             style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}
           >
             {t('adm_vin_parser_control_center')}
@@ -1576,37 +1762,29 @@ const ParserControl = () => {
         </div>
         <button
           onClick={fetchOverview}
-          className="self-start sm:self-auto p-2 border border-[#E4E4E7] rounded-lg hover:bg-[#F4F4F5] transition-colors"
+          className="inline-flex items-center justify-center h-9 w-9 shrink-0 rounded-xl bg-[#18181B] text-white hover:bg-[#27272A] active:bg-black transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
           data-testid="pc-refresh"
           title={t('adm_refresh')}
+          aria-label={t('adm_refresh')}
         >
-          <ArrowClockwise size={16} className="text-[#71717A]" />
+          <ArrowClockwise size={16} weight="bold" />
         </button>
       </div>
 
       {loadErr && (
-        <div className="mb-4 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+        <div className="mb-4 px-3 py-2.5 rounded-xl bg-[#FEF2F2] border border-[#FCA5A5] text-xs text-[#7F1D1D]">
           load error: {loadErr}
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        {/* Larger, more prominent tab bar — these are SECTION HEADERS for
-            the page, not utility chips. Active tab gets the standard black
-            pill (matches sidebar active item) so they read as real headings. */}
-        <TabsList className="inline-flex h-auto p-1 bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl gap-1">
-          <TabsTrigger
-            value="overview"
-            data-testid="tab-overview"
-            className="px-5 py-2.5 text-[14px] font-semibold rounded-lg data-[state=active]:bg-[#18181B] data-[state=active]:text-white text-[#3F3F46] hover:text-[#18181B] transition-colors"
-          >
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
+        {/* Tabs — inherit the platform's canonical black-outline language
+            from `<TabsList>/<TabsTrigger>` (see /components/ui/tabs.jsx). */}
+        <TabsList>
+          <TabsTrigger value="overview" data-testid="tab-overview">
             {t('adm_overview_2')}
           </TabsTrigger>
-          <TabsTrigger
-            value="extension"
-            data-testid="tab-extension"
-            className="px-5 py-2.5 text-[14px] font-semibold rounded-lg data-[state=active]:bg-[#18181B] data-[state=active]:text-white text-[#3F3F46] hover:text-[#18181B] transition-colors"
-          >
+          <TabsTrigger value="extension" data-testid="tab-extension">
             {t('adm_chrome_extension')}
           </TabsTrigger>
         </TabsList>
@@ -1632,7 +1810,7 @@ const ParserControl = () => {
                   the master_admin role (ops guard).
                 </p>
               </div>
-              <span className="hidden sm:inline-block text-[10px] font-mono uppercase tracking-wider bg-[#FAFAFA] px-2 py-0.5 rounded border border-[#E4E4E7] text-[#71717A]">
+              <span className="hidden sm:inline-block text-[10px] uppercase tracking-wider bg-[#FAFAFA] px-2 py-0.5 rounded border border-[#E4E4E7] text-[#71717A] font-semibold">
                 role: {role || 'unknown'}
               </span>
             </div>

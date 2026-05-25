@@ -28,6 +28,7 @@ import {
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang, getLocale } from '../../i18n';
+import WhiteSelect from '../../components/ui/WhiteSelect';
 
 const ManagerPriceOverride = ({ quoteId, quote, onUpdate }) => {
   const { t } = useLang();
@@ -249,7 +250,7 @@ const ManagerPriceOverride = ({ quoteId, quote, onUpdate }) => {
 
               <div>
                 <label className="text-sm text-[#71717A]">{t('cmp_reason_for_change')}</label>
-                <select
+                <WhiteSelect
                   value={overrideForm.reason}
                   onChange={(e) => setOverrideForm(f => ({ ...f, reason: e.target.value }))}
                   className="input w-full mt-1"
@@ -265,7 +266,7 @@ const ManagerPriceOverride = ({ quoteId, quote, onUpdate }) => {
                   <option value="promo_campaign">{t('cmp_promo_campaign')}</option>
                   <option value="error_correction">{t('cmp_bug_fix')}</option>
                   <option value="other">{t('cmp_other')}</option>
-                </select>
+                </WhiteSelect>
               </div>
             </div>
 

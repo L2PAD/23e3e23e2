@@ -248,7 +248,9 @@ const Layout = () => {
       items: [
         { path: '/admin/leads', icon: UserPlus, labelKey: 'leads' },
         { path: '/admin/customers', icon: UserCircle, labelKey: 'customers' },
-        { path: '/admin/legal?tab=deal_pipeline', icon: Handshake, labelKey: 'deals' },
+        // "Deals" removed — it was a `?tab=deal_pipeline` shortcut to Legal Workflow.
+        // Legal Workflow page now serves as the single entry; Deal Pipeline lives
+        // as the second horizontal tab within it.
       ],
       roles: ['master_admin', 'admin', 'team_lead', 'manager']
     },
@@ -258,10 +260,13 @@ const Layout = () => {
       labelKey: 'finance',
       icon: Wallet,
       items: [
-        { path: '/admin/legal?tab=deposit_v2', icon: CreditCard, labelKey: 'deposits' },
-        { path: '/admin/documents', icon: Receipt, labelKey: 'documents' },
+        // Finance — единая точка входа в финансовый workflow:
+        //   Legal Workflow → 6 горизонтальных табов (Customer Legal · Deal Pipeline ·
+        //   Deposit · Contract · Financials & Payments · Calculations).
+        // Documents и Payment Analytics вынесены в Analytics & Insights, чтобы
+        // в этом разделе не было дубликатов с тем, что уже доступно как вкладки
+        // внутри Legal Workflow.
         { path: '/admin/legal', icon: Scales, label: 'Legal Workflow' },
-        { path: '/admin/owner-dashboard', icon: ChartLine, labelKey: 'paymentAnalytics', roles: ['master_admin', 'admin'] },
         { path: '/admin/invoice-reminders', icon: PhoneCall, labelKey: 'invoiceReminders', roles: ['master_admin', 'admin', 'team_lead'] },
       ],
       roles: ['master_admin', 'admin', 'team_lead']
@@ -290,51 +295,73 @@ const Layout = () => {
     },
     {
       id: 'teamWorkspace',
-      type: 'group',
-      labelKey: 'teamWorkspace',
-      icon: Kanban,
-      items: [
-        { path: '/team/dashboard', icon: ChartPieSlice, labelKey: 'teamDashboard' },
-        { path: '/team/managers', icon: Users, labelKey: 'managerLoadBoard' },
-        { path: '/team/leads', icon: Fire, labelKey: 'teamLeads' },
-        { path: '/team/tasks', icon: ListChecks, labelKey: 'teamTasks' },
-        { path: '/team/payments', icon: CreditCard, labelKey: 'paymentsWatch' },
-        { path: '/team/orders', icon: Briefcase, labelKey: 'teamOrders' },
-        { path: '/team/shipping', icon: Truck, labelKey: 'shippingWatch' },
-        { path: '/team/alerts', icon: Bell, labelKey: 'alertsFeed' },
-        { path: '/team/reassignments', icon: ArrowsClockwise, labelKey: 'reassignments' },
-        { path: '/team/performance', icon: ChartLineUp, labelKey: 'teamPerformance' },
-      ],
+      type: 'single',
+      // Sub-pages (Manager Load Board, Team Leads, Team Tasks, Payments Watch,
+      // Team Orders, Shipping Watch, Alerts Feed, Reassignments, Team Performance)
+      // are reachable from inside Team Dashboard — no need to clutter the sidebar
+      // with the same links. Each sub-page has a Back-to-Dashboard button.
+      item: { path: '/team/dashboard', icon: Kanban, labelKey: 'teamDashboard', matchPrefix: true },
       roles: ['master_admin', 'admin', 'team_lead']
     },
     {
       id: 'managerWorkspace',
-      type: 'group',
-      labelKey: 'managerWorkspace',
-      icon: User,
-      items: [
-        { path: '/manager', icon: ChartPieSlice, labelKey: 'myWorkspace' },
-        { path: '/manager/tasks', icon: ListChecks, labelKey: 'myTasks' },
-        { path: '/manager/invoices', icon: Receipt, labelKey: 'myInvoices' },
-        { path: '/manager/orders', icon: Briefcase, label: t('i18n_my_orders_a8a5fc') },
-        { path: '/manager/shipments', icon: Truck, labelKey: 'myShipments' },
-        { path: '/manager/calls', icon: Phone, labelKey: 'myCalls' },
-      ],
+      type: 'single',
+      // Sub-pages (My Tasks, My Invoices, My Orders, My Shipments, My Calls) are
+      // reachable from inside the Manager Workspace dashboard. Each sub-page has
+      // a Back-to-Workspace button.
+      item: { path: '/manager', icon: User, labelKey: 'myWorkspace', matchPrefix: true },
       roles: ['master_admin', 'admin', 'team_lead', 'manager']
     },
     {
+      // Customer engagement read-only view for managers — mirrors the
+      // admin /admin/engagement page so non-admin staff can see which
+      // cars customers favorited / compared / shared. Read-only — campaign
+      // sending and template editing stay admin-only.
+      id: 'managerEngagement',
+      type: 'single',
+      item: { path: '/manager/engagement', icon: Heart, labelKey: 'userEngagement' },
+      roles: ['master_admin', 'admin', 'team_lead', 'manager']
+    },
+    {
+      // «Top Deals Builder» — основная рабочая страница менеджера для
+      // подборок. У тимлида/админа есть та же логика прямо внутри
+      // «Top Deals Approvals» (кнопка «+ Create Top Deal»), поэтому
+      // отдельный пункт меню им НЕ нужен, чтобы не плодить дубли.
+      id: 'managerWishlist',
+      type: 'single',
+      item: { path: '/manager/wishlist', icon: Fire, labelKey: 'topDealsBuilder' },
+      roles: ['master_admin', 'manager']
+    },
+    {
+      // Team-lead approval queue for the wishlist cards above.
+      // Only team_lead + admin see this entry.
+      id: 'teamWishlistApprovals',
+      type: 'single',
+      item: { path: '/team/wishlist-approvals', icon: Lightning, labelKey: 'topDealsApprovals' },
+      roles: ['master_admin', 'admin', 'team_lead']
+    },
+    {
       id: 'control',
-      type: 'group',
-      labelKey: 'control',
-      icon: Lightning,
-      items: [
-        { path: '/admin/business-metrics', icon: ChartLine, label: t('i18n_business_metrics_3b212b') },
-        { path: '/admin/provider-health', icon: Gauge, label: 'Provider Pressure' },
-        { path: '/admin/routing-rules', icon: Path, labelKey: 'routingRules' },
-        { path: '/admin/cadences', icon: Timer, labelKey: 'cadences' },
-        { path: '/admin/score-rules', icon: ChartLine, labelKey: 'scoreRules' },
-      ],
-      roles: ['master_admin', 'admin']
+      type: 'single',
+      // Control is a hub. The page itself renders a horizontal sub-nav at
+      // the top with all 5 sections (Business Metrics · Provider Pressure ·
+      // Routing Rules · Cadences · Score Rules) — no need to duplicate them
+      // in the sidebar dropdown. The sidebar entry points to the first
+      // Control page and `matchPrefix` keeps it highlighted on every
+      // Control sub-page.
+      item: {
+        path: '/admin/business-metrics',
+        icon: Lightning,
+        labelKey: 'control',
+        // also match all Control sub-routes so the entry stays highlighted
+        extraMatch: [
+          '/admin/provider-health',
+          '/admin/routing-rules',
+          '/admin/cadences',
+          '/admin/score-rules',
+        ],
+      },
+      roles: ['master_admin', 'admin'],
     },
     {
       id: 'settings',
@@ -374,9 +401,11 @@ const Layout = () => {
       icon: Megaphone,
       items: [
         { path: '/admin/analytics', icon: ChartBar, labelKey: 'analytics' },
+        { path: '/admin/owner-dashboard', icon: ChartLine, labelKey: 'paymentAnalytics', roles: ['master_admin', 'admin'] },
         { path: '/admin/journey', icon: ChartLineUp, labelKey: 'journeyFunnel' },
         { path: '/admin/risk', icon: Shield, labelKey: 'riskDashboard' },
         { path: '/admin/escalations', icon: Lightning, labelKey: 'priorityAlerts' },
+        { path: '/admin/documents', icon: Receipt, labelKey: 'documents' },
         { path: '/admin/contracts/accounting', icon: FileText, labelKey: 'contractsAccounting' },
         { path: '/admin/intent', icon: TrendUp, labelKey: 'intentDashboard' },
         { path: '/admin/engagement', icon: Heart, labelKey: 'userEngagement' },
@@ -419,6 +448,15 @@ const Layout = () => {
     for (const g of visibleGroups) {
       if (g.type === 'single' && g.item) {
         out.push({ path: g.item.path, matchPrefix: !!g.item.matchPrefix });
+        // `extraMatch` lets a single sidebar entry stay highlighted on a
+        // set of sibling URLs (used by Control hub: one entry, 5 pages).
+        // Each alias is recorded with the same canonical `path` so the
+        // resolver picks the correct entry.
+        if (Array.isArray(g.item.extraMatch)) {
+          for (const alias of g.item.extraMatch) {
+            out.push({ path: g.item.path, alias, matchPrefix: !!g.item.matchPrefix });
+          }
+        }
       }
       if (g.type === 'group' && Array.isArray(g.items)) {
         for (const it of g.items) {
@@ -434,11 +472,13 @@ const Layout = () => {
 
   const activePath = React.useMemo(() => {
     const urlTab = new URLSearchParams(location.search).get('tab');
-    // Each candidate has a {path, matchPrefix} shape; a candidate matches
-    // when its base pathname equals the current pathname OR when its
-    // matchPrefix flag is on and the current pathname starts with it.
-    const candidates = allNavPaths.filter(({ path, matchPrefix }) => {
-      const basePath = path.split('?')[0];
+    // Each candidate has a {path, matchPrefix, alias?} shape; a candidate
+    // matches when its alias (if present) or its base pathname equals the
+    // current pathname OR when matchPrefix is on and the current pathname
+    // starts with it.
+    const candidates = allNavPaths.filter(({ path, alias, matchPrefix }) => {
+      const target = alias || path;
+      const basePath = target.split('?')[0];
       if (basePath === location.pathname) return true;
       if (matchPrefix && location.pathname.startsWith(basePath + '/')) return true;
       return false;
@@ -625,16 +665,16 @@ const Layout = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Header */}
-        <header className="h-14 md:h-16 bg-white border-b border-[#E4E4E7] flex items-center justify-between px-4 md:px-8">
+        <header className="relative z-30 h-14 md:h-16 bg-white border-b border-[#E4E4E7] flex items-center justify-between px-3 sm:px-4 md:px-8 gap-2">
           {/* Mobile Menu Button + Search */}
-          <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
             {/* Hamburger Menu Button */}
             <button
-              className="md:hidden p-2 -ml-2 text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-colors"
+              className="md:hidden p-2 -ml-1 text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-colors flex-shrink-0"
               onClick={() => setIsMobileMenuOpen(true)}
               data-testid="mobile-menu-toggle"
             >
-              <List size={24} weight="bold" />
+              <List size={22} weight="bold" />
             </button>
             
             {/* Search - Desktop */}
@@ -663,10 +703,10 @@ const Layout = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0">
             {/* Mobile Search Button */}
             <button 
-              className="md:hidden p-2 text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-colors"
+              className="md:hidden p-2 text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-colors flex-shrink-0"
               onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
               data-testid="mobile-search-btn"
             >
@@ -674,10 +714,10 @@ const Layout = () => {
             </button>
             
             {/* Language Switcher Dropdown */}
-            <div className="relative" ref={langDropdownRef}>
+            <div className="relative flex-shrink-0" ref={langDropdownRef}>
               <button
                 onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-2 text-sm font-medium text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-all"
+                className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-2 text-sm font-medium text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-all"
                 data-testid="lang-switcher-btn"
               >
                 <Globe size={20} weight="duotone" />
@@ -709,10 +749,13 @@ const Layout = () => {
               )}
             </div>
             
-            <RingostatLiveBar />
+            {/* Ringostat live bar — hidden on very small screens to free up space */}
+            <div className="hidden xs:block sm:block">
+              <RingostatLiveBar />
+            </div>
             <button
               onClick={() => navigate('/manager/tracking')}
-              className="w-9 h-9 rounded-full hover:bg-[#F4F4F5] flex items-center justify-center transition-colors"
+              className="hidden sm:flex w-9 h-9 rounded-full hover:bg-[#F4F4F5] items-center justify-center transition-colors flex-shrink-0"
               title={t('i18n_universal_tracker_vin_containe_26edea')}
               data-testid="global-tracker-btn"
             >

@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import RefreshButton from '../../components/ui/RefreshButton';
 import {
   CreditCard,
   Clock,
@@ -62,19 +65,32 @@ const TeamPaymentsPage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Payments Watch' },
+      ]} />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('teamPayments')}
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('teamPaymentsDesc') || t('adm3_cffa314add')}
-          </p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <CreditCard size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('teamPayments')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('teamPaymentsDesc') || t('adm3_cffa314add')}
+            </p>
+          </div>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-[#DC2626]">${totalOverdue.toLocaleString()}</div>
-          <div className="text-xs text-[#71717A]">{t('totalOverdue')}</div>
+        <div className="flex items-center gap-3 shrink-0 self-start">
+          <RefreshButton onClick={fetchInvoices} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="team-payments-refresh-btn" />
+          <div className="text-right">
+            <div className="text-xl sm:text-2xl font-bold text-[#DC2626]">${totalOverdue.toLocaleString()}</div>
+            <div className="text-[10px] sm:text-xs text-[#71717A]">{t('totalOverdue')}</div>
+          </div>
         </div>
       </div>
 
@@ -147,7 +163,7 @@ const TeamPaymentsPage = () => {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
-                          inv.type === 'deposit' ? 'bg-[#EEF2FF] text-[#4F46E5]' :
+                          inv.type === 'deposit' ? 'bg-[#F4F4F5] text-[#18181B]' :
                           inv.type === 'logistics' ? 'bg-[#FEF3C7] text-[#D97706]' :
                           inv.type === 'customs' ? 'bg-[#FCE7F3] text-[#DB2777]' :
                           'bg-[#F4F4F5] text-[#71717A]'

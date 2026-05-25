@@ -12,6 +12,9 @@ import { Briefcase, RefreshCw, Search, ArrowLeft, Send, Package, MessageCircle }
 import OrderStepRow from '../../components/orders/OrderStepRow';
 
 import { useLang } from '../../i18n';
+import BackButton from '../../components/ui/BackButton';
+import RefreshButton from '../../components/ui/RefreshButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 const STATUS_BADGE = {
@@ -95,6 +98,11 @@ export default function ManagerOrdersPage() {
     const pct = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
     return (
       <div className="space-y-6">
+      <Breadcrumb items={[
+        { label: 'My Workspace', to: '/manager' },
+        { label: 'My Orders' },
+      ]} />
+
         <button onClick={() => setActive(null)} className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
           <ArrowLeft className="w-4 h-4" /> {t('mgr_to_orders_list')}
         </button>
@@ -165,14 +173,14 @@ export default function ManagerOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Briefcase className="w-7 h-7 text-[#635BFF]" />{t('orders')}</h1>
-          <p className="text-sm text-gray-500 mt-1">{t('ordersCreatedAuto')}</p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4 mb-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2 break-words"><Briefcase className="w-7 h-7 text-[#18181B] shrink-0" /><span className="break-words">{t('orders')}</span></h1>
+          <p className="text-sm text-gray-500 mt-1 break-words">{t('ordersCreatedAuto')}</p>
         </div>
-        <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-sm">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> {t('mgr_refresh')}
-        </button>
+        <div className="shrink-0 self-start">
+          <RefreshButton onClick={load} loading={loading} ariaLabel={t('mgr_refresh')} testId="manager-orders-refresh-btn" />
+        </div>
       </div>
 
       <div className="relative mb-4">

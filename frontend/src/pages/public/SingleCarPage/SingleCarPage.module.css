@@ -24,6 +24,22 @@
 }
 
 /* ── Loading / error / not-found state boxes ─────────────────────────── */
+
+/* Phase B2 — Freshness row sits between the header breadcrumb and the
+ * ImageGrid, right-aligned on desktop. Solid background — never
+ * transparent. */
+.freshnessRow {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 64px 0 64px;
+  background: var(--color-black);
+}
+@media screen and (max-width: 925px) {
+  .freshnessRow {
+    padding: 8px 16px 0 16px;
+    justify-content: flex-start;
+  }
+}
 .stateBox {
   align-self: center;
   width: 100%;

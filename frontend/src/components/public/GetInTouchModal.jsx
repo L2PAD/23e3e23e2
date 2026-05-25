@@ -29,6 +29,11 @@ import { usePolicyModal } from "./PolicyModal";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || "";
 
+// Strict Bulgarian phone — must be "+359" followed by exactly 9 digits.
+// Same regex used by CatalogConsultationBlock so the validation behaviour
+// is identical across every public lead form.
+const BG_PHONE_RE = /^\+359\d{9}$/;
+
 // ─── Context ──────────────────────────────────────────────────────────────
 const GetInTouchContext = createContext({
   open: () => {},
@@ -84,7 +89,7 @@ function captureUtm() {
 
 const initialForm = {
   name: "",
-  phone: "",
+  phone: "+359",
   email: "",
   car_preference: "",
   message: "",
@@ -107,6 +112,20 @@ function GetInTouchModal({ onClose, initial }) {
   const set = (k) => (e) =>
     setForm((s) => ({ ...s, [k]: e.target?.value ?? e }));
 
+  // Bulgarian phone — keep the "+359" prefix locked, allow only digits
+  // after it (max 9). Mirrors the change() handler in
+  // CatalogConsultationBlock so the UX is consistent across every form.
+  const onPhoneChange = (e) => {
+    let v = e.target.value;
+    if (!v.startsWith("+359")) {
+      v = "+359" + v.replace(/^\+?3?5?9?/, "").replace(/\D/g, "");
+    } else {
+      v = "+359" + v.slice(4).replace(/\D/g, "").slice(0, 9);
+    }
+    setForm((s) => ({ ...s, phone: v }));
+    if (error) setError("");
+  };
+
   // Lock page scroll while modal is open
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -122,8 +141,8 @@ function GetInTouchModal({ onClose, initial }) {
   const validate = () => {
     if (!form.name.trim() || form.name.trim().length < 2)
       return "Please enter your name.";
-    if (!form.phone.trim() || form.phone.trim().length < 5)
-      return "Please enter a valid phone or Viber number.";
+    if (!BG_PHONE_RE.test(form.phone.replace(/\s/g, "")))
+      return "Phone must be +359 followed by 9 digits.";
     if (form.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim()))
       return "Please enter a valid email address.";
     return "";
@@ -143,7 +162,8 @@ function GetInTouchModal({ onClose, initial }) {
         source: "website_get_in_touch",
         channel: "website",
         name: form.name.trim(),
-        phone: form.phone.trim(),
+        // Canonical E.164 — strip stray whitespace.
+        phone: form.phone.replace(/\s/g, ""),
         email: form.email.trim() || null,
         car_preference: form.car_preference.trim() || null,
         message: form.message.trim() || null,
@@ -201,7 +221,7 @@ function GetInTouchModal({ onClose, initial }) {
             <form className="git-modal-form" onSubmit={submit} noValidate>
               <div className="git-field">
                 <label htmlFor="git-name" className="git-label">
-                  Name <span className="git-req">*</span>
+                  Name<span className="git-req">*</span>
                 </label>
                 <input
                   id="git-name"
@@ -218,19 +238,30 @@ function GetInTouchModal({ onClose, initial }) {
 
               <div className="git-field">
                 <label htmlFor="git-phone" className="git-label">
-                  Phone / Viber <span className="git-req">*</span>
+                  Phone / Viber<span className="git-req">*</span>
                 </label>
-                <input
-                  id="git-phone"
-                  type="tel"
-                  className="git-input"
-                  placeholder="Phone or Viber number"
-                  value={form.phone}
-                  onChange={set("phone")}
-                  autoComplete="tel"
-                  required
-                  data-testid="git-input-phone"
-                />
+                <div className="git-input-with-icon">
+                  <img
+                    src="/about-us/emojione-v1-flag-for-bulgaria.svg"
+                    alt=""
+                    className="git-input-icon"
+                    width={22}
+                    height={16}
+                  />
+                  <input
+                    id="git-phone"
+                    type="tel"
+                    inputMode="tel"
+                    className="git-input git-input--with-icon"
+                    placeholder="+359"
+                    value={form.phone}
+                    onChange={onPhoneChange}
+                    autoComplete="tel"
+                    maxLength={13}
+                    required
+                    data-testid="git-input-phone"
+                  />
+                </div>
               </div>
 
               <div className="git-field">
@@ -311,17 +342,17 @@ function GetInTouchModal({ onClose, initial }) {
         ) : (
           <div className="git-success" data-testid="git-success">
             <div className="git-success-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <h2 className="git-modal-title">Request sent successfully</h2>
-            <p className="git-modal-subtitle">
+            <h2 className="git-success-title">Request sent successfully</h2>
+            <p className="git-success-text">
               Our manager will contact you shortly.
             </p>
             <button
               type="button"
-              className="git-submit"
+              className="git-success-btn"
               onClick={onClose}
               data-testid="git-success-close"
             >

@@ -12,6 +12,9 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import RefreshButton from '../../components/ui/RefreshButton';
 import {
   User,
   ChartLineUp,
@@ -92,7 +95,7 @@ const ManagerProfilePage = () => {
     return (
       <div className="text-center py-12">
         <p className="text-[#71717A]">{t('managerNotFound')}</p>
-        <Link to="/team/managers" className="text-[#4F46E5] hover:underline mt-2 inline-block">
+        <Link to="/team/managers" className="text-[#18181B] hover:underline mt-2 inline-block">
           {t('backToList')}
         </Link>
       </div>
@@ -115,6 +118,12 @@ const ManagerProfilePage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Managers', to: '/team/managers' },
+        { label: manager?.name || manager?.email || 'Manager Profile' },
+      ]} />
+
       {/* Back Link */}
       <Link to="/team/managers" className="inline-flex items-center gap-2 text-sm text-[#71717A] hover:text-[#18181B]">
         <ArrowLeft size={16} /> {t('backToManagerBoard')}
@@ -122,15 +131,15 @@ const ManagerProfilePage = () => {
 
       {/* Header */}
       <div className="bg-white rounded-2xl border border-[#E4E4E7] p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-[#EEF2FF] rounded-2xl flex items-center justify-center text-2xl font-bold text-[#4F46E5]">
-              {(manager.name || 'M')[0]}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+              <User size={24} weight="duotone" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-[#18181B]">{manager.name || manager.email}</h1>
-              <p className="text-sm text-[#71717A]">{manager.email}</p>
-              <div className="flex items-center gap-3 mt-2">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-[#18181B] truncate" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>{manager.name || manager.email}</h1>
+              <p className="text-sm text-[#71717A] truncate">{manager.email}</p>
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
                 <span className={`px-3 py-1 text-xs font-bold rounded-full ${
                   (manager.band || '').toLowerCase() === 'high' ? 'bg-[#ECFDF5] text-[#059669]' :
                   (manager.band || '').toLowerCase() === 'medium' ? 'bg-[#FEF3C7] text-[#D97706]' :
@@ -143,6 +152,9 @@ const ManagerProfilePage = () => {
                 </span>
               </div>
             </div>
+          </div>
+          <div className="shrink-0">
+            <RefreshButton onClick={fetchManagerData} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="manager-profile-refresh-btn" />
           </div>
         </div>
       </div>

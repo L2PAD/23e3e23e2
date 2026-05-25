@@ -14,11 +14,13 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useLang } from '../../i18n';
+import ControlSubNav from '../../components/admin/ControlSubNav';
+import ControlPageHeader from '../../components/admin/ControlPageHeader';
+import RefreshButton from '../../components/ui/RefreshButton';
 import {
   ChartLine,
   CurrencyCircleDollar,
   Clock,
-  ArrowsClockwise,
   UsersThree,
   ArrowClockwise,
 } from '@phosphor-icons/react';
@@ -27,34 +29,47 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
 const fmtPct = (v) =>
   v === null || v === undefined ? '—' : `${(v * 100).toFixed(1)}%`;
-const fmtHours = (v) => {
-  if (v === null || v === undefined) return '—';
-  if (v < 1) return `${Math.round(v * 60)} ${t('r9_min_short')}`;
-  if (v < 24) return `${v.toFixed(1)} ${t('r9_h_short')}`;
-  return `${(v / 24).toFixed(1)} ${t('r9_days_short')}`;
-};
 
 const MetricCard = ({ icon: Icon, title, value, subtitle, color = 'indigo' }) => {
   const palette = {
-    indigo: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
-    emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
-    amber: 'bg-amber-50 text-amber-600 ring-amber-100',
+    indigo:  'bg-[#EEF2FF] text-[#4F46E5]',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    amber:   'bg-amber-50 text-amber-600',
   }[color];
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-sm" data-testid={`metric-card-${color}`}>
-      <div className="flex items-start justify-between">
-        <div className={`p-3 rounded-xl ring-1 ${palette}`}>
-          <Icon size={24} weight="bold" />
-        </div>
+    <div
+      className="bg-white rounded-2xl border border-[#E4E4E7] p-4 sm:p-5 flex items-center gap-3 min-w-0"
+      data-testid={`metric-card-${color}`}
+    >
+      <div className={`w-10 h-10 rounded-xl ${palette} flex items-center justify-center flex-shrink-0`}>
+        <Icon size={20} weight="bold" />
       </div>
-      <div className="mt-4">
-        <h3 className="text-4xl font-bold text-zinc-900 tracking-tight" data-testid={`metric-value-${color}`}>{value}</h3>
-        <p className="text-sm font-medium text-zinc-600 mt-2">{title}</p>
-        {subtitle && <p className="text-xs text-zinc-400 mt-1">{subtitle}</p>}
+      <div className="min-w-0 flex-1">
+        <h3
+          className="text-[20px] sm:text-[24px] font-bold text-[#18181B] tracking-tight leading-none tabular-nums"
+          data-testid={`metric-value-${color}`}
+        >
+          {value}
+        </h3>
+        <p className="text-[11.5px] sm:text-[12.5px] font-medium text-[#52525B] mt-1 truncate">
+          {title}
+        </p>
+        {subtitle && (
+          <p className="text-[10.5px] sm:text-[11px] text-[#A1A1AA] mt-0.5 truncate">
+            {subtitle}
+          </p>
+        )}
       </div>
     </div>
   );
 };
+
+const FormulaCard = ({ title, body }) => (
+  <div className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-3.5 text-[11.5px] text-[#52525B] leading-relaxed min-w-0">
+    <div className="font-semibold text-[#18181B] mb-1">{title}</div>
+    <div className="text-[#71717A]">{body}</div>
+  </div>
+);
 
 export default function AdminBusinessMetricsPage() {
   const { t } = useLang();
@@ -75,87 +90,104 @@ export default function AdminBusinessMetricsPage() {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     fetchMetrics();
-    const t = setInterval(fetchMetrics, 60 * 1000); // refresh every minute
-    return () => clearInterval(t);
+    const id = setInterval(fetchMetrics, 60 * 1000);
+    return () => clearInterval(id);
   }, [fetchMetrics]);
+
+  // fmtHours uses t() so it must be defined inside the component scope
+  const fmtHours = (v) => {
+    if (v === null || v === undefined) return '—';
+    if (v < 1) return `${Math.round(v * 60)} ${t('r9_min_short')}`;
+    if (v < 24) return `${v.toFixed(1)} ${t('r9_h_short')}`;
+    return `${(v / 24).toFixed(1)} ${t('r9_days_short')}`;
+  };
 
   const m = data?.metrics;
 
   return (
-    <div className="space-y-6" data-testid="admin-business-metrics-page">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
-            <ChartLine size={28} weight="bold" className="text-indigo-600" />
-            {t('adm_business_metrics')}
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            {t('adm_three_key_management_metrics_conversion_execution')}
-          </p>
-        </div>
-        <button
-          onClick={fetchMetrics}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-sm font-medium text-zinc-700 disabled:opacity-50"
-          data-testid="metrics-refresh-btn"
-        >
-          <ArrowClockwise size={16} className={loading ? 'animate-spin' : ''} />
-          {t('adm_refresh_3')}
-        </button>
+    <div data-testid="admin-business-metrics-page">
+      <ControlSubNav />
+
+      <div className="space-y-5 sm:space-y-6">
+        <ControlPageHeader
+          icon={ChartLine}
+          title={t('adm_business_metrics')}
+          subtitle={t('adm_three_key_management_metrics_conversion_execution')}
+          action={
+            <RefreshButton
+              onClick={fetchMetrics}
+              loading={loading}
+              ariaLabel={t('adm_refresh_3')}
+              testId="metrics-refresh-btn"
+            />
+          }
+        />
+
+        {loading && !data && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl border border-zinc-200 p-5 h-24 animate-pulse"
+              />
+            ))}
+          </div>
+        )}
+
+        {m && (
+          <>
+            {/* 3 KPIs — always side-by-side on >=sm, never wraps awkwardly */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <MetricCard
+                icon={CurrencyCircleDollar}
+                title={t('invoiceConv')}
+                value={fmtPct(m.conversion?.value)}
+                subtitle={`${m.conversion?.paid ?? 0} ${t('adm_paid_of')} ${m.conversion?.sent ?? 0} ${t('adm_sent')}`}
+                color="emerald"
+              />
+              <MetricCard
+                icon={Clock}
+                title={t('avgCompletionTime')}
+                value={fmtHours(m.avg_order_time?.value_hours)}
+                subtitle={`${t('adm_over')} ${m.avg_order_time?.completed_orders ?? 0} ${t('adm_completed_orders')}`}
+                color="indigo"
+              />
+              <MetricCard
+                icon={UsersThree}
+                title={t('clientRepeat')}
+                value={fmtPct(m.repeat_rate?.value)}
+                subtitle={`${m.repeat_rate?.repeat_customers ?? 0} ${t('adm_repeat_of')} ${m.repeat_rate?.total_customers ?? 0} ${t('adm_customers')}`}
+                color="amber"
+              />
+            </div>
+
+            {/* Formula footer — 3-column grid mirrors the cards above, no empty space */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <FormulaCard
+                title={t('conversion')}
+                body={t('adm2_paid_invoices_sent_invo_17ac8c0000')}
+              />
+              <FormulaCard
+                title={t('avgOrderTime')}
+                body={t('adm2_completedat_created_at_685e4b6248')}
+              />
+              <FormulaCard
+                title={t('repeatRate')}
+                body={t('adm2_2_67b5fa1733')}
+              />
+            </div>
+
+            <div className="text-[11px] text-zinc-400">
+              {t('updated')}: {new Date(data.generated_at).toLocaleString()}
+            </div>
+          </>
+        )}
       </div>
-
-      {loading && !data && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="bg-white rounded-2xl border border-zinc-200 p-6 h-40 animate-pulse"
-            />
-          ))}
-        </div>
-      )}
-
-      {m && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <MetricCard
-              icon={CurrencyCircleDollar}
-              title={t('invoiceConv')}
-              value={fmtPct(m.conversion?.value)}
-              subtitle={`${m.conversion?.paid ?? 0} ${t('adm_paid_of')} ${m.conversion?.sent ?? 0} ${t('adm_sent')}`}
-              color="emerald"
-            />
-            <MetricCard
-              icon={Clock}
-              title={t('avgCompletionTime')}
-              value={fmtHours(m.avg_order_time?.value_hours)}
-              subtitle={`${t('adm_over')} ${m.avg_order_time?.completed_orders ?? 0} ${t('adm_completed_orders')}`}
-              color="indigo"
-            />
-            <MetricCard
-              icon={UsersThree}
-              title={t('clientRepeat')}
-              value={fmtPct(m.repeat_rate?.value)}
-              subtitle={`${m.repeat_rate?.repeat_customers ?? 0} ${t('adm_repeat_of')} ${m.repeat_rate?.total_customers ?? 0} ${t('adm_customers')}`}
-              color="amber"
-            />
-          </div>
-
-          <div className="mt-8 text-xs text-zinc-400">
-            {t('updated')}: {new Date(data.generated_at).toLocaleString()}
-          </div>
-
-          <div className="mt-2 bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-xs text-zinc-500 leading-relaxed">
-            <div><b>{t('conversion')}</b> {t('adm2_paid_invoices_sent_invo_17ac8c0000')}</div>
-            <div><b>{t('avgOrderTime')}</b> {t('adm2_completedat_created_at_685e4b6248')} <code>completed</code>.</div>
-            <div><b>{t('repeatRate')}</b> {t('adm2_2_67b5fa1733')}</div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

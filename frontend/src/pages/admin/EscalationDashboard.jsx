@@ -13,6 +13,8 @@ import {
   Zap,
   Shield,
 } from 'lucide-react';
+import { AdminPageHeader } from '../../components/ui/AdminPagePrimitives';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -168,35 +170,23 @@ export default function EscalationDashboard() {
   }
 
   return (
-    <div className="space-y-6" data-testid="escalation-dashboard">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-red-100 rounded-lg">
-            <Zap className="w-6 h-6 text-red-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {lang === 'uk' ? t('adm2_e8eddbb096') : lang === 'bg' ? t('adm2_f9bcbd6af6') : 'Escalations'}
-            </h1>
-            <p className="text-sm text-gray-500">
-              {lang === 'uk' ? t('adm2_7e27d05d7e') : lang === 'bg' ? t('adm2_c72364866f') : 'Team reaction control'}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
+    <div className="space-y-4 sm:space-y-5" data-testid="escalation-dashboard">
+      <AdminPageHeader
+        icon={Zap}
+        title={lang === 'uk' ? t('adm2_e8eddbb096') : lang === 'bg' ? t('adm2_f9bcbd6af6') : 'Escalations'}
+        subtitle={lang === 'uk' ? t('adm2_7e27d05d7e') : lang === 'bg' ? t('adm2_c72364866f') : 'Team reaction control'}
+        testId="escalation-header"
+        actions={(
+          <RefreshButton
             onClick={triggerManualProcess}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-          >
-            <RefreshCw className="w-4 h-4" />
-            {lang === 'uk' ? t('adm2_b6bf91f845') : 'Refresh'}
-          </button>
-        </div>
-      </div>
+            ariaLabel={lang === 'uk' ? t('adm2_b6bf91f845') : 'Refresh'}
+            testId="escalation-refresh-btn"
+          />
+        )}
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
         <StatsCard
           title={lang === 'uk' ? t('adm2_d2ae4c4732') : 'Manager'}
           count={stats.managerPending}

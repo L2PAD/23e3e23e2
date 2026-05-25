@@ -216,6 +216,11 @@ const Header1 = ({ className = "" }) => {
       <FrameComponent17
         onProfileClick={handleProfileClick}
         onContactClick={handleContactClick}
+        isAuthed={!!(customer?.customerId || (() => {
+          try { return JSON.parse(localStorage.getItem("customer_session") || "null")?.customerId; }
+          catch { return null; }
+        })())}
+        customerName={customer?.name || customer?.email || ""}
       />
     </header>
   );

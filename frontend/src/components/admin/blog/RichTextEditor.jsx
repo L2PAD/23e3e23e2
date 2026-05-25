@@ -54,6 +54,7 @@ import {
 } from '@phosphor-icons/react';
 import styles from './RichTextEditor.module.css';
 import { useLang } from '../../../i18n';
+import WhiteSelect from '../../../components/ui/WhiteSelect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -215,7 +216,7 @@ export default function RichTextEditor({ value, onChange, placeholder, testId })
     <div className={styles.wrap} data-testid={testId}>
       <div className={styles.toolbar}>
         {/* Headings */}
-        <select
+        <WhiteSelect
           className={styles.select}
           value={
             editor.isActive('heading', { level: 1 }) ? 'h1' :
@@ -239,10 +240,10 @@ export default function RichTextEditor({ value, onChange, placeholder, testId })
           <option value="h3">{t('cmp_heading_3')}</option>
           <option value="h4">{t('cmp_heading_4')}</option>
           <option value="code">{t('codeBlock')}</option>
-        </select>
+        </WhiteSelect>
 
         {/* Font size */}
-        <select
+        <WhiteSelect
           className={styles.select}
           defaultValue=""
           onChange={(e) => { if (e.target.value) setFontSize(e.target.value); }}
@@ -250,7 +251,7 @@ export default function RichTextEditor({ value, onChange, placeholder, testId })
         >
           <option value="">{t('sizeLabel')}</option>
           {FONT_SIZES.map((s) => <option key={s} value={s}>{s} px</option>)}
-        </select>
+        </WhiteSelect>
 
         <span className={styles.divider} />
 

@@ -235,9 +235,67 @@
   min-height: clamp(240px, 24.3vw, 467px);
   background: #1A1B19;
   display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 14px;
   font-family: 'Mazzard H', var(--font-mazzard, system-ui, sans-serif);
   font-weight: 500; font-size: 16px; color: #B0B0B0;
   text-align: center; padding: 24px; box-sizing: border-box;
+}
+
+/* =========================================================================
+ *  PRICE-FILTER HONESTY BANNER (Phase B2.1)
+ *  -----------------------------------------------------------------------
+ *  Surfaces backend `meta.hidden_by_price_filter` so users understand
+ *  why a price filter narrowed (or emptied) the result set — instead of
+ *  silently misleading them. Honest, opt-out, never gaslighting.
+ * ===================================================================== */
+.priceHintBanner {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 14px 18px;
+  background: #1F1D14;             /* solid (no transparency, per design rules) */
+  border: 1px solid #FEAE00;
+  border-radius: 10px;
+  font-family: 'Mazzard H', var(--font-mazzard, system-ui, sans-serif);
+  font-size: 14px;
+  color: #F2E7C9;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.priceHintDot {
+  flex: 0 0 8px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #FEAE00;
+  box-shadow: 0 0 0 3px rgba(254,174,0,0.18);
+}
+.priceHintLink {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  padding: 6px 0;
+  color: #FEAE00;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.priceHintLink:hover { color: #FFC23A; }
+.priceHintAction {
+  background: transparent;
+  border: 1px solid #FEAE00;
+  color: #FEAE00;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.priceHintAction:hover { background: rgba(254,174,0,0.1); color: #FFC23A; }
+@media (max-width: 768px) {
+  .priceHintBanner { flex-wrap: wrap; }
+  .priceHintLink   { margin-left: 0; }
 }
 
 /* =========================================================================

@@ -5,9 +5,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_URL } from '../../../App';
-import { CaretDown, Wallet } from '@phosphor-icons/react';
+import { Wallet } from '@phosphor-icons/react';
 import DealCalculationsPanel from './DealCalculationsPanel';
 import { useLang } from '../../../i18n';
+import WhiteSelect from '../../../components/ui/WhiteSelect';
 
 export default function CalculationsTab({ deals = [] }) {
   const { t } = useLang();
@@ -31,27 +32,21 @@ export default function CalculationsTab({ deals = [] }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-[#E4E4E7] bg-white p-3 flex items-center gap-3">
-        <Wallet size={18} weight="duotone" className="text-[#4F46E5]" />
-        <label className="text-xs uppercase font-semibold tracking-wider text-[#71717A]">{t('cmp_deal')}</label>
-        <div className="relative flex-1">
-          <select
-            value={selectedDealId}
-            onChange={(e) => setSelectedDealId(e.target.value)}
-            className="w-full appearance-none px-3 py-1.5 pr-8 border border-[#D4D4D8] rounded text-sm bg-white"
-            data-testid="calc-tab-deal-select"
-          >
+      <div className="rounded-xl border border-[#E4E4E7] bg-white p-3 flex items-center gap-3">
+        <Wallet size={18} weight="duotone" className="text-[#18181B] shrink-0" />
+        <label className="text-xs uppercase font-semibold tracking-wider text-[#71717A] shrink-0">{t('cmp_deal')}</label>
+        <div className="relative flex-1 min-w-0">
+          <WhiteSelect value={selectedDealId} onChange={(e) => setSelectedDealId(e.target.value)} className="w-full" data-testid="calc-tab-deal-select">
             {!allDeals.length && <option value="">{t('cmp_no_deals_available')}</option>}
             {allDeals.map(d => (
               <option key={d.id} value={d.id}>
                 {d.id} — {d.customer_name || d.customer_id || 'Unknown'} · {d.stage || d.status || '—'}
               </option>
             ))}
-          </select>
-          <CaretDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#71717A] pointer-events-none" />
+          </WhiteSelect>
         </div>
         {selected && (
-          <div className="text-xs text-[#71717A]">
+          <div className="text-xs text-[#71717A] hidden sm:block">
             customer: <b className="text-[#18181B]">{selected.customer_id || '—'}</b>
           </div>
         )}

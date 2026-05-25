@@ -24,6 +24,10 @@ import {
   CaretDown,
   Funnel
 } from '@phosphor-icons/react';
+import WhiteSelect from '../../components/ui/WhiteSelect';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const TeamManagersPage = () => {
   const { t } = useLang();
@@ -93,15 +97,28 @@ const TeamManagersPage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Managers' },
+      ]} />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('managerLoadBoard')}
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('teamLoadControl')}
-          </p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Users size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('managerLoadBoard')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('teamLoadControl')}
+            </p>
+          </div>
+        </div>
+        <div className="shrink-0 self-start">
+          <RefreshButton onClick={fetchManagers} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="team-managers-refresh-btn" />
         </div>
       </div>
 
@@ -117,16 +134,12 @@ const TeamManagersPage = () => {
             className="w-full pl-10 pr-4 py-2.5 border border-[#E4E4E7] rounded-xl focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
           />
         </div>
-        <select
-          value={sortBy}
-          onChange={e => setSortBy(e.target.value)}
-          className="px-4 py-2.5 border border-[#E4E4E7] rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
-        >
+        <WhiteSelect value={sortBy} onChange={e => setSortBy(e.target.value)}>
           <option value="performanceScore">{t('byRating')}</option>
           <option value="activeLeads">{t('byLeads')}</option>
           <option value="overdueTasks">{t('byOverdue')}</option>
           <option value="staleLeads">{t('byStale')}</option>
-        </select>
+        </WhiteSelect>
         <button
           onClick={() => setSortOrder(o => o === 'desc' ? 'asc' : 'desc')}
           className="p-2.5 border border-[#E4E4E7] rounded-xl hover:bg-[#F4F4F5]"
@@ -172,7 +185,7 @@ const TeamManagersPage = () => {
                   >
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#EEF2FF] rounded-full flex items-center justify-center text-sm font-bold text-[#4F46E5]">
+                        <div className="w-10 h-10 bg-[#F4F4F5] rounded-full flex items-center justify-center text-sm font-bold text-[#18181B]">
                           {(m.name || 'M')[0]}
                         </div>
                         <div>
@@ -185,7 +198,8 @@ const TeamManagersPage = () => {
                       <span className={`px-3 py-1 text-xs font-bold rounded-full ${
                         (m.band || '').toLowerCase() === 'high' ? 'bg-[#ECFDF5] text-[#059669]' :
                         (m.band || '').toLowerCase() === 'medium' ? 'bg-[#FEF3C7] text-[#D97706]' :
-                        'bg-[#FEF2F2] text-[#DC2626]'
+                        (m.band || '').toLowerCase() === 'low' ? 'bg-[#FEF2F2] text-[#DC2626]' :
+                        'bg-[#F4F4F5] text-[#71717A]'
                       }`}>
                         {m.band?.toUpperCase() || 'N/A'} {m.performanceScore || 0}
                       </span>
@@ -232,7 +246,7 @@ const TeamManagersPage = () => {
                       <div className="flex items-center justify-center gap-1">
                         <Link
                           to={`/team/managers/${m._id || m.managerId}`}
-                          className="p-2 text-[#71717A] hover:text-[#4F46E5] hover:bg-[#EEF2FF] rounded-lg transition-colors"
+                          className="p-2 text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-colors"
                           title={t('viewProfile')}
                         >
                           <Eye size={18} />

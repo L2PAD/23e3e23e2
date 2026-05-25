@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, GitCompare, Copy } from 'lucide-react';
+import { Heart, Scale, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Rotating fallback images so cards visually differ even when backend returns no image
@@ -116,7 +116,7 @@ export const CarRowCard = ({ v, idx = 0 }) => {
             aria-label="Compare"
             data-testid={`car-row-${idx}-compare`}
           >
-            <GitCompare size={14} />
+            <Scale size={14} />
           </button>
           <button
             type="button"

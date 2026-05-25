@@ -138,10 +138,14 @@ export default function CookieConsentBanner() {
       aria-label={title}
     >
       <div
-        className="relative mx-auto max-w-[1180px] pointer-events-auto rounded-2xl border border-[#FEAE00]/40 bg-[#0F0F0E]/95 backdrop-blur-md shadow-[0_24px_56px_rgba(0,0,0,0.65),0_0_0_1px_rgba(254,174,0,0.08)] animate-[bibi-cookie-in_0.4s_cubic-bezier(0.22,1,0.36,1)_both] overflow-hidden"
+        className="relative mx-auto max-w-[1180px] pointer-events-auto rounded-2xl border border-[#27272A] bg-[#0F0F0E]/95 backdrop-blur-md shadow-[0_24px_56px_rgba(0,0,0,0.65)] animate-[bibi-cookie-in_0.4s_cubic-bezier(0.22,1,0.36,1)_both] overflow-hidden"
       >
-        {/* Top accent line — subtle orange glow that ties the banner to BIBI's brand palette */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#FEAE00]/70 to-transparent pointer-events-none" />
+        {/* Phase B3.1+: removed the amber top accent line + amber outer
+            border + amber 1px ambient ring. The banner now sits in a clean
+            neutral border so the cookie modal doesn't read as "warning"
+            framing on the home page. Inner amber accents (icon, accept
+            button, learn-more link, GDPR chip) are kept — they're part of
+            the BIBI palette. */}
 
         {/* ── Desktop layout: 3-column grid (icon | content | actions) ───── */}
         <div className="hidden md:grid grid-cols-[auto_1fr_auto] items-center gap-5 px-5 py-4 lg:px-6 lg:py-5">

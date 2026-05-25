@@ -23,6 +23,7 @@ import axios from 'axios';
 import styles from './CatalogFilter.module.css';
 import CustomDropdown from './CustomDropdown';
 import RangeSlider from './RangeSlider';
+import RangeStepSelect from './RangeStepSelect';
 import { useLang } from '../../../i18n';
 import { API_URL } from '../../../App';
 
@@ -56,6 +57,27 @@ const PRICE_MIN = 0;
 const PRICE_MAX = 100_000;
 const MILEAGE_MIN = 0;
 const MILEAGE_MAX = 300_000;
+
+/* Predefined step lists for the dropdown side of each range filter.
+ * Users keep the freedom to type any value into the text input, and the
+ * slider still spans the full range — the dropdown is just a quick-pick
+ * shortcut that mirrors the "Any Year / 2025 / 2024 / …" pattern from
+ * the homepage search box (which is the design users explicitly asked
+ * us to align to). */
+const YEAR_STEPS = (() => {
+  const arr = [];
+  for (let y = YEAR_MAX; y >= YEAR_MIN; y -= 1) arr.push({ value: y, label: String(y) });
+  return arr;
+})();
+const PRICE_STEPS = [
+  1_000, 2_500, 5_000, 7_500,
+  10_000, 15_000, 20_000, 25_000, 30_000,
+  40_000, 50_000, 60_000, 75_000, 90_000, 100_000,
+].map((p) => ({ value: p, label: `€ ${p.toLocaleString('en-US')}` }));
+const MILEAGE_STEPS = [
+  5_000, 10_000, 25_000, 50_000, 75_000,
+  100_000, 125_000, 150_000, 175_000, 200_000, 250_000, 300_000,
+].map((m) => ({ value: m, label: `${m.toLocaleString('en-US')} km` }));
 
 const BRANDS_FALLBACK = [
   'Acura', 'Alfa Romeo', 'Audi', 'BMW', 'Buick', 'Cadillac', 'Chevrolet', 'Chrysler',
@@ -200,23 +222,19 @@ export default function CatalogFilter({ value, onChange }) {
       <div className={styles.block}>
         <div className={styles.label}>{t('filterYear') || 'Year'}</div>
         <div className={styles.row2}>
-          <input
-            type="text"
-            inputMode="numeric"
-            className={styles.textInput}
-            placeholder={t('filterFromPh') || 'From'}
+          <RangeStepSelect
             value={v.yearMin || ''}
-            onChange={(e) => set({ yearMin: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) })}
-            data-testid="catalog-filter-year-min"
+            onChange={(val) => set({ yearMin: val.slice(0, 4) })}
+            placeholder={t('filterFromPh') || 'From'}
+            steps={YEAR_STEPS}
+            testId="catalog-filter-year-min"
           />
-          <input
-            type="text"
-            inputMode="numeric"
-            className={styles.textInput}
-            placeholder={t('filterToPh') || 'To'}
+          <RangeStepSelect
             value={v.yearMax || ''}
-            onChange={(e) => set({ yearMax: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) })}
-            data-testid="catalog-filter-year-max"
+            onChange={(val) => set({ yearMax: val.slice(0, 4) })}
+            placeholder={t('filterToPh') || 'To'}
+            steps={YEAR_STEPS}
+            testId="catalog-filter-year-max"
           />
         </div>
         <RangeSlider
@@ -234,21 +252,21 @@ export default function CatalogFilter({ value, onChange }) {
       <div className={styles.block}>
         <div className={styles.label}>{t('filterEstimatedTotalPrice') || 'Estimated total price'}</div>
         <div className={styles.row2}>
-          <input
-            className={styles.textInput}
+          <RangeStepSelect
+            value={v.priceMin || ''}
+            onChange={(val) => set({ priceMin: val })}
             placeholder={t('filterPriceFromPh') || '€ From'}
-            inputMode="numeric"
-            value={v.priceMin ? fmtPrice(v.priceMin) : ''}
-            onChange={(e) => set({ priceMin: e.target.value.replace(/[^0-9]/g,'') })}
-            data-testid="catalog-filter-price-min"
+            steps={PRICE_STEPS}
+            formatValue={(raw) => (raw ? fmtPrice(raw) : '')}
+            testId="catalog-filter-price-min"
           />
-          <input
-            className={styles.textInput}
+          <RangeStepSelect
+            value={v.priceMax || ''}
+            onChange={(val) => set({ priceMax: val })}
             placeholder={t('filterPriceToPh') || '€ To'}
-            inputMode="numeric"
-            value={v.priceMax ? fmtPrice(v.priceMax) : ''}
-            onChange={(e) => set({ priceMax: e.target.value.replace(/[^0-9]/g,'') })}
-            data-testid="catalog-filter-price-max"
+            steps={PRICE_STEPS}
+            formatValue={(raw) => (raw ? fmtPrice(raw) : '')}
+            testId="catalog-filter-price-max"
           />
         </div>
         <RangeSlider
@@ -266,21 +284,21 @@ export default function CatalogFilter({ value, onChange }) {
       <div className={styles.block}>
         <div className={styles.label}>{t('filterMileageKm') || 'Mileage, km'}</div>
         <div className={styles.row2}>
-          <input
-            className={styles.textInput}
+          <RangeStepSelect
+            value={v.mileageMin || ''}
+            onChange={(val) => set({ mileageMin: val })}
             placeholder="0"
-            inputMode="numeric"
-            value={v.mileageMin ? fmtMileage(v.mileageMin) : ''}
-            onChange={(e) => set({ mileageMin: e.target.value.replace(/[^0-9]/g,'') })}
-            data-testid="catalog-filter-mileage-min"
+            steps={MILEAGE_STEPS}
+            formatValue={(raw) => (raw ? fmtMileage(raw) : '')}
+            testId="catalog-filter-mileage-min"
           />
-          <input
-            className={styles.textInput}
+          <RangeStepSelect
+            value={v.mileageMax || ''}
+            onChange={(val) => set({ mileageMax: val })}
             placeholder={t('filterToPh') || 'To'}
-            inputMode="numeric"
-            value={v.mileageMax ? fmtMileage(v.mileageMax) : ''}
-            onChange={(e) => set({ mileageMax: e.target.value.replace(/[^0-9]/g,'') })}
-            data-testid="catalog-filter-mileage-max"
+            steps={MILEAGE_STEPS}
+            formatValue={(raw) => (raw ? fmtMileage(raw) : '')}
+            testId="catalog-filter-mileage-max"
           />
         </div>
         <RangeSlider

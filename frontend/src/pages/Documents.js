@@ -131,27 +131,33 @@ const DocumentsTable = ({ documents, loading, typeLabels, statusLabels, statusCo
       </div>
     </div>
     <div className="card overflow-hidden">
-      <table className="table-premium" data-testid="documents-table">
-        <thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('status')}</th><th>{t('date')}</th>{isAdminOrFinance && <th className="text-right">{t('actions')}</th>}</tr></thead>
-        <tbody>
-          {loading ? <tr><td colSpan={isAdminOrFinance ? 5 : 4} className="text-center py-12 text-[#71717A]">{t('loading')}</td></tr>
-          : documents.length === 0 ? <tr><td colSpan={isAdminOrFinance ? 5 : 4} className="text-center py-12 text-[#71717A]">{t('noDocuments')}</td></tr>
-          : documents.map(doc => (
-            <tr key={doc.id} data-testid={`doc-row-${doc.id}`}>
-              <td><div className="flex items-center gap-3"><FileText size={24} weight="duotone" className="text-[#4F46E5]" /><div><p className="font-medium text-[#18181B]">{doc.title || t('untitled')}</p><p className="text-xs text-[#71717A]">{doc.description || '—'}</p></div></div></td>
-              <td><span className="text-sm text-[#3F3F46]">{typeLabels[doc.type] || doc.type}</span></td>
-              <td><span className="badge" style={{ backgroundColor: statusColors[doc.status]?.bg || '#F4F4F5', color: statusColors[doc.status]?.text || '#71717A' }}>{statusLabels[doc.status] || doc.status}</span></td>
-              <td className="text-sm text-[#71717A]">{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString(getLocale()) : '—'}</td>
-              {isAdminOrFinance && (
-                <td><div className="flex items-center justify-end gap-1">
-                  {doc.status === 'pending_verification' && (<><button onClick={() => onVerify(doc.id)} className="p-2 hover:bg-[#D1FAE5] rounded-lg transition-colors" title={t('verify')}><CheckCircle size={18} className="text-[#059669]" /></button><button onClick={() => onReject(doc)} className="p-2 hover:bg-[#FEE2E2] rounded-lg transition-colors" title={t('reject')}><XCircle size={18} className="text-[#DC2626]" /></button></>)}
-                  {doc.status === 'verified' && <button onClick={() => onArchive(doc.id)} className="p-2 hover:bg-[#F4F4F5] rounded-lg transition-colors" title={t('archive')}><Archive size={18} className="text-[#71717A]" /></button>}
-                </div></td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* When there is no data, replace the whole table body with a centered
+          empty state so the message never looks "stuck to a column". The
+          headers stay (so users still see the column model), then we render
+          an absolutely centered message under them. */}
+      <div className="overflow-x-auto">
+        <table className="table-premium w-full min-w-[560px]" data-testid="documents-table">
+          <thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('status')}</th><th>{t('date')}</th>{isAdminOrFinance && <th className="text-right">{t('actions')}</th>}</tr></thead>
+          <tbody>
+            {loading ? <tr><td colSpan={isAdminOrFinance ? 5 : 4} className="text-center !text-center align-middle py-12 text-[#71717A]"><div className="w-full text-center">{t('loading')}</div></td></tr>
+            : documents.length === 0 ? <tr><td colSpan={isAdminOrFinance ? 5 : 4} className="!text-center align-middle py-12 text-[#71717A]"><div className="w-full flex items-center justify-center text-center">{t('noDocuments')}</div></td></tr>
+            : documents.map(doc => (
+              <tr key={doc.id} data-testid={`doc-row-${doc.id}`}>
+                <td><div className="flex items-center gap-3"><FileText size={24} weight="duotone" className="text-[#52525B]" /><div><p className="font-medium text-[#18181B]">{doc.title || t('untitled')}</p><p className="text-xs text-[#71717A]">{doc.description || '—'}</p></div></div></td>
+                <td><span className="text-sm text-[#3F3F46]">{typeLabels[doc.type] || doc.type}</span></td>
+                <td><span className="badge" style={{ backgroundColor: statusColors[doc.status]?.bg || '#F4F4F5', color: statusColors[doc.status]?.text || '#71717A' }}>{statusLabels[doc.status] || doc.status}</span></td>
+                <td className="text-sm text-[#71717A]">{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString(getLocale()) : '—'}</td>
+                {isAdminOrFinance && (
+                  <td><div className="flex items-center justify-end gap-1">
+                    {doc.status === 'pending_verification' && (<><button onClick={() => onVerify(doc.id)} className="p-2 hover:bg-[#F4F4F5] rounded-lg transition-colors" title={t('verify')}><CheckCircle size={18} className="text-emerald-600" /></button><button onClick={() => onReject(doc)} className="p-2 hover:bg-[#F4F4F5] rounded-lg transition-colors" title={t('reject')}><XCircle size={18} className="text-rose-600" /></button></>)}
+                    {doc.status === 'verified' && <button onClick={() => onArchive(doc.id)} className="p-2 hover:bg-[#F4F4F5] rounded-lg transition-colors" title={t('archive')}><Archive size={18} className="text-[#71717A]" /></button>}
+                  </div></td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   </>
 );

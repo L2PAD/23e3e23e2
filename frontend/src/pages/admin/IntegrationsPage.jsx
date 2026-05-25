@@ -28,7 +28,13 @@ import {
   TestTube,
   Power,
   Activity,
+  Pencil,
+  ChevronDown,
 } from 'lucide-react';
+// WhiteSelect — canonical white dropdown (portal-rendered, design-system).
+// Replaces native <select> (gray OS picker) per UI consistency requirement.
+import WhiteSelect from '../../components/ui/WhiteSelect';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -313,50 +319,51 @@ export default function IntegrationsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('integrationsTitle')}</h1>
-          <p className="text-gray-500 mt-1">{t('integrationsSubtitle')}</p>
+    <div className="space-y-5 sm:space-y-6">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="min-w-0 flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Activity className="w-[18px] h-[18px]" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{t('integrationsTitle')}</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1.5">{t('integrationsSubtitle')}</p>
+          </div>
         </div>
-        <button
+        <RefreshButton
           onClick={loadData}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
-        >
-          <RefreshCw className="w-4 h-4" />
-          {t('refresh')}
-        </button>
+          ariaLabel={t('refresh')}
+          testId="integrations-refresh-btn"
+        />
       </div>
 
-      {/* Health Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      {/* Health Summary — uniform tiles, 8px radius, no shadow, no inner pills */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
         {Object.entries(health).map(([provider, data]) => {
           const config = PROVIDER_CONFIG[provider];
           if (!config || config.hidden) return null;
           const StatusIcon = STATUS_ICONS[data.status] || Activity;
           const Icon = config.icon;
-          
           return (
             <button
               type="button"
               key={provider}
               onClick={() => {
                 openProvider(provider);
-                // Smooth scroll to the row
                 setTimeout(() => {
                   const el = document.getElementById(`integration-row-${provider}`);
                   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 60);
               }}
-              className={`text-left p-4 rounded-xl border transition-all hover:border-blue-400 hover:shadow-sm ${data.isEnabled ? 'border-gray-200' : 'border-gray-100 opacity-70'}`}
+              className={`text-left p-3 rounded-lg border bg-white transition-all hover:border-blue-400 hover:shadow-sm min-w-0 ${data.isEnabled ? 'border-gray-200' : 'border-gray-100 opacity-70'}`}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className="w-5 h-5" style={{ color: config.color }} />
-                <span className="font-medium text-sm">{config.name}</span>
+              <div className="flex items-center gap-2 mb-1.5">
+                <Icon className="w-4 h-4 flex-shrink-0" style={{ color: config.color }} />
+                <span className="font-medium text-xs sm:text-sm truncate">{config.name}</span>
               </div>
-              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${STATUS_COLORS[data.status]}`}>
+              <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium ${STATUS_COLORS[data.status]}`}>
                 <StatusIcon className="w-3 h-3" />
-                {data.status}
+                <span className="truncate">{data.status}</span>
               </div>
             </button>
           );
@@ -364,7 +371,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Integration Cards */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {Object.entries(PROVIDER_CONFIG).filter(([, c]) => !c.hidden).map(([provider, config]) => {
           const integrationConfig = getConfigByProvider(provider);
           const healthData = health[provider] || {};
@@ -372,341 +379,391 @@ export default function IntegrationsPage() {
           const isEditing = editMode[provider];
           const Icon = config.icon;
           const StatusIcon = STATUS_ICONS[healthData.status] || Activity;
+          const showConfigCta = !hasCreds(provider);
 
           return (
             <div
               key={provider}
               id={`integration-row-${provider}`}
-              className={`bg-white rounded-xl border ${integrationConfig.isEnabled ? 'border-gray-200' : 'border-gray-100'}`}
+              className={`bg-white rounded-lg border ${integrationConfig.isEnabled ? 'border-gray-200' : 'border-gray-100'} overflow-hidden`}
             >
-              {/* Header */}
-              <div
-                className="flex items-center justify-between p-4 cursor-pointer"
+              {/* === Collapsed Header ===
+                  Layout: icon | name + status chips below | chevron.
+                  The only right-side control is the expand chevron — all heavy
+                  actions live inside the expanded panel, so on mobile the name
+                  is never truncated and chips never collide with action icons. */}
+              <button
+                type="button"
                 onClick={() => isExpanded ? setExpandedProvider(null) : openProvider(provider)}
+                className="w-full text-left p-4 flex items-start gap-3 hover:bg-gray-50/50 transition-colors"
               >
-                <div className="flex items-center gap-4">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${config.color}20` }}
-                  >
-                    <Icon className="w-5 h-5" style={{ color: config.color }} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{config.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${STATUS_COLORS[healthData.status]}`}>
-                        <StatusIcon className="w-3 h-3" />
-                        {healthData.status}
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `${config.color}20` }}
+                >
+                  <Icon className="w-5 h-5" style={{ color: config.color }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
+                    {config.name}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${STATUS_COLORS[healthData.status]}`}>
+                      <StatusIcon className="w-3 h-3" />
+                      {healthData.status}
+                    </span>
+                    {integrationConfig.mode && (
+                      <span className={`px-2 py-0.5 rounded-md text-[11px] font-medium ${
+                        integrationConfig.mode === 'live' ? 'bg-green-100 text-green-800' :
+                        integrationConfig.mode === 'sandbox' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {integrationConfig.mode}
                       </span>
-                      {integrationConfig.mode && (
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${
-                          integrationConfig.mode === 'live' ? 'bg-green-100 text-green-800' :
-                          integrationConfig.mode === 'sandbox' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {integrationConfig.mode}
-                        </span>
-                      )}
-                      {!hasCreds(provider) && (
-                        <span className="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200">
-                          {t('clickToConfigure')}
-                        </span>
+                    )}
+                    {integrationConfig.isEnabled && (
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-100 text-emerald-700">
+                        enabled
+                      </span>
+                    )}
+                    {showConfigCta && (
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-700">
+                        {t('clickToConfigure')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {/* === Expanded Content === */}
+              {isExpanded && (
+                <div className="border-t border-gray-100 bg-gray-50/40">
+                  {/* Action Bar — full-width text-buttons, identical heights, mobile-friendly */}
+                  <div className="px-4 py-3 border-b border-gray-200 bg-white">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleTestClick(provider)}
+                        disabled={testing === provider}
+                        className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-[#18181B] hover:bg-[#27272A] active:bg-black text-white text-xs sm:text-sm font-medium disabled:opacity-50 whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
+                      >
+                        {testing === provider ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <TestTube className="w-3.5 h-3.5" />
+                        )}
+                        {t('testConnectionAction')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleEnabled(provider, integrationConfig.isEnabled)}
+                        className={`inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap ${
+                          integrationConfig.isEnabled
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                        {integrationConfig.isEnabled ? 'Enabled' : 'Disabled'}
+                      </button>
+                      {!isEditing ? (
+                        <button
+                          type="button"
+                          onClick={() => startEdit(provider)}
+                          className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-[#18181B] text-white text-xs sm:text-sm font-medium hover:bg-[#27272A] whitespace-nowrap col-span-2 sm:col-span-1 sm:ml-auto"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          {t('adm_edit')}
+                        </button>
+                      ) : (
+                        <div className="contents sm:flex sm:gap-2 sm:ml-auto">
+                          <button
+                            type="button"
+                            onClick={() => setEditMode({ ...editMode, [provider]: false })}
+                            className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+                          >
+                            {t('cancelAction')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => saveConfig(provider)}
+                            className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-emerald-600 text-white text-xs sm:text-sm font-medium hover:bg-emerald-700 whitespace-nowrap"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            {t('adm_save')}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleTestClick(provider); }}
-                    disabled={testing === provider}
-                    className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
-                    title={t('testConnectionAction')}
+                  <form
+                    autoComplete="off"
+                    onSubmit={(e) => e.preventDefault()}
+                    className="p-4 space-y-5"
                   >
-                    {testing === provider ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <TestTube className="w-4 h-4" />
+                    {/* Description */}
+                    {config.description && (
+                      <p className="text-xs text-gray-500 leading-relaxed">{config.description}</p>
                     )}
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleEnabled(provider, integrationConfig.isEnabled); }}
-                    className={`p-2 rounded-lg ${integrationConfig.isEnabled ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
-                    title={integrationConfig.isEnabled ? 'Disable' : 'Enable'}
-                  >
-                    <Power className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
 
-              {/* Expanded Content */}
-              {isExpanded && (
-                <div className="border-t border-gray-100 p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-medium text-gray-700">{t('configurationLabel')}</h4>
-                    {!isEditing ? (
-                      <button
-                        onClick={() => startEdit(provider)}
-                        className="text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        {t('adm_edit')}
-                      </button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setEditMode({ ...editMode, [provider]: false })}
-                          className="text-sm text-gray-500 hover:text-gray-700"
-                        >
-                          {t('cancelAction')}
-                        </button>
-                        <button
-                          onClick={() => saveConfig(provider)}
-                          className="text-sm text-green-600 hover:text-green-800 font-medium"
-                        >
-                          {t('adm_save')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Credentials */}
-                  <div className="space-y-3 mb-4">
-                    <p className="text-xs font-medium text-gray-500 uppercase">{t('credentialsLabel')}</p>
-                    {config.fields.map((field) => (
-                      <div key={field.key} className="flex items-center gap-2">
-                        <label className="w-32 text-sm text-gray-600">{field.label}</label>
-                        {isEditing ? (
-                          <div className="flex-1 flex items-center gap-2">
-                            {field.type === 'textarea' ? (
-                              <textarea
-                                className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono"
-                                rows={3}
-                                value={editValues[provider]?.credentials?.[field.key] || ''}
-                                onChange={(e) => setEditValues({
-                                  ...editValues,
-                                  [provider]: {
-                                    ...editValues[provider],
-                                    credentials: {
-                                      ...editValues[provider]?.credentials,
-                                      [field.key]: e.target.value,
-                                    },
-                                  },
-                                })}
-                              />
-                            ) : (
-                              <input
-                                type={field.type === 'password' && !showPasswords[`${provider}_${field.key}`] ? 'password' : 'text'}
-                                className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono"
-                                value={editValues[provider]?.credentials?.[field.key] || ''}
-                                onChange={(e) => setEditValues({
-                                  ...editValues,
-                                  [provider]: {
-                                    ...editValues[provider],
-                                    credentials: {
-                                      ...editValues[provider]?.credentials,
-                                      [field.key]: e.target.value,
-                                    },
-                                  },
-                                })}
-                              />
-                            )}
-                            {field.type === 'password' && (
-                              <button
-                                type="button"
-                                onClick={() => setShowPasswords({
-                                  ...showPasswords,
-                                  [`${provider}_${field.key}`]: !showPasswords[`${provider}_${field.key}`],
-                                })}
-                                className="p-2 text-gray-400 hover:text-gray-600"
-                              >
-                                {showPasswords[`${provider}_${field.key}`] ? (
-                                  <EyeOff className="w-4 h-4" />
-                                ) : (
-                                  <Eye className="w-4 h-4" />
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="flex-1 text-sm font-mono text-gray-800 bg-gray-50 px-3 py-2 rounded-lg">
-                            {integrationConfig.credentials?.[field.key] || '—'}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Settings */}
-                  {config.settings.length > 0 && (
-                    <div className="space-y-3 mb-4">
-                      <p className="text-xs font-medium text-gray-500 uppercase">{t('settings')}</p>
-                      {config.settings.map((setting) => {
-                        const currentVal = isEditing
-                          ? editValues[provider]?.settings?.[setting.key]
-                          : integrationConfig.settings?.[setting.key];
-                        const updateSetting = (newVal) => setEditValues({
-                          ...editValues,
-                          [provider]: {
-                            ...editValues[provider],
-                            settings: {
-                              ...editValues[provider]?.settings,
-                              [setting.key]: newVal,
+                    {/* CREDENTIALS — labels on top, inputs full-width, mono font for keys */}
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                        {t('credentialsLabel')}
+                      </p>
+                      <div className="space-y-3">
+                        {config.fields.map((field) => {
+                          const passVisible = !!showPasswords[`${provider}_${field.key}`];
+                          const value = editValues[provider]?.credentials?.[field.key] || '';
+                          const setValue = (val) => setEditValues({
+                            ...editValues,
+                            [provider]: {
+                              ...editValues[provider],
+                              credentials: {
+                                ...editValues[provider]?.credentials,
+                                [field.key]: val,
+                              },
                             },
-                          },
-                        });
-                        return (
-                        <div key={setting.key} className={`flex ${setting.type === 'multiselect' ? 'flex-col items-stretch' : 'items-center'} gap-2`}>
-                          <label className={`${setting.type === 'multiselect' ? 'block mb-1' : 'w-32'} text-sm text-gray-600`}>
-                            {setting.label}
-                          </label>
-                          {isEditing ? (
-                            setting.type === 'select' ? (
-                              <select
-                                className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                                value={currentVal || ''}
-                                onChange={(e) => updateSetting(e.target.value)}
-                              >
-                                <option value="">{t('adm_select')}</option>
-                                {setting.options?.map((opt) => (
-                                  <option key={opt} value={opt}>{opt}</option>
-                                ))}
-                              </select>
-                            ) : setting.type === 'toggle' ? (
-                              <button
-                                type="button"
-                                onClick={() => updateSetting(!currentVal)}
-                                className={`w-12 h-6 rounded-full transition-colors ${currentVal ? 'bg-green-500' : 'bg-gray-300'}`}
-                              >
-                                <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${currentVal ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                              </button>
-                            ) : setting.type === 'multiselect' ? (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {setting.options?.map((opt) => {
-                                  const optVal = typeof opt === 'string' ? opt : opt.value;
-                                  const optLabel = typeof opt === 'string' ? opt : opt.label;
-                                  const arr = Array.isArray(currentVal) ? currentVal : [];
-                                  const checked = arr.includes(optVal);
-                                  return (
-                                    <label key={optVal} className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm cursor-pointer transition-colors ${checked ? 'bg-blue-50 border-blue-300' : 'border-gray-200 hover:bg-gray-50'}`}>
-                                      <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={() => updateSetting(checked ? arr.filter(v => v !== optVal) : [...arr, optVal])}
-                                        className="rounded border-gray-300"
-                                      />
-                                      <span className="flex-1">{optLabel}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            ) : setting.type === 'methods-grid' ? (
-                              <div className="space-y-4 w-full">
-                                {(setting.groups || []).map((grp) => (
-                                  <div key={grp.title}>
-                                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">{grp.title}</p>
+                          });
+                          return (
+                            <div key={field.key}>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                {field.label}
+                              </label>
+                              {isEditing ? (
+                                field.type === 'textarea' ? (
+                                  <textarea
+                                    autoComplete="off"
+                                    spellCheck="false"
+                                    rows={3}
+                                    placeholder={field.placeholder || ''}
+                                    value={value}
+                                    onChange={(e) => setValue(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]"
+                                  />
+                                ) : (
+                                  <div className="relative">
+                                    <input
+                                      type={field.type === 'password' && !passVisible ? 'password' : 'text'}
+                                      autoComplete="off"
+                                      autoCorrect="off"
+                                      autoCapitalize="off"
+                                      spellCheck="false"
+                                      name={`int_${provider}_${field.key}`}
+                                      placeholder={field.placeholder || ''}
+                                      value={value}
+                                      onChange={(e) => setValue(e.target.value)}
+                                      className={`w-full h-10 ${field.type === 'password' ? 'pr-10' : 'pr-3'} pl-3 border border-gray-200 rounded-lg text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]`}
+                                    />
+                                    {field.type === 'password' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowPasswords({
+                                          ...showPasswords,
+                                          [`${provider}_${field.key}`]: !passVisible,
+                                        })}
+                                        className="absolute inset-y-0 right-1 w-8 inline-flex items-center justify-center text-gray-400 hover:text-gray-600"
+                                        tabIndex={-1}
+                                      >
+                                        {passVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                      </button>
+                                    )}
+                                  </div>
+                                )
+                              ) : (
+                                <div className="text-sm font-mono text-gray-800 bg-white border border-gray-200 px-3 py-2 rounded-lg break-all">
+                                  {integrationConfig.credentials?.[field.key] || <span className="text-gray-300">—</span>}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* SETTINGS */}
+                    {config.settings.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                          {t('settings')}
+                        </p>
+                        <div className="space-y-3">
+                          {config.settings.map((setting) => {
+                            const currentVal = isEditing
+                              ? editValues[provider]?.settings?.[setting.key]
+                              : integrationConfig.settings?.[setting.key];
+                            const updateSetting = (newVal) => setEditValues({
+                              ...editValues,
+                              [provider]: {
+                                ...editValues[provider],
+                                settings: {
+                                  ...editValues[provider]?.settings,
+                                  [setting.key]: newVal,
+                                },
+                              },
+                            });
+                            return (
+                              <div key={setting.key}>
+                                <div className={setting.type === 'toggle' ? 'flex items-center justify-between gap-3' : ''}>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    {setting.label}
+                                  </label>
+                                  {isEditing && setting.type === 'toggle' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateSetting(!currentVal)}
+                                      className={`w-12 h-6 rounded-full transition-colors flex-shrink-0 mb-1 ${currentVal ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                      aria-label={setting.label}
+                                    >
+                                      <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${currentVal ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                    </button>
+                                  )}
+                                </div>
+                                {isEditing ? (
+                                  setting.type === 'select' ? (
+                                    <WhiteSelect
+                                      value={currentVal || ''}
+                                      onChange={(e) => updateSetting(e.target.value)}
+                                      placeholder={t('adm_select')}
+                                    >
+                                      <option value="">{t('adm_select')}</option>
+                                      {setting.options?.map((opt) => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                      ))}
+                                    </WhiteSelect>
+                                  ) : setting.type === 'toggle' ? null : setting.type === 'multiselect' ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                      {grp.methods.map((m) => {
-                                        const obj = (currentVal && typeof currentVal === 'object' && !Array.isArray(currentVal)) ? currentVal : {};
-                                        const checked = !!obj[m.value];
+                                      {setting.options?.map((opt) => {
+                                        const optVal = typeof opt === 'string' ? opt : opt.value;
+                                        const optLabel = typeof opt === 'string' ? opt : opt.label;
+                                        const arr = Array.isArray(currentVal) ? currentVal : [];
+                                        const checked = arr.includes(optVal);
                                         return (
-                                          <label
-                                            key={m.value}
-                                            className={`flex items-start gap-3 p-3 border-2 rounded-xl text-sm cursor-pointer transition-all ${checked ? 'border-[#635BFF] bg-[#635BFF]/5 shadow-sm' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
-                                          >
+                                          <label key={optVal} className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm cursor-pointer transition-colors ${checked ? 'bg-blue-50 border-blue-300' : 'border-gray-200 hover:bg-gray-50 bg-white'}`}>
                                             <input
                                               type="checkbox"
                                               checked={checked}
-                                              onChange={() => updateSetting({ ...obj, [m.value]: !checked })}
-                                              className="mt-1 rounded border-gray-300"
+                                              onChange={() => updateSetting(checked ? arr.filter(v => v !== optVal) : [...arr, optVal])}
+                                              className="rounded border-gray-300"
                                             />
-                                            <div
-                                              className="w-9 h-9 rounded-lg flex items-center justify-center text-base font-bold shrink-0"
-                                              style={{ backgroundColor: `${m.accent}15`, color: m.accent }}
-                                            >
-                                              {m.icon || m.label.charAt(0)}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <div className="font-semibold text-gray-900">{m.label}</div>
-                                              <div className="text-xs text-gray-500">{m.hint}</div>
-                                            </div>
+                                            <span className="flex-1">{optLabel}</span>
                                           </label>
                                         );
                                       })}
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <input
-                                type={setting.type || 'text'}
-                                className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                                placeholder={setting.placeholder || ''}
-                                value={currentVal || ''}
-                                onChange={(e) => updateSetting(e.target.value)}
-                              />
-                            )
-                          ) : (
-                            setting.type === 'methods-grid' ? (
-                              <div className="flex flex-wrap gap-1.5">
-                                {Object.entries(currentVal || {}).filter(([, v]) => v).map(([k]) => (
-                                  <span key={k} className="px-2 py-1 rounded-md bg-[#635BFF]/10 text-[#635BFF] text-xs font-medium">{k}</span>
-                                ))}
-                                {!Object.values(currentVal || {}).some(Boolean) && (
-                                  <span className="text-sm text-gray-500">{t('adm_none')}</span>
+                                  ) : setting.type === 'methods-grid' ? (
+                                    <div className="space-y-4 w-full">
+                                      {(setting.groups || []).map((grp) => (
+                                        <div key={grp.title}>
+                                          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">{grp.title}</p>
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {grp.methods.map((m) => {
+                                              const obj = (currentVal && typeof currentVal === 'object' && !Array.isArray(currentVal)) ? currentVal : {};
+                                              const checked = !!obj[m.value];
+                                              return (
+                                                <label
+                                                  key={m.value}
+                                                  className={`flex items-start gap-3 p-3 border-2 rounded-lg text-sm cursor-pointer transition-all ${checked ? 'border-[#635BFF] bg-[#635BFF]/5' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
+                                                >
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() => updateSetting({ ...obj, [m.value]: !checked })}
+                                                    className="mt-1 rounded border-gray-300"
+                                                  />
+                                                  <div
+                                                    className="w-9 h-9 rounded-lg flex items-center justify-center text-base font-bold shrink-0"
+                                                    style={{ backgroundColor: `${m.accent}15`, color: m.accent }}
+                                                  >
+                                                    {m.icon || m.label.charAt(0)}
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                    <div className="font-semibold text-gray-900">{m.label}</div>
+                                                    <div className="text-xs text-gray-500">{m.hint}</div>
+                                                  </div>
+                                                </label>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <input
+                                      type={setting.type || 'text'}
+                                      autoComplete="off"
+                                      spellCheck="false"
+                                      className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]"
+                                      placeholder={setting.placeholder || ''}
+                                      value={currentVal || ''}
+                                      onChange={(e) => updateSetting(e.target.value)}
+                                    />
+                                  )
+                                ) : (
+                                  setting.type === 'methods-grid' ? (
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {Object.entries(currentVal || {}).filter(([, v]) => v).map(([k]) => (
+                                        <span key={k} className="px-2 py-0.5 rounded-md bg-[#635BFF]/10 text-[#635BFF] text-xs font-medium">{k}</span>
+                                      ))}
+                                      {!Object.values(currentVal || {}).some(Boolean) && (
+                                        <span className="text-sm text-gray-400">{t('adm_none')}</span>
+                                      )}
+                                    </div>
+                                  ) : setting.type === 'toggle' ? (
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${currentVal ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                      {currentVal ? 'Enabled' : 'Disabled'}
+                                    </span>
+                                  ) : (
+                                    <div className="text-sm text-gray-800 bg-white border border-gray-200 px-3 py-2 rounded-lg break-words">
+                                      {Array.isArray(currentVal)
+                                        ? (currentVal.length ? currentVal.join(', ') : '—')
+                                        : (currentVal ? String(currentVal) : <span className="text-gray-300">—</span>)}
+                                    </div>
+                                  )
+                                )}
+                                {setting.help && isEditing && (
+                                  <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">{setting.help}</p>
                                 )}
                               </div>
-                            ) : setting.type === 'toggle' ? (
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${currentVal ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                {currentVal ? 'Enabled' : 'Disabled'}
-                              </span>
-                            ) : (
-                            <span className="flex-1 text-sm text-gray-800">
-                              {Array.isArray(currentVal)
-                                ? (currentVal.length ? currentVal.join(', ') : '—')
-                                : String(currentVal ?? '—')}
-                            </span>
-                            )
-                          )}
-                          {setting.help && isEditing && (
-                            <p className="text-xs text-gray-500 mt-1 col-span-full">{setting.help}</p>
-                          )}
+                            );
+                          })}
                         </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                      </div>
+                    )}
 
-                  {/* Mode Selection */}
-                  {isEditing && (
-                    <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-                      <label className="w-32 text-sm text-gray-600">{t('modeLabel')}</label>
-                      <select
-                        className="px-3 py-2 border rounded-lg text-sm"
-                        value={editValues[provider]?.mode || 'disabled'}
-                        onChange={(e) => setEditValues({
-                          ...editValues,
-                          [provider]: {
-                            ...editValues[provider],
-                            mode: e.target.value,
-                          },
-                        })}
-                      >
-                        <option value="disabled">{t('disabledStatus')}</option>
-                        <option value="sandbox">{t('sandboxMode')}</option>
-                        <option value="live">{t('liveLabel')}</option>
-                      </select>
-                    </div>
-                  )}
+                    {/* Mode Selection */}
+                    {isEditing && (
+                      <div className="pt-3 border-t border-gray-200">
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('modeLabel')}</label>
+                        <WhiteSelect
+                          value={editValues[provider]?.mode || 'disabled'}
+                          onChange={(e) => setEditValues({
+                            ...editValues,
+                            [provider]: { ...editValues[provider], mode: e.target.value },
+                          })}
+                          data-testid={`integration-mode-select-${provider}`}
+                        >
+                          <option value="disabled">{t('disabledStatus')}</option>
+                          <option value="sandbox">{t('sandboxMode')}</option>
+                          <option value="live">{t('liveLabel')}</option>
+                        </WhiteSelect>
+                      </div>
+                    )}
 
-                  {/* Last Check Info */}
-                  {healthData.lastCheck && (
-                    <div className="mt-4 pt-4 border-t text-xs text-gray-500">
-                      Last checked: {new Date(healthData.lastCheck).toLocaleString()}
-                      {healthData.error && (
-                        <span className="block text-red-500 mt-1">Error: {healthData.error}</span>
-                      )}
-                    </div>
-                  )}
+                    {/* Last Check Info */}
+                    {healthData.lastCheck && (
+                      <div className="pt-3 border-t border-gray-200 text-[11px] text-gray-500">
+                        Last checked: {new Date(healthData.lastCheck).toLocaleString()}
+                        {healthData.error && (
+                          <span className="block text-red-500 mt-1 break-words">Error: {healthData.error}</span>
+                        )}
+                      </div>
+                    )}
+                  </form>
                 </div>
               )}
             </div>

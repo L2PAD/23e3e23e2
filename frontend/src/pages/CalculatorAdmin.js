@@ -16,6 +16,7 @@ import { API_URL } from '../App';
 import { toast } from 'sonner';
 import { useLang } from '../i18n';
 import CustomSelect from '../components/ui/CustomSelect';
+import RefreshButton from '../components/ui/RefreshButton';
 import { 
   Gear, 
   Calculator, 
@@ -36,6 +37,7 @@ import {
   X
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import WhiteSelect from '../components/ui/WhiteSelect';
 
 const CalculatorAdmin = () => {
   const { t } = useLang();
@@ -374,24 +376,24 @@ const CalculatorAdmin = () => {
       animate={{ opacity: 1 }}
       data-testid="calculator-admin-page"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('adm_calculator_settings')}
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('adm_bid_commission_and_hidden_fee_management')}
-          </p>
+      {/* Header — unified standard: dark icon block + title, refresh is the canonical black-square icon-only button in the top-right. */}
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Calculator size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('adm_calculator_settings')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('adm_bid_commission_and_hidden_fee_management')}
+            </p>
+          </div>
         </div>
-        <button
-          onClick={loadAllData}
-          className="flex items-center gap-2 px-4 py-2 border border-[#E4E4E7] rounded-xl hover:bg-[#F4F4F5] transition-colors"
-          data-testid="refresh-btn"
-        >
-          <ArrowsClockwise size={18} />
-          {t('adm_refresh_3')}
-        </button>
+        <div className="shrink-0">
+          <RefreshButton onClick={loadAllData} ariaLabel={t('adm_refresh_3')} testId="refresh-btn" />
+        </div>
       </div>
 
       {/* Stats - compact */}
@@ -1014,14 +1016,14 @@ const CalculatorAdmin = () => {
                   <label className="block text-xs font-medium text-[#71717A] uppercase tracking-wider mb-1">
                     {t('adm_use_package')}
                   </label>
-                  <select
+                  <WhiteSelect
                     value={editedKoreaProfile?.useLogisticsPackage ? 'true' : 'false'}
                     onChange={(e) => setEditedKoreaProfile({ ...editedKoreaProfile, useLogisticsPackage: e.target.value === 'true' })}
                     className="input"
                   >
                     <option value="true">{t('adm_fixed_3850_package')}</option>
                     <option value="false">{t('adm_itemized')}</option>
-                  </select>
+                  </WhiteSelect>
                 </div>
                 <NumberField
                   label="Korea Inland ($)"

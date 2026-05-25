@@ -234,66 +234,64 @@ const RingostatAdminPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">{t('ringostatOpsControl')}</h1>
-        <p className="text-muted-foreground mt-1">{t('adm_call_management_webhook_managers_and_logic')}</p>
+      <div className="min-w-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 leading-tight">{t('ringostatOpsControl')}</h1>
+        <p className="text-sm text-zinc-500 mt-1">{t('adm_call_management_webhook_managers_and_logic')}</p>
       </div>
 
-      {/* Health Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Health Cards — 2x2 on mobile, 4-col on lg+ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">{t('adm_connection')}</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-zinc-500">{t('adm_connection')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                {health?.connection?.status === 'connected' ? (
-                  <div className="flex items-center text-green-600">
-                    <CheckCircle2 className="h-4 w-4 mr-1" />
-                    {t('connected')}
-                  </div>
-                ) : (
-                  <div className="flex items-center text-red-600">
-                    <XCircle className="h-4 w-4 mr-1" />
-                    {t('disconnected')}
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">{t('lastWebhook')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {health?.webhook?.last_event ? (
-                <span className="text-sm">{new Date(health.webhook.last_event).toLocaleTimeString()}</span>
+            <div>
+              {health?.connection?.status === 'connected' ? (
+                <div className="flex items-center text-green-600 text-sm sm:text-base font-medium">
+                  <CheckCircle2 className="h-4 w-4 mr-1.5 shrink-0" />
+                  <span className="truncate">{t('connected')}</span>
+                </div>
               ) : (
-                <span className="text-sm text-muted-foreground">{t('adm_no_data_3')}</span>
+                <div className="flex items-center text-red-600 text-sm sm:text-base font-medium">
+                  <XCircle className="h-4 w-4 mr-1.5 shrink-0" />
+                  <span className="truncate">{t('disconnected')}</span>
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">{t('adm_calls_today_3')}</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-zinc-500">{t('lastWebhook')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{health?.calls_today || 0}</div>
+            <div className="text-sm sm:text-base font-medium text-zinc-900">
+              {health?.webhook?.last_event ? (
+                <span>{new Date(health.webhook.last_event).toLocaleTimeString()}</span>
+              ) : (
+                <span className="text-zinc-400">{t('adm_no_data_3')}</span>
+              )}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">{t('adm_requires_attention')}</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-zinc-500">{t('adm_calls_today_3')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
+            <div className="text-2xl sm:text-3xl font-bold text-zinc-900 leading-none">{health?.calls_today || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-zinc-500">{t('adm_requires_attention')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl sm:text-3xl font-bold text-amber-600 leading-none">
               {getAttentionAlerts().length}
             </div>
           </CardContent>
@@ -312,14 +310,16 @@ const RingostatAdminPage = () => {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs — scrollable on narrow */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">{t('adm_overview')}</TabsTrigger>
-          <TabsTrigger value="settings">{t('adm_settings')}</TabsTrigger>
-          <TabsTrigger value="calls">{t('adm_call_history')}</TabsTrigger>
-          <TabsTrigger value="debug">{t('adm_debugging')}</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:min-w-0">
+            <TabsTrigger value="overview" className="whitespace-nowrap">{t('adm_overview')}</TabsTrigger>
+            <TabsTrigger value="settings" className="whitespace-nowrap">{t('adm_settings')}</TabsTrigger>
+            <TabsTrigger value="calls" className="whitespace-nowrap">{t('adm_call_history')}</TabsTrigger>
+            <TabsTrigger value="debug" className="whitespace-nowrap">{t('adm_debugging')}</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
@@ -328,22 +328,22 @@ const RingostatAdminPage = () => {
               <CardTitle>{t('operationalStatus')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">{t('webhookLabel')}</div>
-                  <div>{health?.webhook?.events_today > 0 ? `🟢 ${t('activeAdj')}` : `⚪ ${t('inactiveAdj')}`}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-wider text-zinc-500 font-medium">{t('webhookLabel')}</div>
+                  <div className="mt-1 text-sm">{health?.webhook?.events_today > 0 ? `🟢 ${t('activeAdj')}` : `⚪ ${t('inactiveAdj')}`}</div>
                 </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">{t('apiKey')}</div>
-                  <div>{health?.connection?.api_key_set ? `✅ ${t('configured')}` : `⚠️ ${t('notConfigured')}`}</div>
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-wider text-zinc-500 font-medium">{t('apiKey')}</div>
+                  <div className="mt-1 text-sm">{health?.connection?.api_key_set ? `✅ ${t('configured')}` : `⚠️ ${t('notConfigured')}`}</div>
                 </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">{t('projectId')}</div>
-                  <div>{health?.connection?.project_id_set ? `✅ ${t('configured')}` : `⚠️ ${t('notConfigured')}`}</div>
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-wider text-zinc-500 font-medium">{t('projectId')}</div>
+                  <div className="mt-1 text-sm">{health?.connection?.project_id_set ? `✅ ${t('configured')}` : `⚠️ ${t('notConfigured')}`}</div>
                 </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">{t('managerMappings')}</div>
-                  <div>{health?.mappings?.total - health?.mappings?.unmapped} {t('adm3_b98ccbc2df')} {health?.mappings?.total}</div>
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-wider text-zinc-500 font-medium">{t('managerMappings')}</div>
+                  <div className="mt-1 text-sm">{(health?.mappings?.total ?? 0) - (health?.mappings?.unmapped ?? 0)} {t('adm3_b98ccbc2df')} {health?.mappings?.total ?? 0}</div>
                 </div>
               </div>
             </CardContent>
@@ -353,7 +353,7 @@ const RingostatAdminPage = () => {
             <CardHeader>
               <CardTitle>{t('quickActions')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex gap-2">
+            <CardContent className="flex flex-wrap gap-2">
               <Button onClick={handleTestConnection}>{t('testConnectionAction')}</Button>
               <Button onClick={handleTestWebhook} variant="outline">{t('sendTestEvent')}</Button>
               <Button onClick={() => setActiveTab('settings')} variant="outline">{t('openSettings')}</Button>
@@ -397,7 +397,7 @@ const RingostatAdminPage = () => {
                   placeholder="12345"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button onClick={handleTestConnection}>{t('testConnectionAction')}</Button>
                 <Button onClick={handleSaveSettings}>{t('saveAction')}</Button>
               </div>
@@ -424,14 +424,14 @@ const RingostatAdminPage = () => {
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="grid gap-4 text-sm [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
                 <div>
-                  <div className="text-muted-foreground">{t('lastWebhook')}</div>
-                  <div>{health?.webhook?.last_event ? new Date(health.webhook.last_event).toLocaleString() : t('adm3_dee9a2d8d9')}</div>
+                  <div className="text-xs uppercase tracking-wider text-zinc-500 font-medium">{t('lastWebhook')}</div>
+                  <div className="mt-1">{health?.webhook?.last_event ? new Date(health.webhook.last_event).toLocaleString() : t('adm3_dee9a2d8d9')}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">{t('eventsToday')}</div>
-                  <div>{health?.webhook?.events_today || 0}</div>
+                  <div className="text-xs uppercase tracking-wider text-zinc-500 font-medium">{t('eventsToday')}</div>
+                  <div className="mt-1">{health?.webhook?.events_today || 0}</div>
                 </div>
               </div>
               <Button onClick={handleTestWebhook} variant="outline">{t('sendTestWebhook')}</Button>
@@ -445,55 +445,57 @@ const RingostatAdminPage = () => {
               <CardDescription>{t('adm3_crm_core_0f564fb39d')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('extensionLabel')}</TableHead>
-                    <TableHead>{t('adm_crm_manager')}</TableHead>
-                    <TableHead>{t('statusGeneric')}</TableHead>
-                    <TableHead>{t('actionsLabel')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mappings.map((mapping) => (
-                    <TableRow key={mapping.extension}>
-                      <TableCell>{mapping.extension}</TableCell>
-                      <TableCell>
-                        {mapping.manager_name ? (
-                          <div>
-                            <div className="font-medium">{mapping.manager_name}</div>
-                            <div className="text-sm text-muted-foreground">{mapping.manager_email}</div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">{t('notAssigned')}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={mapping.status === 'assigned' ? 'default' : 'destructive'}>
-                          {mapping.status === 'assigned' ? '✅' : '⚠️'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteMapping(mapping.extension)}
-                        >
-                          {t('deleteAction')}
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto -mx-6 px-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap">{t('extensionLabel')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('adm_crm_manager')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('statusGeneric')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('actionsLabel')}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
-              <div className="mt-4 flex gap-2">
+                  </TableHeader>
+                  <TableBody>
+                    {mappings.map((mapping) => (
+                      <TableRow key={mapping.extension}>
+                        <TableCell className="whitespace-nowrap font-mono">{mapping.extension}</TableCell>
+                        <TableCell>
+                          {mapping.manager_name ? (
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">{mapping.manager_name}</div>
+                              <div className="text-sm text-muted-foreground truncate">{mapping.manager_email}</div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">{t('notAssigned')}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={mapping.status === 'assigned' ? 'default' : 'destructive'}>
+                            {mapping.status === 'assigned' ? '✅' : '⚠️'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteMapping(mapping.extension)}
+                          >
+                            {t('deleteAction')}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="mt-4 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
                 <Input placeholder={t('adm_extension_101')} id="newExt" />
                 <Select onValueChange={(value) => {
                   const ext = document.getElementById('newExt').value;
                   if (ext) handleAddMapping(ext, value);
                 }}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder={t('selectManager')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -588,9 +590,9 @@ const RingostatAdminPage = () => {
             <CardHeader>
               <CardTitle>{t('mobileFiltersTitle')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex gap-2">
+            <CardContent className="flex flex-wrap items-center gap-2">
               <Select value={filters.period} onValueChange={(v) => setFilters({ ...filters, period: v })}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -599,7 +601,7 @@ const RingostatAdminPage = () => {
                   <SelectItem value="month">{t('adm_month')}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button onClick={loadCalls}>{t('adm_apply')}</Button>
+              <Button onClick={loadCalls} className="w-full sm:w-auto">{t('adm_apply')}</Button>
             </CardContent>
           </Card>
 
@@ -608,46 +610,48 @@ const RingostatAdminPage = () => {
               <CardTitle>{t('callsHistory')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('adm_time')}</TableHead>
-                    <TableHead>{t('adm_number')}</TableHead>
-                    <TableHead>{t('adm_direction')}</TableHead>
-                    <TableHead>{t('adm_duration')}</TableHead>
-                    <TableHead>{t('statusGeneric')}</TableHead>
-                    <TableHead>{t('leadLabel')}</TableHead>
-                    <TableHead>{t('actionsLabel')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {calls.map((call) => (
-                    <TableRow key={call.id}>
-                      <TableCell>{new Date(call.started_at).toLocaleString()}</TableCell>
-                      <TableCell>{call.from}</TableCell>
-                      <TableCell>
-                        <Badge variant={call.direction === 'inbound' ? 'default' : 'secondary'}>
-                          {call.direction}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{call.duration}s</TableCell>
-                      <TableCell>
-                        <Badge variant={call.status === 'answered' ? 'default' : 'destructive'}>
-                          {call.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {call.lead ? call.lead.name : <span className="text-muted-foreground">—</span>}
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="outline" onClick={() => setSelectedCall(call)}>
-                          {t('adm_view')}
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto -mx-6 px-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap">{t('adm_time')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('adm_number')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('adm_direction')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('adm_duration')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('statusGeneric')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('leadLabel')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('actionsLabel')}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {calls.map((call) => (
+                      <TableRow key={call.id}>
+                        <TableCell className="whitespace-nowrap">{new Date(call.started_at).toLocaleString()}</TableCell>
+                        <TableCell className="whitespace-nowrap font-mono">{call.from}</TableCell>
+                        <TableCell>
+                          <Badge variant={call.direction === 'inbound' ? 'default' : 'secondary'}>
+                            {call.direction}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{call.duration}s</TableCell>
+                        <TableCell>
+                          <Badge variant={call.status === 'answered' ? 'default' : 'destructive'}>
+                            {call.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {call.lead ? call.lead.name : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="outline" onClick={() => setSelectedCall(call)}>
+                            {t('adm_view')}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -658,8 +662,8 @@ const RingostatAdminPage = () => {
             <CardHeader>
               <CardTitle>{t('debugStatus')}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div>Last webhook payload: {health?.webhook?.last_event ? new Date(health.webhook.last_event).toLocaleString() : t('adm3_dee9a2d8d9')}</div>
+            <CardContent className="space-y-2 text-sm">
+              <div className="break-words">Last webhook payload: {health?.webhook?.last_event ? new Date(health.webhook.last_event).toLocaleString() : t('adm3_dee9a2d8d9')}</div>
               <div>Events today: {health?.webhook?.events_today || 0}</div>
             </CardContent>
           </Card>
@@ -669,30 +673,32 @@ const RingostatAdminPage = () => {
               <CardTitle>{t('recentEvents')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('timestampLabel')}</TableHead>
-                    <TableHead>{t('eventType')}</TableHead>
-                    <TableHead>{t('callIdLabel')}</TableHead>
-                    <TableHead>{t('direction')}</TableHead>
-                    <TableHead>{t('fromLabel')}</TableHead>
-                    <TableHead>{t('durationGeneric')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {events.slice(0, 10).map((evt) => (
-                    <TableRow key={evt.id}>
-                      <TableCell>{new Date(evt.timestamp).toLocaleString()}</TableCell>
-                      <TableCell><Badge>{evt.event_type}</Badge></TableCell>
-                      <TableCell className="font-mono text-sm">{evt.call_id}</TableCell>
-                      <TableCell>{evt.direction}</TableCell>
-                      <TableCell>{evt.from}</TableCell>
-                      <TableCell>{evt.duration}s</TableCell>
+              <div className="overflow-x-auto -mx-6 px-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap">{t('timestampLabel')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('eventType')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('callIdLabel')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('direction')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('fromLabel')}</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('durationGeneric')}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {events.slice(0, 10).map((evt) => (
+                      <TableRow key={evt.id}>
+                        <TableCell className="whitespace-nowrap">{new Date(evt.timestamp).toLocaleString()}</TableCell>
+                        <TableCell><Badge>{evt.event_type}</Badge></TableCell>
+                        <TableCell className="font-mono text-sm whitespace-nowrap">{evt.call_id}</TableCell>
+                        <TableCell>{evt.direction}</TableCell>
+                        <TableCell className="whitespace-nowrap">{evt.from}</TableCell>
+                        <TableCell className="whitespace-nowrap">{evt.duration}s</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
@@ -700,7 +706,7 @@ const RingostatAdminPage = () => {
             <CardHeader>
               <CardTitle>{t('manualTools')}</CardTitle>
             </CardHeader>
-            <CardContent className="flex gap-2">
+            <CardContent className="flex flex-wrap gap-2">
               <Button onClick={handleTestConnection}>{t('testConnectionAction')}</Button>
               <Button onClick={handleTestWebhook} variant="outline">{t('testWebhook')}</Button>
               <Button onClick={() => { loadHealth(); loadEvents(); }} variant="outline">{t('reloadData')}</Button>

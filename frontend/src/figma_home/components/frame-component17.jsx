@@ -20,7 +20,7 @@ import styles from "./frame-component17.module.css";
  *     Falls back to /contacts#phone if the GetInTouchProvider is not in
  *     scope (defensive — shouldn't happen in production).
  */
-const FrameComponent17 = ({ className = "", onProfileClick, onContactClick }) => {
+const FrameComponent17 = ({ className = "", onProfileClick, onContactClick, isAuthed = false, customerName = "" }) => {
   const navigate = useNavigate();
   const { lang, changeLang, t } = useLang();
   const { open: openGetInTouch } = useGetInTouch();
@@ -183,18 +183,29 @@ const FrameComponent17 = ({ className = "", onProfileClick, onContactClick }) =>
         document.body
       )}
 
-      {/* Profile icon — wrapper kept exactly as exported (.iconamoonprofileLightWrapper) */}
+      {/* Profile icon — wrapper kept exactly as exported (.iconamoonprofileLightWrapper).
+          When the customer is signed in, we swap to the "authed" variant
+          (filled amber silhouette + small green online dot). Tooltip shows
+          the customer name so the user can tell the two states apart. */}
       <div
         className={styles.iconamoonprofileLightWrapper}
         onClick={() => onProfileClick && onProfileClick()}
         role="button"
         tabIndex={0}
-        aria-label="Account / Login"
+        aria-label={isAuthed ? `Account — ${customerName || "signed in"}` : "Sign in"}
+        title={isAuthed ? (customerName ? `Signed in as ${customerName}` : "Signed in") : "Sign in"}
         data-testid="header-profile-button"
+        data-authed={isAuthed ? "true" : "false"}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onProfileClick && onProfileClick(); }
         }}
-        style={{ cursor: "pointer" }}
+        style={{
+          cursor: "pointer",
+          position: "relative",
+          borderRadius: "50%",
+          transition: "filter 200ms ease, transform 200ms ease",
+          ...(isAuthed ? { filter: "drop-shadow(0 0 6px rgba(254,174,0,0.45))" } : {}),
+        }}
       >
         <img
           className={styles.iconamoonprofileLight}
@@ -202,7 +213,7 @@ const FrameComponent17 = ({ className = "", onProfileClick, onContactClick }) =>
           height={24}
           sizes="100vw"
           alt=""
-          src="/figma/iconamoon-profile-light.svg"
+          src={isAuthed ? "/figma/iconamoon-profile-authed.svg" : "/figma/iconamoon-profile-light.svg"}
         />
       </div>
 

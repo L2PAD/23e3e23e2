@@ -6,11 +6,14 @@ import ImageGrid from './components/ImageGrid';
 import CostCalculator from './components/CostCalculator';
 import NavigationFooter from './components/NavigationFooter';
 import SimilarCars from './components/SimilarCars';
+// FreshnessBadge intentionally hidden in production UI (no Live/updated chip)
+// import FreshnessBadge from './components/FreshnessBadge';
 import useCarByVin from './useCarByVin';
 import { useLang } from '../../../i18n';
 import { useSingleCarT } from './i18n';
 import './single-car.tokens.css';
 import styles from './SingleCarPage.module.css';
+import { trackEvent, EVENT_NAMES } from '../../../hooks/useTrackEvent';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -21,6 +24,8 @@ const SingleCarPage = () => {
   const params = useParams();
   const vinOrSlug = params.slug || params.query || params.vin;
   const navigate = useNavigate();
+  // phase/freshness/ageSeconds/missingFields intentionally not destructured —
+  // production UI no longer surfaces freshness chips.
   const { loading, error, car } = useCarByVin(vinOrSlug);
   const { lang } = useLang();
   const t = useSingleCarT(lang);
@@ -37,6 +42,27 @@ const SingleCarPage = () => {
     if (body.includes('pickup')) return 'pickup';
     return 'sedan';
   }, [car]);
+
+  // Phase B3 — detail view + bounce observation (Wave 3 freeze).
+  // We fire `detail_view` once the shell is rendered, and `detail_bounce`
+  // if the user leaves within 3 s (low-intent visit). Both are
+  // privacy-respecting: only the redacted VIN suffix reaches the backend.
+  useEffect(() => {
+    if (!car?.vehicle?.vin) return undefined;
+    const vin = car.vehicle.vin;
+    const enteredAt = Date.now();
+    trackEvent(EVENT_NAMES.DETAIL_VIEW, {
+      vin,
+      make: car.vehicle.make || null,
+      year: car.vehicle.year || null,
+    });
+    return () => {
+      const dwellMs = Date.now() - enteredAt;
+      if (dwellMs < 3000) {
+        trackEvent(EVENT_NAMES.DETAIL_BOUNCE, { vin, dwell_ms: dwellMs });
+      }
+    };
+  }, [car?.vehicle?.vin, car?.vehicle?.make, car?.vehicle?.year]);
 
   const runCalc = useCallback(async (priceUsd, auction) => {
     if (!priceUsd || priceUsd <= 0) {
@@ -131,7 +157,7 @@ const SingleCarPage = () => {
       <NavigationHeader
         breadcrumb={breadcrumb}
         title={title}
-        vin={car?.vin}
+        vin={car?.auction?.vin || car?.vehicle?.vin || (vinOrSlug ? String(vinOrSlug).toUpperCase() : '')}
         loading={loading}
         shareSnapshot={car ? {
           title: car.title,
@@ -153,7 +179,7 @@ const SingleCarPage = () => {
         } : null}
       />
 
-      {loading && (
+      {loading && !car && (
         <div className={styles.stateBox}>
           <div className={styles.spinner} />
           <div className={styles.stateText}>
@@ -198,6 +224,8 @@ const SingleCarPage = () => {
           : car;
         return (
           <>
+            {/* Freshness/Live badge hidden by product decision (no production
+                status chips on the customer-facing page). */}
             <ImageGrid car={carWithTotal} onExactCostClick={handleExactCost} />
             <div id="cost-calculator">
               <CostCalculator

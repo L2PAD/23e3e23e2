@@ -19,6 +19,7 @@ import {
   PencilSimple, Eye, EyeSlash, Trash, Plus, FloppyDisk, X,
   CurrencyEur, CurrencyDollar, Receipt,
 } from '@phosphor-icons/react';
+import WhiteSelect from '../../../components/ui/WhiteSelect';
 
 const INFO_ROW_KEYS = new Set(['customsBase', 'declaredValue']);
 const LOCKED_STATUSES = new Set(['final', 'archived']);
@@ -226,19 +227,15 @@ export default function CalculationOverrideEditor({ calc, onChange }) {
             <input placeholder={t('cmp_value')}   type="number" value={newRow.value}
                    onChange={(e) => setNewRow({ ...newRow, value: e.target.value })}
                    className="px-2 py-1.5 border border-[#D4D4D8] rounded text-sm text-right" />
-            <select value={newRow.currency}
-                    onChange={(e) => setNewRow({ ...newRow, currency: e.target.value })}
-                    className="px-2 py-1.5 border border-[#D4D4D8] rounded text-sm">
+            <WhiteSelect value={newRow.currency} onChange={(e) => setNewRow({ ...newRow, currency: e.target.value })}>
               <option value="EUR">{t('cmp_eur')}</option>
               <option value="USD">{t('cmp_usd')}</option>
-            </select>
-            <select value={newRow.visibility}
-                    onChange={(e) => setNewRow({ ...newRow, visibility: e.target.value })}
-                    className="px-2 py-1.5 border border-[#D4D4D8] rounded text-sm">
+            </WhiteSelect>
+            <WhiteSelect value={newRow.visibility} onChange={(e) => setNewRow({ ...newRow, visibility: e.target.value })}>
               <option value="client">{t('cmp_visible_to_client')}</option>
               <option value="manager">{t('cmp_manager_only')}</option>
               <option value="admin_only">{t('cmp_admin_only')}</option>
-            </select>
+            </WhiteSelect>
             <div className="md:col-span-5 flex items-center gap-2 justify-end">
               <button onClick={() => setAdding(false)} className="px-3 py-1.5 rounded text-sm font-semibold text-[#71717A] hover:bg-[#F4F4F5]">{t('cmp_cancel')}</button>
               <button onClick={addRow} disabled={busy} className="px-3 py-1.5 rounded text-sm font-semibold bg-[#4F46E5] text-white hover:bg-[#3730A3]">{t('cmp_add_row')}</button>

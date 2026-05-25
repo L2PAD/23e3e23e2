@@ -30,6 +30,11 @@ import {
   Filter,
   Wallet,
 } from 'lucide-react';
+// WhiteSelect — the canonical white dropdown (portal-rendered, auto-flip,
+// matches the design system used across catalog/admin filters).
+import WhiteSelect from '../../components/ui/WhiteSelect';
+import { ChevronDown } from 'lucide-react';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -78,17 +83,19 @@ const fmtDate = (iso) => {
 };
 
 const StatCard = ({ label, value, sub, icon: Icon, accent = '#635BFF' }) => (
-  <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-sm transition-shadow">
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-        {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
-      </div>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${accent}15` }}>
-        <Icon className="w-5 h-5" style={{ color: accent }} />
-      </div>
+  <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow min-w-0 h-full flex flex-col">
+    {/* Top row: label + flat icon (no inner-card background — eliminates the
+        "card-in-card" feel the user pointed out). Icon sits inline as a
+        15-px accent glyph instead of a 40x40 chip. */}
+    <div className="flex items-center justify-between gap-2">
+      <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 uppercase tracking-wider leading-tight break-words">
+        {label}
+      </p>
+      <Icon className="w-4 h-4 flex-shrink-0" style={{ color: accent }} />
     </div>
+    <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-2 tabular-nums leading-none">{value}</p>
+    {/* Sub-text always rendered (even if empty) so all 5 cards have identical height */}
+    <p className="text-[11px] text-gray-500 mt-2 truncate min-h-[14px]">{sub || '\u00a0'}</p>
   </div>
 );
 
@@ -123,22 +130,38 @@ export default function AdminPaymentsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [filters, setFilters] = useState({ status: '', method: '', q: '', days: 30 });
+  // `appliedFilters` = the snapshot that drives the actual API request.
+  // `draftFilters`   = the user's in-progress edits in the filter row. The
+  // Apply button commits draft → applied; additionally, the free-text search
+  // field auto-applies after 500ms of inactivity so typing feels live without
+  // firing a request on every keystroke.
+  const [appliedFilters, setAppliedFilters] = useState({ status: '', method: '', q: '', days: 30 });
+  const [draftFilters, setDraftFilters] = useState({ status: '', method: '', q: '', days: 30 });
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
   const [refunding, setRefunding] = useState(false);
+
+  // Debounced live-apply for the search field only. Status/Method still wait
+  // for explicit Apply so the user is in control of dropdowns.
+  useEffect(() => {
+    if (draftFilters.q === appliedFilters.q) return;
+    const id = setTimeout(() => {
+      setAppliedFilters((prev) => ({ ...prev, q: draftFilters.q }));
+    }, 500);
+    return () => clearTimeout(id);
+  }, [draftFilters.q, appliedFilters.q]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (filters.status) params.set('status', filters.status);
-      if (filters.method) params.set('method', filters.method);
-      if (filters.q)      params.set('q', filters.q);
-      params.set('days', String(filters.days || 30));
+      if (appliedFilters.status) params.set('status', appliedFilters.status);
+      if (appliedFilters.method) params.set('method', appliedFilters.method);
+      if (appliedFilters.q)      params.set('q', appliedFilters.q);
+      params.set('days', String(appliedFilters.days || 30));
       params.set('limit', '200');
       const [statsRes, listRes] = await Promise.all([
-        axios.get(`${API_URL}/api/admin/payments/stats?days=${filters.days || 30}`),
+        axios.get(`${API_URL}/api/admin/payments/stats?days=${appliedFilters.days || 30}`),
         axios.get(`${API_URL}/api/admin/payments?${params.toString()}`),
       ]);
       setStats(statsRes.data);
@@ -149,9 +172,18 @@ export default function AdminPaymentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [appliedFilters, t]);
 
   useEffect(() => { load(); }, [load]);
+
+  const applyFilters = () => {
+    setAppliedFilters({ ...draftFilters });
+  };
+  const resetFilters = () => {
+    const fresh = { status: '', method: '', q: '', days: draftFilters.days };
+    setDraftFilters(fresh);
+    setAppliedFilters(fresh);
+  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -217,61 +249,159 @@ export default function AdminPaymentsPage() {
   const dailyMax = useMemo(() => Math.max(1, ...(stats?.daily || []).map(d => d.amount || 0)), [stats]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <CreditCard className="w-7 h-7 text-[#635BFF]" />
+    <div className="space-y-4 sm:space-y-5">
+      {/*
+        ── Payments page header — bullet-proof mobile layout ──────────────
+        June 2026 — finalised after multiple regressions. DO NOT replace
+        with <AdminPageHeader/>: this page has too many controls (filter
+        select + refresh + CSV) for the generic header. Custom layout
+        here so the icon stays pinned top-LEFT, refresh stays pinned
+        top-RIGHT, and the title sits in the natural reading flow
+        between/below them. The 30-day filter and CSV button live on
+        their OWN toolbar row so they can never squeeze the title.
+
+        Mobile (< sm):
+          ┌──────────────────────────────────────────────────┐
+          │ [icon] ............................ [refresh] │  ← Row 1
+          │ Payments                                         │  ← Row 2
+          │ Master-admin view — pull existing…               │
+          ├──────────────────────────────────────────────────┤
+          │ [ Last 30 days ▼     ]   [ ⬇ CSV ]               │  ← Row 3
+          └──────────────────────────────────────────────────┘
+
+        Desktop (≥ sm):
+          ┌──────────────────────────────────────────────────┐
+          │ [icon] Payments              [30d][refresh][CSV] │
+          │        Master-admin view…                        │
+          └──────────────────────────────────────────────────┘
+      */}
+      <header
+        className="bg-white border border-[#E4E4E7] rounded-2xl p-4 sm:p-5"
+        data-testid="payments-header"
+      >
+        {/* Row 1 (mobile): icon-left + refresh-right.  
+            On desktop this row also holds the title and the right-side toolbar. */}
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <CreditCard size={18} />
+          </div>
+
+          {/* Title block — only visible inline on desktop (sm+). On mobile the
+              title moves to its own row BELOW (see further down) so the icon
+              and refresh sit in their dedicated corners. */}
+          <div className="hidden sm:block flex-1 min-w-0">
+            <h1 className="text-[17px] sm:text-[19px] font-semibold tracking-tight text-[#18181B] leading-tight break-words">
+              {t('paymentsTitle')}
+            </h1>
+            <p className="mt-1 text-[12.5px] sm:text-[13px] text-[#71717A] leading-relaxed break-words">
+              {t('masterAdminView')}
+            </p>
+          </div>
+
+          {/* Desktop-only toolbar (30-day select + refresh + CSV) docked right. */}
+          <div className="hidden sm:flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="w-[160px] shrink-0">
+              <WhiteSelect
+                value={String(appliedFilters.days)}
+                onChange={(e) => {
+                  const days = Number(e.target.value);
+                  setDraftFilters((f) => ({ ...f, days }));
+                  setAppliedFilters((f) => ({ ...f, days }));
+                }}
+                data-testid="payments-days-select"
+              >
+                <option value="7">{t('last7Days')}</option>
+                <option value="30">{t('last30Days')}</option>
+                <option value="90">{t('last90Days')}</option>
+                <option value="365">{t('lastYear')}</option>
+                <option value="3650">{t('allTime')}</option>
+              </WhiteSelect>
+            </div>
+            <RefreshButton
+              onClick={handleSync}
+              loading={syncing}
+              ariaLabel={t('syncFromStripe') || 'Refresh'}
+              testId="payments-refresh-btn"
+              title={t('syncFromStripe')}
+            />
+            <button
+              onClick={exportCsv}
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl border border-[#E4E4E7] bg-white hover:bg-[#FAFAFA] text-[12.5px] font-medium text-[#18181B] whitespace-nowrap focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+              data-testid="payments-csv-btn"
+            >
+              <Download className="w-3.5 h-3.5" />
+              CSV
+            </button>
+          </div>
+
+          {/* Mobile-only refresh in the top-RIGHT corner. ml-auto pins it
+              to the far right so the row always reads: icon ←→ refresh. */}
+          <div className="ml-auto sm:hidden shrink-0">
+            <RefreshButton
+              onClick={handleSync}
+              loading={syncing}
+              ariaLabel={t('syncFromStripe') || 'Refresh'}
+              testId="payments-refresh-btn-mobile"
+              title={t('syncFromStripe')}
+            />
+          </div>
+        </div>
+
+        {/* Row 2 (mobile only): title + subtitle, full-width, normal flow.
+            Never gets letter-wrapped because nothing competes for width. */}
+        <div className="mt-3 sm:hidden">
+          <h1 className="text-[18px] font-semibold tracking-tight text-[#18181B] leading-tight break-words">
             {t('paymentsTitle')}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">{t('masterAdminView')}</p>
+          <p className="mt-1 text-[12.5px] text-[#71717A] leading-relaxed break-words">
+            {t('masterAdminView')}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={filters.days}
-            onChange={(e) => setFilters({ ...filters, days: Number(e.target.value) })}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+
+        {/* Row 3 (mobile only): 30-day filter + CSV button on their own row.
+            grid-cols-[1fr_auto] = filter stretches, CSV button stays compact. */}
+        <div className="mt-4 grid grid-cols-[1fr_auto] gap-2 sm:hidden">
+          <WhiteSelect
+            value={String(appliedFilters.days)}
+            onChange={(e) => {
+              const days = Number(e.target.value);
+              setDraftFilters((f) => ({ ...f, days }));
+              setAppliedFilters((f) => ({ ...f, days }));
+            }}
+            data-testid="payments-days-select-mobile"
           >
             <option value="7">{t('last7Days')}</option>
             <option value="30">{t('last30Days')}</option>
             <option value="90">{t('last90Days')}</option>
             <option value="365">{t('lastYear')}</option>
             <option value="3650">{t('allTime')}</option>
-          </select>
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 bg-[#635BFF] text-white rounded-lg hover:bg-[#5147d4] disabled:opacity-50 text-sm font-medium"
-          >
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {t('syncFromStripe')}
-          </button>
+          </WhiteSelect>
           <button
             onClick={exportCsv}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-sm"
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl border border-[#E4E4E7] bg-white hover:bg-[#FAFAFA] text-[13px] font-medium text-[#18181B] whitespace-nowrap focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+            data-testid="payments-csv-btn-mobile"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5" />
             CSV
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — identical templates, equal height via h-full on each card */}
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <StatCard label={t('totalVolume')} value={fmtAmount(stats.totalAmount, items[0]?.currency || 'USD')} sub={`${stats.totalCount} successful`} icon={DollarSign} accent="#635BFF" />
-          <StatCard label={t('succeededStatus')} value={stats.succeeded} icon={CheckCircle2} accent="#10B981" />
-          <StatCard label={t('statusPending')} value={stats.pending} icon={Clock} accent="#F59E0B" />
-          <StatCard label={t('depositFailed')} value={stats.failed} icon={XCircle} accent="#EF4444" />
-          <StatCard label={t('depositRefunded')} value={stats.refunded} icon={RotateCcw} accent="#6B7280" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <StatCard label={t('totalVolume')}      value={fmtAmount(stats.totalAmount, items[0]?.currency || 'USD')} sub={`${stats.totalCount} successful`} icon={DollarSign}  accent="#635BFF" />
+          <StatCard label={t('succeededStatus')}  value={stats.succeeded} sub=""                                    icon={CheckCircle2}                     accent="#10B981" />
+          <StatCard label={t('statusPending')}    value={stats.pending}   sub=""                                    icon={Clock}                            accent="#F59E0B" />
+          <StatCard label={t('depositFailed')}    value={stats.failed}    sub=""                                    icon={XCircle}                          accent="#EF4444" />
+          <StatCard label={t('depositRefunded')}  value={stats.refunded}  sub=""                                    icon={RotateCcw}                        accent="#6B7280" />
         </div>
       )}
 
       {/* By-method + daily chart row */}
       {stats && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="lg:col-span-1 bg-white rounded-lg border border-gray-200 p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
               <Wallet className="w-4 h-4 text-gray-500" />
               <h3 className="text-sm font-semibold text-gray-900">{t('byPaymentMethod')}</h3>
@@ -283,13 +413,13 @@ export default function AdminPaymentsPage() {
                 const pct = stats.totalAmount ? Math.round((m.amount / stats.totalAmount) * 100) : 0;
                 return (
                   <div key={m.method}>
-                    <div className="flex items-center justify-between text-sm mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold" style={{ backgroundColor: `${meta.color}15`, color: meta.color }}>{meta.icon}</span>
-                        <span className="font-medium">{meta.label}</span>
-                        <span className="text-xs text-gray-400">×{m.count}</span>
+                    <div className="flex items-center justify-between text-sm mb-1 gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: `${meta.color}15`, color: meta.color }}>{meta.icon}</span>
+                        <span className="font-medium truncate">{meta.label}</span>
+                        <span className="text-xs text-gray-400 flex-shrink-0">×{m.count}</span>
                       </div>
-                      <span className="font-semibold tabular-nums">{fmtAmount(m.amount)}</span>
+                      <span className="font-semibold tabular-nums flex-shrink-0">{fmtAmount(m.amount)}</span>
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: meta.color }} />
@@ -299,13 +429,13 @@ export default function AdminPaymentsPage() {
               })}
             </div>
           </div>
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-4 h-4 text-gray-500" />
               <h3 className="text-sm font-semibold text-gray-900">{t('dailyRevenue')}</h3>
             </div>
             {stats.daily.length === 0 ? (
-              <div className="h-32 flex items-center justify-center text-xs text-gray-400">
+              <div className="h-32 flex items-center justify-center text-xs text-gray-400 text-center px-4">
                 {t('noPaymentsYetHint')}
               </div>
             ) : (
@@ -328,56 +458,72 @@ export default function AdminPaymentsPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[260px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* Filters — single flat row, no card-in-card. On mobile each control takes full width. */}
+      <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_180px_180px_auto_auto] gap-2.5">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="text"
               placeholder={t('adm_search_by_email_invoice_paymentintent')}
-              value={filters.q}
-              onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-              className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]"
+              value={draftFilters.q}
+              onChange={(e) => setDraftFilters({ ...draftFilters, q: e.target.value })}
+              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
+              className="w-full pl-10 pr-3 h-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]"
             />
           </div>
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
-          >
-            <option value="">{t('allStatuses')}</option>
-            <option value="succeeded">{t('succeededStatus')}</option>
-            <option value="paid">{t('stagePaymentDone')}</option>
-            <option value="processing">{t('depositProcessing')}</option>
-            <option value="requires_action">{t('requiresAction')}</option>
-            <option value="failed">{t('depositFailed')}</option>
-            <option value="canceled">{t('canceledStatus')}</option>
-          </select>
-          <select
-            value={filters.method}
-            onChange={(e) => setFilters({ ...filters, method: e.target.value })}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
-          >
-            <option value="">{t('allMethods')}</option>
-            {Object.entries(METHOD_META).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </select>
+          <div>
+            <WhiteSelect
+              value={draftFilters.status}
+              onChange={(e) => setDraftFilters({ ...draftFilters, status: e.target.value })}
+              data-testid="payments-status-select"
+            >
+              <option value="">{t('allStatuses')}</option>
+              <option value="succeeded">{t('succeededStatus')}</option>
+              <option value="paid">{t('stagePaymentDone')}</option>
+              <option value="processing">{t('depositProcessing')}</option>
+              <option value="requires_action">{t('requiresAction')}</option>
+              <option value="failed">{t('depositFailed')}</option>
+              <option value="canceled">{t('canceledStatus')}</option>
+            </WhiteSelect>
+          </div>
+          <div>
+            <WhiteSelect
+              value={draftFilters.method}
+              onChange={(e) => setDraftFilters({ ...draftFilters, method: e.target.value })}
+              data-testid="payments-method-select"
+            >
+              <option value="">{t('allMethods')}</option>
+              {Object.entries(METHOD_META).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </WhiteSelect>
+          </div>
           <button
-            onClick={load}
-            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
+            onClick={applyFilters}
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-[#18181B] text-white rounded-lg hover:bg-[#27272A] text-sm font-medium whitespace-nowrap"
           >
             <Filter className="w-3.5 h-3.5" />
             {t('applyFilter')}
+          </button>
+          <button
+            onClick={resetFilters}
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm text-gray-600 whitespace-nowrap"
+            title="Reset filters"
+            type="button"
+          >
+            <X className="w-3.5 h-3.5" />
+            Reset
           </button>
         </div>
       </div>
 
       {/* Payments table */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">{t('recentPayments')}<span className="font-normal text-gray-400">({total})</span></h3>
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="px-4 sm:px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-gray-900">
+            {t('recentPayments')} <span className="font-normal text-gray-400">({total})</span>
+          </h3>
           {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin text-gray-400" />}
         </div>
         {items.length === 0 && !loading ? (

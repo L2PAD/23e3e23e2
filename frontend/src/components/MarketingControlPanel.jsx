@@ -27,6 +27,7 @@ import {
 } from 'recharts';
 import { toast } from 'sonner';
 import { useLang } from '../i18n';
+import WhiteSelect from '../components/ui/WhiteSelect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -698,16 +699,12 @@ const MarketingControlPanel = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <select
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
-            >
+            <WhiteSelect value={days} onChange={(e) => setDays(Number(e.target.value))}>
               <option value={7}>{t('i18n_last_7_days_79531d')}</option>
               <option value={14}>{t('i18n_last_14_days_a937d9')}</option>
               <option value={30}>{t('i18n_last_30_days_f5c99e')}</option>
               <option value={60}>{t('i18n_last_60_days_226c39')}</option>
-            </select>
+            </WhiteSelect>
             <button
               onClick={fetchData}
               disabled={loading}

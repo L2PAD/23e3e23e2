@@ -89,7 +89,7 @@ export default function ParserSettings() {
             <div>
               <h2 className="text-lg font-bold text-[#18181B]">
                 {info?.name || 'BIBI Cars Parser'}{' '}
-                <span className="text-sm font-mono text-emerald-700">
+                <span className="text-sm text-emerald-700">
                   v{info?.version || '4.1.0'}
                 </span>
               </h2>
@@ -97,7 +97,7 @@ export default function ParserSettings() {
                 {info?.description ||
                   'Cloudflare-bypass extension for the multi-source resolver.'}
               </p>
-              <p className="text-xs text-[#71717A] mt-2 font-mono">
+              <p className="text-xs text-[#71717A] mt-2">
                 {loading
                   ? t('adm2_6af33bc102')
                   : info?.file_exists
@@ -139,7 +139,7 @@ export default function ParserSettings() {
                   <p className="text-sm font-semibold text-[#18181B]">
                     {s.label}
                   </p>
-                  <p className="text-[10px] font-mono text-[#71717A] tracking-wider">
+                  <p className="text-[10px] text-[#71717A] tracking-wider">
                     {s.role}
                   </p>
                 </div>
@@ -177,7 +177,7 @@ export default function ParserSettings() {
               key={i}
               className="flex items-start gap-2.5 leading-relaxed"
             >
-              <span className="text-emerald-600 font-mono font-bold">→</span>
+              <span className="text-emerald-600 font-bold">→</span>
               <span>{step.replace(/^\d+\.\s*/, '')}</span>
             </li>
           ))}
@@ -243,7 +243,7 @@ export default function ParserSettings() {
           <code>{t('adm_carfastexpress')}</code> {t('r9_fully_removed_endpoints_3a4b5c')}{' '}
           <code>/api/copart/*</code>, <code>/api/bidcars/*</code>,{' '}
           <code>/api/carfast/*</code> {t('r9_return_verb_6d7e8f')}{' '}
-          <code className="font-mono">{t('adm_410_gone')}</code>{t('adm3_88d2438d4d')}
+          <code className="">{t('adm_410_gone')}</code>{t('adm3_88d2438d4d')}
         </p>
       </div>
     </div>

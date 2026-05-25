@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLang } from '../../i18n';
+import RefreshButton from '../../components/ui/RefreshButton';
 import { 
   Bell, 
   TelegramLogo, 
@@ -14,6 +15,7 @@ import {
   Lightning
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
+import WhiteSelect from '../../components/ui/WhiteSelect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
@@ -156,38 +158,35 @@ export default function NotificationSettings() {
   return (
     <div className="space-y-6" data-testid="notification-settings">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{t('notificationSettings') || 'Notification Settings'}</h1>
-          <p className="text-zinc-500">{t('configureNotificationChannels') || 'Configure notification channels per event'}</p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold text-zinc-900 break-words">{t('notificationSettings') || 'Notification Settings'}</h1>
+          <p className="text-zinc-500 break-words">{t('configureNotificationChannels') || 'Configure notification channels per event'}</p>
         </div>
-        <button
+        <RefreshButton
           onClick={loadRules}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 
-                     transition-colors text-sm font-medium disabled:opacity-50"
-        >
-          <ArrowClockwise size={16} className={loading ? 'animate-spin' : ''} />
-          {t('refresh') || 'Refresh'}
-        </button>
+          loading={loading}
+          ariaLabel={t('refresh') || 'Refresh'}
+          testId="notification-settings-refresh-btn"
+        />
       </div>
 
       {/* Legend */}
       <div className="flex flex-wrap gap-3 p-4 bg-zinc-50 rounded-xl border border-zinc-200">
         <div className="flex items-center gap-2">
-          <Bell size={18} className="text-blue-600" />
+          <Bell size={18} className="text-[#18181B]" />
           <span className="text-sm text-zinc-600">{t('inAppNotifications') || 'In-App'}</span>
         </div>
         <div className="flex items-center gap-2">
-          <TelegramLogo size={18} className="text-sky-500" />
+          <TelegramLogo size={18} className="text-[#18181B]" />
           <span className="text-sm text-zinc-600">{t('telegramChannel')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <SpeakerHigh size={18} className="text-violet-600" />
+          <SpeakerHigh size={18} className="text-[#18181B]" />
           <span className="text-sm text-zinc-600">{t('sound') || 'Sound'}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Envelope size={18} className="text-emerald-600" />
+          <Envelope size={18} className="text-[#18181B]" />
           <span className="text-sm text-zinc-600">{t("emailLabel")}</span>
         </div>
       </div>
@@ -210,11 +209,11 @@ export default function NotificationSettings() {
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-xl ${
                     rule.severity === 'critical' ? 'bg-red-100' :
-                    rule.severity === 'warning' ? 'bg-amber-100' : 'bg-blue-100'
+                    rule.severity === 'warning' ? 'bg-amber-100' : 'bg-zinc-100'
                   }`}>
                     <RuleIcon size={20} className={
                       rule.severity === 'critical' ? 'text-red-600' :
-                      rule.severity === 'warning' ? 'text-amber-600' : 'text-blue-600'
+                      rule.severity === 'warning' ? 'text-amber-600' : 'text-[#18181B]'
                     } weight="duotone" />
                   </div>
                   <div>
@@ -274,17 +273,13 @@ export default function NotificationSettings() {
               {rule.channels.sound && (
                 <div className="mt-4 pt-4 border-t border-zinc-100">
                   <label className="text-sm text-zinc-500 block mb-2">{t('soundKey') || 'Sound'}</label>
-                  <select
-                    value={rule.soundKey || 'alert'}
-                    onChange={(e) => updateRule(rule.eventType, { soundKey: e.target.value })}
-                    className="px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-                  >
+                  <WhiteSelect value={rule.soundKey || 'alert'} onChange={(e) => updateRule(rule.eventType, { soundKey: e.target.value })}>
                     <option value="lead">{t('adm_lead')}</option>
                     <option value="payment">{t('adm_payment_2')}</option>
                     <option value="shipment">{t('adm_shipment')}</option>
                     <option value="alert">{t('adm_alert')}</option>
                     <option value="success">{t('adm_success_2')}</option>
-                  </select>
+                  </WhiteSelect>
                 </div>
               )}
             </div>

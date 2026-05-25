@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import RefreshButton from '../../components/ui/RefreshButton';
 import {
   Users,
   Fire,
@@ -103,15 +106,28 @@ const TeamLeadsPage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Team Leads' },
+      ]} />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('teamLeads')}
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('teamLeadsSubtitle')}
-          </p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Users size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('teamLeads')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('teamLeadsSubtitle')}
+            </p>
+          </div>
+        </div>
+        <div className="shrink-0 self-start">
+          <RefreshButton onClick={fetchLeads} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="team-leads-refresh-btn" />
         </div>
       </div>
 
@@ -227,7 +243,7 @@ const TeamLeadsPage = () => {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          lead.status === 'new' ? 'bg-[#EEF2FF] text-[#4F46E5]' :
+                          lead.status === 'new' ? 'bg-[#F4F4F5] text-[#18181B]' :
                           lead.status === 'contacted' ? 'bg-[#ECFDF5] text-[#059669]' :
                           lead.status === 'qualified' ? 'bg-[#FEF3C7] text-[#D97706]' :
                           'bg-[#F4F4F5] text-[#71717A]'
@@ -246,7 +262,7 @@ const TeamLeadsPage = () => {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => handleReassign(lead._id)}
-                            className="p-2 text-[#71717A] hover:text-[#4F46E5] hover:bg-[#EEF2FF] rounded-lg transition-colors"
+                            className="p-2 text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-colors"
                             title={t('reassign')}
                           >
                             <ArrowsClockwise size={16} />

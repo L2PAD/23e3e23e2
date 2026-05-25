@@ -107,7 +107,7 @@ const NotificationBell = () => {
         className="relative p-2 rounded-xl hover:bg-zinc-100 transition-colors"
         data-testid="notification-bell-button"
       >
-        <Bell size={22} weight={unreadCount > 0 ? 'fill' : 'regular'} className="text-zinc-600" />
+        <Bell size={22} weight={unreadCount > 0 ? 'fill' : 'regular'} className="text-[#18181B]" />
         
         {/* Unread Badge */}
         {unreadCount > 0 && (
@@ -121,13 +121,7 @@ const NotificationBell = () => {
           </motion.span>
         )}
         
-        {/* Connection indicator */}
-        <span 
-          className={`absolute bottom-1 right-1 w-2 h-2 rounded-full ${
-            connected ? 'bg-emerald-500' : 'bg-zinc-300'
-          }`}
-          title={connected ? 'Connected' : 'Disconnected'}
-        />
+        {/* Connection indicator removed per design — bell stays clean */}
       </button>
 
       {/* Dropdown */}
@@ -138,7 +132,7 @@ const NotificationBell = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-96 max-h-[480px] bg-white rounded-2xl shadow-xl 
+            className="fixed sm:absolute right-2 sm:right-0 left-2 sm:left-auto top-16 sm:top-auto sm:mt-2 sm:w-96 max-w-[calc(100vw-16px)] sm:max-w-none max-h-[480px] bg-white rounded-2xl shadow-xl 
                        border border-zinc-200 overflow-hidden z-50"
             data-testid="notification-dropdown"
           >
@@ -151,8 +145,8 @@ const NotificationBell = () => {
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 
-                               hover:bg-blue-50 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-[#18181B] 
+                               hover:bg-zinc-100 rounded-lg transition-colors"
                   >
                     <Check size={14} />
                     {t('markAllRead') || 'Mark all read'}
@@ -183,7 +177,7 @@ const NotificationBell = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className={`p-4 border-b border-zinc-50 cursor-pointer hover:bg-zinc-50 transition-colors
-                               ${!notification.isRead ? 'bg-blue-50/30' : ''}`}
+                               ${!notification.isRead ? 'bg-zinc-50/60' : ''}`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex gap-3">
@@ -199,7 +193,7 @@ const NotificationBell = () => {
                             {notification.title}
                           </p>
                           {!notification.isRead && (
-                            <span className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="flex-shrink-0 w-2 h-2 rounded-full bg-[#18181B]" />
                           )}
                         </div>
                         <p className="text-sm text-zinc-600 mt-0.5 line-clamp-2">
@@ -223,7 +217,7 @@ const NotificationBell = () => {
                     setIsOpen(false);
                     navigate('/admin/notifications');
                   }}
-                  className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="w-full text-center text-sm text-[#18181B] hover:bg-zinc-100 font-medium rounded-lg py-2 transition-colors"
                 >
                   {t('viewAll') || 'View all notifications'}
                 </button>

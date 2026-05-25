@@ -31,6 +31,10 @@ import {
   CreditCard,
   ChevronRight,
 } from 'lucide-react';
+import WhiteSelect from '../components/ui/WhiteSelect';
+import WhiteDatePicker from '../components/ui/WhiteDatePicker';
+import BackButton from '../components/ui/BackButton';
+import Breadcrumb from '../components/ui/Breadcrumb';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -212,16 +216,16 @@ function CreateInvoiceModal({ open, onClose, customers, services, onCreated }) {
 
         {/* body */}
         <div className="p-6 space-y-6">
+      <Breadcrumb items={[
+        { label: 'My Workspace', to: '/manager' },
+        { label: 'My Invoices' },
+      ]} />
+
           {/* customer + currency */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-zinc-600 mb-1">{t('adm_customer_3')}</label>
-              <select
-                value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]"
-                data-testid="invoice-customer-select"
-              >
+              <WhiteSelect value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="w-full" data-testid="invoice-customer-select">
                 <option value="">{t('adm_select_customer_2')}</option>
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -229,19 +233,15 @@ function CreateInvoiceModal({ open, onClose, customers, services, onCreated }) {
                     {c.email ? ` · ${c.email}` : ''}
                   </option>
                 ))}
-              </select>
+              </WhiteSelect>
             </div>
             <div>
               <label className="block text-xs font-medium text-zinc-600 mb-1">{t('adm_currency')}</label>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white"
-              >
+              <WhiteSelect value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full">
                 {['USD', 'EUR', 'UAH', 'BGN', 'GBP'].map((c) => (
                   <option key={c}>{c}</option>
                 ))}
-              </select>
+              </WhiteSelect>
             </div>
           </div>
 
@@ -249,11 +249,10 @@ function CreateInvoiceModal({ open, onClose, customers, services, onCreated }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-zinc-600 mb-1">{t('adm_payment_due_date')}</label>
-              <input
-                type="date"
+              <WhiteDatePicker
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm"
+                data-testid="invoice-due-date"
               />
             </div>
             <div className="md:col-span-2">
@@ -790,12 +789,7 @@ export default function ManagerInvoicesPage() {
           />
         </div>
         <Filter className="w-4 h-4 text-zinc-400" />
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white"
-          data-testid="invoice-filter"
-        >
+        <WhiteSelect value={filter} onChange={(e) => setFilter(e.target.value)} data-testid="invoice-filter">
           <option value="all">{t('adm_all_statuses')}</option>
           <option value="draft">{t('adm_drafts')}</option>
           <option value="sent">{t('adm_sent_4')}</option>
@@ -803,7 +797,7 @@ export default function ManagerInvoicesPage() {
           <option value="paid">{t('adm_paid_2')}</option>
           <option value="overdue">{t('adm_overdue_2')}</option>
           <option value="cancelled">{t('adm_canceled_2')}</option>
-        </select>
+        </WhiteSelect>
       </div>
 
       {/* table */}

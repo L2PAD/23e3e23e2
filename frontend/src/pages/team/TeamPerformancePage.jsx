@@ -9,6 +9,9 @@ import { API_URL, useAuth } from '../../App';
 import { useLang } from '../../i18n';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import RefreshButton from '../../components/ui/RefreshButton';
 import {
   ChartLineUp,
   ChartBar,
@@ -70,14 +73,29 @@ const TeamPerformancePage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Team Performance' },
+      ]} />
+
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-          {t('teamPerformance')}
-        </h1>
-        <p className="text-sm text-[#71717A] mt-1">
-          {t('teamPerformanceDesc') || t('adm3_b718e2fb4d')}
-        </p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <ChartLineUp size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('teamPerformance')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('teamPerformanceDesc') || t('adm3_b718e2fb4d')}
+            </p>
+          </div>
+        </div>
+        <div className="shrink-0 self-start">
+          <RefreshButton onClick={fetchPerformance} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="team-performance-refresh-btn" />
+        </div>
       </div>
 
       {/* Team Metrics */}
@@ -129,7 +147,7 @@ const TeamPerformancePage = () => {
         {/* Manager Performance Ranking */}
         <div className="bg-white rounded-2xl border border-[#E4E4E7] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#E4E4E7] flex items-center gap-2">
-            <ChartBar size={20} className="text-[#4F46E5]" weight="duotone" />
+            <ChartBar size={20} className="text-[#18181B]" weight="duotone" />
             <h3 className="font-semibold text-[#18181B]">{t('managerPerfRanking')}</h3>
           </div>
           <div className="p-5 space-y-3">
@@ -146,7 +164,7 @@ const TeamPerformancePage = () => {
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-[#18181B]">{m.name || t('managerAlerts')}</span>
-                    <span className="text-sm font-bold text-[#4F46E5]">{m.performanceScore || 0}</span>
+                    <span className="text-sm font-bold text-[#18181B]">{m.performanceScore || 0}</span>
                   </div>
                   <div className="h-2 bg-[#F4F4F5] rounded-full overflow-hidden">
                     <div 

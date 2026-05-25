@@ -7,10 +7,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useLang } from '../../i18n';
+import RefreshButton from '../../components/ui/RefreshButton';
 import {
   Bell,
   RefreshCw,
-  Save,
   Mail,
   Smartphone,
   ToggleLeft,
@@ -25,17 +25,26 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 const EVENT_LABEL = {
-  invoice_sent:      'Invoice sent to client',
-  payment_confirmed: 'Payment confirmed',
-  order_started:     'Order launched',
-  order_finished:    'Order completed',
-  payment_reminder:  'Payment reminder',
+  invoice_sent:          'Invoice sent to client',
+  payment_confirmed:     'Payment confirmed',
+  order_started:         'Order launched',
+  order_finished:        'Order completed',
+  payment_reminder:      'Payment reminder',
+  provider_tier_changed: 'Provider tier changed',
 };
 
+// Fallback humanizer for any event without an explicit label.
+// Turns `provider_tier_changed` → `Provider tier changed`.
+const humanizeEvent = (key = '') =>
+  String(key)
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .replace(/^./, (c) => c.toUpperCase());
+
 const AUDIENCE = {
-  customer:     { labelKey: 'customer',         icon: UserCircle, color: '#2563EB' },
-  manager:      { labelKey: 'roleManager',      icon: Users,      color: '#7C3AED' },
-  team_lead:    { labelKey: 'roleTeamLead',     icon: Shield,     color: '#D97706' },
+  customer:     { labelKey: 'customer',         icon: UserCircle, color: '#18181B' },
+  manager:      { labelKey: 'roleManager',      icon: Users,      color: '#18181B' },
+  team_lead:    { labelKey: 'roleTeamLead',     icon: Shield,     color: '#18181B' },
   master_admin: { labelKey: 'roleMasterAdmin',  icon: Crown,      color: '#18181B' },
 };
 
@@ -117,43 +126,65 @@ export default function NotificationRulesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
-            <Bell className="w-7 h-7 text-[#635BFF]" /> {t('adm_notification_settings')}
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            {t('adm_for_each_business_event_choose_who_receives_notifi')}
-          </p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4 mb-6">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Bell className="w-[18px] h-[18px]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words"
+                style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('adm_notification_settings')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('adm_for_each_business_event_choose_who_receives_notifi')}
+            </p>
+          </div>
         </div>
-        <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 text-sm">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> {t('adm_refresh_3')}
-        </button>
+        <div className="shrink-0">
+          <RefreshButton
+            onClick={load}
+            loading={loading}
+            ariaLabel={t('adm_refresh_3')}
+            testId="notification-rules-refresh-button"
+          />
+        </div>
       </div>
 
       <div className="space-y-4">
         {rules.map((rule) => (
-          <div key={rule.event} className={`bg-white border rounded-2xl overflow-hidden ${rule.enabled ? 'border-zinc-200' : 'border-zinc-100 opacity-70'}`}>
-            <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-zinc-400 font-mono">{rule.event}</p>
-                <p className="text-lg font-semibold text-zinc-900">{EVENT_LABEL[rule.event] || rule.event}</p>
+          <div
+            key={rule.event}
+            className={`bg-white border rounded-2xl overflow-hidden transition-opacity ${
+              rule.enabled ? 'border-[#E4E4E7]' : 'border-[#E4E4E7] opacity-60'
+            }`}
+            data-testid={`notification-rule-card-${rule.event}`}
+          >
+            {/* Header: event meta + actions */}
+            <div className="px-5 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#E4E4E7] bg-zinc-50/40">
+              <div className="min-w-0 flex-1">
+                <p className="text-base sm:text-lg font-semibold text-[#18181B] leading-tight break-words">
+                  {EVENT_LABEL[rule.event] || humanizeEvent(rule.event)}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => testDispatch(rule.event)}
                   disabled={testing === rule.event || !rule.enabled}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-white border border-[#E4E4E7] hover:bg-[#FAFAFA] text-[#18181B] text-xs font-medium disabled:opacity-50 transition-colors"
+                  data-testid={`notification-rule-test-button-${rule.event}`}
                 >
-                  <Play className="w-3.5 h-3.5" /> {t('adm_test')}
+                  <Play className="w-3.5 h-3.5" />
+                  {t('adm_test')}
                 </button>
                 <button
                   onClick={() => toggleEnabled(rule)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
-                  style={{
-                    background: rule.enabled ? '#10B98115' : '#71717A15',
-                    color: rule.enabled ? '#047857' : '#52525B',
-                  }}
+                  className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-medium transition-colors ${
+                    rule.enabled
+                      ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                      : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                  }`}
+                  data-testid={`notification-rule-enabled-toggle-${rule.event}`}
                 >
                   {rule.enabled ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                   {rule.enabled ? t('adm2_26841eb416') : t('adm2_7e9d3ee2f5')}
@@ -161,48 +192,61 @@ export default function NotificationRulesPage() {
               </div>
             </div>
 
-            <div className="p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Object.entries(AUDIENCE).map(([audKey, aud]) => {
-                  const Icon = aud.icon;
-                  return (
-                    <div key={audKey} className="p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${aud.color}15` }}>
-                          <Icon className="w-4 h-4" style={{ color: aud.color }} />
-                        </div>
-                        <p className="text-sm font-medium text-zinc-800">{t(aud.labelKey)}</p>
+            {/* Audience rows — flat stack, hairline divided, no card-in-card */}
+            <ul className="divide-y divide-[#F4F4F5]" data-testid="notification-audience-list">
+              {Object.entries(AUDIENCE).map(([audKey, aud]) => {
+                const Icon = aud.icon;
+                return (
+                  <li
+                    key={audKey}
+                    className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 sm:px-6 py-4"
+                    data-testid={`notification-audience-row-${audKey}`}
+                  >
+                    {/* Identity: icon + audience name */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div
+                        className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: `${aud.color}15` }}
+                      >
+                        <Icon className="w-5 h-5" style={{ color: aud.color }} />
                       </div>
-                      <div className="flex items-center gap-1">
-                        {Object.entries(CHANNELS).map(([chKey, ch]) => {
-                          const ChIcon = ch.icon;
-                          const active = hasChannel(rule, audKey, chKey);
-                          return (
-                            <button
-                              key={chKey}
-                              onClick={() => toggleChannel(rule, audKey, chKey)}
-                              disabled={!rule.enabled}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${
-                                active
-                                  ? 'bg-[#635BFF] text-white'
-                                  : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100'
-                              }`}
-                              title={t(ch.labelKey)}
-                            >
-                              <ChIcon className="w-3.5 h-3.5" /> {t(ch.labelKey)}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <p className="text-sm sm:text-base font-medium text-[#18181B] truncate">
+                        {t(aud.labelKey)}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                    {/* Channels — fixed pill width, never wraps text */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {Object.entries(CHANNELS).map(([chKey, ch]) => {
+                        const ChIcon = ch.icon;
+                        const active = hasChannel(rule, audKey, chKey);
+                        return (
+                          <button
+                            key={chKey}
+                            onClick={() => toggleChannel(rule, audKey, chKey)}
+                            disabled={!rule.enabled}
+                            aria-pressed={active}
+                            className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                              active
+                                ? 'bg-[#18181B] text-white border border-[#18181B] shadow-sm hover:bg-[#27272A]'
+                                : 'bg-white border border-[#E4E4E7] text-zinc-600 hover:bg-zinc-50'
+                            }`}
+                            title={t(ch.labelKey)}
+                            data-testid={`notification-channel-button-${rule.event}-${audKey}-${chKey}`}
+                          >
+                            <ChIcon className="w-3.5 h-3.5" />
+                            {t(ch.labelKey)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         ))}
         {rules.length === 0 && !loading && (
-          <div className="text-center py-12 text-zinc-400 text-sm bg-white border border-dashed border-zinc-200 rounded-2xl">
+          <div className="text-center py-12 text-zinc-400 text-sm bg-white border border-dashed border-[#E4E4E7] rounded-2xl">
             {t('adm_no_rules_found')}
           </div>
         )}

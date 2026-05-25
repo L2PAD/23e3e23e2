@@ -314,6 +314,26 @@
   color: var(--color-orange-100);
   font-weight: 500;
 }
+/* Items for brands/models/years that have ZERO cars in the catalog right
+   now. We still let the user click them (they'll land on an empty catalog
+   page with their filter applied — UX consistent with the catalog itself)
+   but render them dimmed so they know in advance. */
+.dropdownItemUnavailable {
+  color: rgba(255, 255, 255, 0.36);
+}
+.dropdownItemUnavailable:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 400;
+}
+.dropdownItemCount {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
 .filterDivider {
   width: 1px;
   height: 36px;

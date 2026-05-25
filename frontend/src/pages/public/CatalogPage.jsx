@@ -1,10 +1,19 @@
 /**
  * Public Catalog page — Figma 1:1 (1920 design viewport).
- * Uses real `/api/public/vehicles` data; shows 6 cards/page, "Show more +" appends 6 more.
- * No "Coming Soon" stub. No custom rounding/spacing/typography.
+ *
+ * Phase B1 — Frontend pagination + cache hardening
+ * ------------------------------------------------
+ *   • Pagination is **accumulating**: each page is its own React Query
+ *     cache entry; we walk pages 1..loadedPages on every render and
+ *     concatenate their `items`. Earlier pages stay in cache so back-nav
+ *     and re-mount don't re-fetch.
+ *   • Page reset only on filters/sort change (not on "Show more +").
+ *   • Cache key = filters + sort + skip → identical queries collide
+ *     across components / unmounts.
  */
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import styles from './CatalogPage.module.css';
 import CatalogFilter    from '../../components/public/catalog/CatalogFilter';
@@ -15,6 +24,8 @@ import CatalogConsultationBlock from '../../components/public/catalog/CatalogCon
 import PageHero from '../../components/public/PageHero';
 import { useLang } from '../../i18n';
 import { API_URL } from '../../App';
+import { buildVehiclesParams } from '../../hooks/usePublicVehicles';
+import { trackEvent, EVENT_NAMES } from '../../hooks/useTrackEvent';
 
 const PAGE_SIZE = 6;
 
@@ -68,6 +79,8 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
   const [sort,    setSort]    = useState('popular');
+  // Honest meta from backend (price_filter_mode, hidden_by_price_filter)
+  const [meta, setMeta] = useState(null);
 
   // Mobile UI state — filter drawer + sort sheet (≤768 px viewport)
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -82,58 +95,71 @@ export default function CatalogPage() {
     return () => { document.body.style.overflow = prev; };
   }, [mobileFilterOpen, mobileSortOpen]);
 
-  // Build axios params from filters — every UI control maps to a real
-  // backend parameter. Empty / null values are skipped so the request
-  // remains minimal.
-  const params = useMemo(() => {
-    const p = { limit: page * PAGE_SIZE, skip: 0, sort };
-    // Brand/Model are arrays — join with regex alternation so backend $regex matches any of them.
-    const brandArr = Array.isArray(filters.brand) ? filters.brand : (filters.brand ? [filters.brand] : []);
-    const modelArr = Array.isArray(filters.model) ? filters.model : (filters.model ? [filters.model] : []);
-    if (brandArr.length) p.make  = brandArr.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    if (modelArr.length) p.model = modelArr.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    if (filters.yearMin)      p.year_min    = Number(filters.yearMin);
-    if (filters.yearMax)      p.year_max    = Number(filters.yearMax);
-    if (filters.priceMin)     p.price_min   = Number(filters.priceMin);
-    if (filters.priceMax)     p.price_max   = Number(filters.priceMax);
-    if (filters.mileageMin)   p.mileage_min = Number(filters.mileageMin);
-    if (filters.mileageMax)   p.mileage_max = Number(filters.mileageMax);
-    if (filters.damaged === true)  p.damaged = 'true';
-    if (filters.damaged === false) p.damaged = 'false';
-    if (filters.vehicleType)  p.vehicle_type = filters.vehicleType;
-    if (filters.country)      p.country      = filters.country;
-    if (filters.bodyType)     p.body_type    = filters.bodyType;
-    if (filters.driveType)    p.drive_type   = filters.driveType;
-    if (filters.engineVolume) p.engine_volume= filters.engineVolume;
-    if (filters.auctionType) {
-      const arr = Array.isArray(filters.auctionType)
-        ? filters.auctionType
-        : (filters.auctionType ? [filters.auctionType] : []);
-      if (arr.length) p.auction_name = arr.join('|');
-    }
-    if (Array.isArray(filters.fuel)         && filters.fuel.length)         p.fuel         = filters.fuel.join(',');
-    if (Array.isArray(filters.transmission) && filters.transmission.length) p.transmission = filters.transmission.join(',');
-    if (Array.isArray(filters.auctionStatus)&& filters.auctionStatus.length)p.auction_status = filters.auctionStatus.join(',');
-    return p;
-  }, [filters, page, sort]);
+  // Phase B1 — Build axios params per page (NOT per cumulative window).
+  // The old code did `limit = page*PAGE_SIZE, skip = 0` which refetched
+  // everything from the start on every "Show more +" click. We now fetch
+  // ONE page at a time and accumulate via React Query's cache.
+  const baseParams = useMemo(
+    () => buildVehiclesParams(filters, sort, 0, PAGE_SIZE),
+    [filters, sort]
+  );
 
-  const fetchVehicles = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await axios.get(`${API_URL}/api/public/vehicles`, { params });
-      const data = res.data?.data || [];
-      setItems(data);
-      setTotal(res.data?.total || 0);
-    } catch (err) {
-      setError(err?.response?.data?.detail || err.message || 'Could not load vehicles');
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [params]);
+  // Reset page→1 ONLY when filters/sort change (NOT on Show more).
+  useEffect(() => { setPage(1); }, [JSON.stringify(filters), sort]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+  // Active page query — fetches just the current "tip" page. Earlier
+  // pages are read from cache by the accumulator effect below.
+  const queryClient = useQueryClient();
+  const currentSkip = (page - 1) * PAGE_SIZE;
+  const currentPageParams = { ...baseParams, skip: currentSkip, limit: PAGE_SIZE };
+  const currentQ = useQuery({
+    queryKey: ['public/vehicles', currentPageParams],
+    placeholderData: (prev) => prev,
+    queryFn: async ({ signal }) => {
+      const res = await axios.get(`${API_URL}/api/public/vehicles`, {
+        params: currentPageParams,
+        signal,
+        timeout: 20000,
+      });
+      const d = res?.data || {};
+      return {
+        items: Array.isArray(d.data) ? d.data : Array.isArray(d.items) ? d.items : [],
+        total: Number.isFinite(d.total) ? Number(d.total) : 0,
+        meta:  d.meta || null,
+      };
+    },
+  });
+
+  // Accumulate pages 1..page from cache so the grid renders ALL loaded
+  // items, not just the tip page. Earlier pages sit warm in cache.
+  useEffect(() => {
+    const acc = [];
+    let lastTotal = 0;
+    let lastMeta = null;
+    for (let p = 1; p <= page; p++) {
+      const skip = (p - 1) * PAGE_SIZE;
+      const cached = queryClient.getQueryData([
+        'public/vehicles',
+        { ...baseParams, skip, limit: PAGE_SIZE },
+      ]);
+      if (cached?.items?.length) acc.push(...cached.items);
+      if (cached?.total) lastTotal = cached.total;
+      if (cached?.meta)  lastMeta  = cached.meta;
+    }
+    if (acc.length) setItems(acc);
+    if (lastTotal) setTotal(lastTotal);
+    // Always sync meta (even when result set is empty — that's exactly when
+    // we want to surface the honest "X cars hidden by price filter" hint).
+    setMeta(lastMeta);
+  }, [page, baseParams, currentQ.data, queryClient]);
+
+  // Loading state — only true on the very first page (skeleton), not on
+  // "Show more +" (the existing grid stays visible while the new page is
+  // streamed in).
+  useEffect(() => {
+    if (page === 1) setLoading(currentQ.isLoading || currentQ.isFetching);
+    setError(currentQ.isError ? (currentQ.error?.message || 'Could not load vehicles') : null);
+  }, [page, currentQ.isLoading, currentQ.isFetching, currentQ.isError, currentQ.error]);
 
   // Active chip list — mirrors what the screenshot shows above the cards
   const activeChips = useMemo(() => {
@@ -169,8 +195,18 @@ export default function CatalogPage() {
     });
   };
 
-  const resetAll = () => { setPage(1); setFilters(DEFAULT_FILTERS); };
-  const showMore = () => setPage((p) => p + 1);
+  const resetAll = () => {
+    setPage(1);
+    setFilters(DEFAULT_FILTERS);
+    trackEvent(EVENT_NAMES.CATALOG_FILTER_RESET);
+  };
+  const showMore = () => {
+    setPage((p) => {
+      const next = p + 1;
+      trackEvent(EVENT_NAMES.CATALOG_SHOW_MORE, { page: next });
+      return next;
+    });
+  };
 
   const canShowMore = items.length < total;
 
@@ -274,7 +310,11 @@ export default function CatalogPage() {
               <div className={styles.sortDropdownDesktop}>
                 <SortDropdown
                   value={sort}
-                  onChange={(k) => { setSort(k); setPage(1); }}
+                  onChange={(k) => {
+                    trackEvent(EVENT_NAMES.CATALOG_SORT_CHANGED, { sort: k });
+                    setSort(k);
+                    setPage(1);
+                  }}
                 />
               </div>
             </header>
@@ -294,7 +334,40 @@ export default function CatalogPage() {
               )}
               {!loading && !error && items.length === 0 && (
                 <div className={styles.statePanel}>
-                  {t('noVehiclesMatch') || 'No vehicles match the current filters. Try resetting the filters.'}
+                  {(meta && (filters.priceMin || filters.priceMax) && meta.hidden_by_price_filter > 0)
+                    ? (
+                      <>
+                        <strong>{meta.hidden_by_price_filter.toLocaleString()}</strong>
+                        {' '}{(t('catalogHiddenByPriceFilter') || "vehicles match your other filters but don't have price data yet.")}
+                        <br />
+                        <button
+                          type="button"
+                          className={styles.priceHintAction}
+                          onClick={() => removeChip('price')}
+                          data-testid="catalog-clear-price-filter"
+                        >
+                          {t('catalogClearPriceFilter') || 'Clear price filter to see them →'}
+                        </button>
+                      </>
+                    )
+                    : (t('noVehiclesMatch') || 'No vehicles match the current filters. Try resetting the filters.')}
+                </div>
+              )}
+              {!loading && !error && items.length > 0 && meta?.hidden_by_price_filter > 0 && (filters.priceMin || filters.priceMax) && (
+                <div className={styles.priceHintBanner} data-testid="catalog-price-hint">
+                  <span className={styles.priceHintDot} aria-hidden="true" />
+                  <span>
+                    {meta.hidden_by_price_filter.toLocaleString()}
+                    {' '}{t('catalogPriceHintExtra') || "more vehicles match your other filters but don't have price data yet."}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.priceHintLink}
+                    onClick={() => removeChip('price')}
+                    data-testid="catalog-clear-price-filter-inline"
+                  >
+                    {t('catalogClearPrice') || 'Clear price filter'}
+                  </button>
                 </div>
               )}
               {items.map((v) => (

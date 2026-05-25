@@ -54,6 +54,42 @@ const FALLBACK_REVIEWS = [
     text_bg:
       "Купих кола от търг — екипът наистина знае работата си. Обясниха всички нюанси, помогнаха да спечеля наддаването и организираха доставката.",
   },
+  {
+    id: "fallback-3",
+    enabled: true,
+    name: "Ivan",
+    name_bg: "Иван",
+    rating: 5,
+    image_url: "",
+    text_en:
+      "Smooth experience from start to finish. The car was picked up, inspected and shipped without a single delay. Honest pricing — no hidden fees at customs. Will buy again next year.",
+    text_bg:
+      "Безпроблемно от начало до край. Колата беше избрана, прегледана и изпратена без забавяне. Честни цени — без скрити такси на митница. Догодина пак ще купя.",
+  },
+  {
+    id: "fallback-4",
+    enabled: true,
+    name: "Elena",
+    name_bg: "Елена",
+    rating: 5,
+    image_url: "",
+    text_en:
+      "Stayed within budget and got a car I never thought I could afford in Bulgaria. The team kept me updated every step of the shipping — even sent photos from the port. Highly professional.",
+    text_bg:
+      "Останахме в бюджета и получих кола, която не мислех, че мога да си позволя в България. Получавах снимки и от пристанището. Изключително професионални.",
+  },
+  {
+    id: "fallback-5",
+    enabled: true,
+    name: "Nikola",
+    name_bg: "Никола",
+    rating: 5,
+    image_url: "",
+    text_en:
+      "Bought a Korean SUV — they handled bidding, transport, customs and registration. I just picked up the keys. Saved me both money and 3 weeks of bureaucracy. Five stars deserved.",
+    text_bg:
+      "Купих корейски SUV — поеха наддаването, транспорта, митницата и регистрацията. Аз само взех ключовете. Спестиха ми пари и 3 седмици бюрокрация. Пет звезди.",
+  },
 ];
 
 const FALLBACK_CFG = {
@@ -181,15 +217,28 @@ const ReviewsArea1 = ({ className = "" }) => {
   // (not silently before they scroll there).
   const [bigNumberRef, bigNumberInView] = useInView({ threshold: 0.35 });
 
+  // Compute step (layout width + gap) using offsetWidth so the calculation
+  // is INDEPENDENT of any CSS transform: scale() applied to inactive cards.
+  // `getBoundingClientRect()` would return the SCALED visual width, which
+  // breaks the math the moment the active card is no longer the first one.
+  const getStep = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return 0;
+    const card = el.querySelector(`.${styles.card}`);
+    if (!card) return 0;
+    const cs = window.getComputedStyle(el);
+    const gap = parseFloat(cs.columnGap || cs.gap || "0") || 0;
+    return card.offsetWidth + gap;
+  }, []);
+
   const handleScroll = useCallback(() => {
     const el = trackRef.current;
     if (!el) return;
-    const card = el.querySelector(`.${styles.card}`);
-    if (!card) return;
-    const cardWidth = card.getBoundingClientRect().width + 15;
-    const idx = Math.round(el.scrollLeft / cardWidth);
+    const step = getStep();
+    if (!step) return;
+    const idx = Math.round(el.scrollLeft / step);
     setActiveIdx(Math.max(0, Math.min(visibleReviews.length - 1, idx)));
-  }, [visibleReviews.length]);
+  }, [visibleReviews.length, getStep]);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -207,15 +256,31 @@ const ReviewsArea1 = ({ className = "" }) => {
   const scrollToIdx = (i) => {
     const el = trackRef.current;
     if (!el) return;
-    const card = el.querySelector(`.${styles.card}`);
-    if (!card) return;
-    const cardWidth = card.getBoundingClientRect().width + 15;
-    el.scrollTo({ left: cardWidth * i, behavior: "smooth" });
+    const step = getStep();
+    if (!step) return;
+    el.scrollTo({ left: step * i, behavior: "smooth" });
+    // Optimistically update activeIdx — the scroll listener will
+    // re-confirm it once `scroll-snap` settles, but updating now means
+    // the visual depth-fade swap is immediate (no flash of the wrong
+    // card being active during the 300 ms smooth-scroll animation).
+    setActiveIdx(Math.max(0, Math.min(visibleReviews.length - 1, i)));
   };
 
-  const prev = () => scrollToIdx(Math.max(0, activeIdx - 1));
-  const next = () =>
-    scrollToIdx(Math.min(visibleReviews.length - 1, activeIdx + 1));
+  // Cyclic navigation — wraps around so user can keep scrolling endlessly.
+  // The carousel still renders all cards in a linear scroll-snap track; we
+  // just reset scrollLeft to the appropriate edge before snapping when we
+  // cross either end. This matches user expectation: "current card slides
+  // out, the preview card becomes active, and a fresh preview appears".
+  const prev = () => {
+    if (visibleReviews.length === 0) return;
+    const target = activeIdx === 0 ? visibleReviews.length - 1 : activeIdx - 1;
+    scrollToIdx(target);
+  };
+  const next = () => {
+    if (visibleReviews.length === 0) return;
+    const target = activeIdx === visibleReviews.length - 1 ? 0 : activeIdx + 1;
+    scrollToIdx(target);
+  };
 
   if (cfg.enabled === false) return null;
 
@@ -397,7 +462,6 @@ const ReviewsArea1 = ({ className = "" }) => {
             className={styles.navBtn}
             onClick={prev}
             aria-label={lang === "bg" ? "Предишен отзив" : "Previous review"}
-            disabled={activeIdx === 0}
             data-testid="review-prev"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -427,7 +491,6 @@ const ReviewsArea1 = ({ className = "" }) => {
             className={styles.navBtn}
             onClick={next}
             aria-label={lang === "bg" ? "Следващ отзив" : "Next review"}
-            disabled={activeIdx === visibleReviews.length - 1}
             data-testid="review-next"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

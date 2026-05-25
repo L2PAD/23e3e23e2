@@ -4,6 +4,7 @@
  * if the row does not yet exist in the DB (seed was moved to Mongo).
  */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useLang } from '../../i18n';
@@ -12,7 +13,6 @@ import {
   RefreshCw,
   Save,
   Eye,
-  Filter,
   Search,
   Clock,
   CheckCircle2,
@@ -21,22 +21,25 @@ import {
   FileCheck2,
   AlertTriangle,
   Layers,
+  X,
 } from 'lucide-react';
+import WhiteSelect from '../../components/ui/WhiteSelect';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 const EVENT_META = {
-  invoice_sent:      { label: 'Invoice Sent',     icon: Send,           color: '#2563EB' },
-  payment_confirmed: { label: 'Payment Confirmed',   icon: CheckCircle2,   color: '#059669' },
-  order_started:     { label: 'Order started',   icon: PlayCircle,     color: '#7C3AED' },
-  order_finished:    { label: 'Order completed',   icon: FileCheck2,     color: '#047857' },
-  payment_reminder:  { label: 'Payment Reminder', icon: AlertTriangle, color: '#D97706' },
+  invoice_sent:      { label: 'Invoice Sent',     icon: Send,           color: '#18181B' },
+  payment_confirmed: { label: 'Payment Confirmed',   icon: CheckCircle2,   color: '#18181B' },
+  order_started:     { label: 'Order started',   icon: PlayCircle,     color: '#18181B' },
+  order_finished:    { label: 'Order completed',   icon: FileCheck2,     color: '#18181B' },
+  payment_reminder:  { label: 'Payment Reminder', icon: AlertTriangle, color: '#18181B' },
 };
 
 const AUDIENCE_LABEL = {
-  customer:     { labelKey: 'customer',         color: 'bg-blue-100 text-blue-700' },
-  manager:      { labelKey: 'roleManager',      color: 'bg-violet-100 text-violet-700' },
-  team_lead:    { labelKey: 'roleTeamLead',     color: 'bg-amber-100 text-amber-700' },
+  customer:     { labelKey: 'customer',         color: 'bg-zinc-100 text-zinc-700' },
+  manager:      { labelKey: 'roleManager',      color: 'bg-zinc-100 text-zinc-700' },
+  team_lead:    { labelKey: 'roleTeamLead',     color: 'bg-zinc-100 text-zinc-700' },
   master_admin: { labelKey: 'roleMasterAdmin',  color: 'bg-zinc-100 text-zinc-700' },
 };
 
@@ -51,7 +54,6 @@ export default function EmailTemplatesPage() {
   const { t, lang } = useLang();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
   const [filterEvent, setFilterEvent] = useState('');
   const [filterAud, setFilterAud] = useState('');
   // Language filter — follows the current UI language by default.
@@ -81,12 +83,24 @@ export default function EmailTemplatesPage() {
     setFilterLang(value);
     try { localStorage.setItem(OVERRIDE_KEY, value); } catch { /* ignore */ }
   };
-  const clearFilterLangOverride = () => {
-    try { localStorage.removeItem(OVERRIDE_KEY); } catch { /* ignore */ }
-    setFilterLang(uiLangToRecord(lang));
-  };
   const [search, setSearch] = useState('');
   const [preview, setPreview] = useState(false);
+
+  // Body scroll lock while the editor panel is open. Without this, when the
+  // user scrolls while the panel is open, the underlying page (and the
+  // global top header) scroll independently — creating a thin strip of
+  // underlying content visible above the panel (looks like the panel is
+  // "pressing on the header").
+  const [selected, _setSelected] = useState(null);
+  const setSelected = (v) => {
+    _setSelected(v);
+    try {
+      if (v) document.body.style.overflow = 'hidden';
+      else document.body.style.overflow = '';
+    } catch { /* ignore */ }
+  };
+  // Cleanup on unmount.
+  useEffect(() => () => { try { document.body.style.overflow = ''; } catch { /* ignore */ } }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -146,80 +160,98 @@ export default function EmailTemplatesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
-            <Mail className="w-7 h-7 text-[#635BFF]" /> {t('adm_email_templates')}
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1">{t('adm3_subject_html_text_446e60b4ae')} {'{{ invoice.id }}'} {t('adm3_861533500f')}</p>
+      {/*
+        ── Email templates header — Refresh ALWAYS pinned top-RIGHT ──────
+        Mobile (< md):
+          [icon]  Email templates           [Refresh]
+                  Edit subject/html/text…
+          [+ New template]   ← own row, left-aligned
+        Desktop (≥ md):
+          [icon]  Email templates    [+ New template] [Refresh]
+      */}
+      <div className="mb-6">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Mail className="w-[18px] h-[18px]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words"
+                style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('adm_email_templates')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">{t('adm3_subject_html_text_446e60b4ae')} {'{{ invoice.id }}'} {t('adm3_861533500f')}</p>
+          </div>
+          {/* Refresh top-right on every viewport. Desktop also shows + New
+              template button to the left of refresh in the same row. */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={openNew}
+              data-testid="email-templates-new-btn-desktop"
+              className="hidden md:inline-flex items-center gap-2 h-10 px-4 bg-[#18181B] text-white rounded-xl hover:bg-[#27272A] active:bg-black text-sm font-medium whitespace-nowrap focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
+            >
+              <Layers className="w-4 h-4" /> {t('adm_new_template')}
+            </button>
+            <RefreshButton
+              onClick={load}
+              loading={loading}
+              ariaLabel={t('adm_refresh_3')}
+              testId="email-templates-refresh-btn"
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 text-sm">
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> {t('adm_refresh_3')}
-          </button>
-          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-[#635BFF] text-white rounded-lg hover:bg-[#5147d4] text-sm font-medium">
+        {/* Mobile-only row: + New template on its own line, left-aligned. */}
+        <div className="mt-4 md:hidden">
+          <button
+            onClick={openNew}
+            data-testid="email-templates-new-btn"
+            className="inline-flex items-center gap-2 h-10 px-4 bg-[#18181B] text-white rounded-xl hover:bg-[#27272A] active:bg-black text-sm font-medium focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
+          >
             <Layers className="w-4 h-4" /> {t('adm_new_template')}
           </button>
         </div>
       </div>
 
-      <div className="bg-white border border-zinc-200 rounded-2xl p-3 mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('adm_search_by_subject')} className="w-full pl-9 pr-3 py-2 border border-zinc-200 rounded-lg text-sm" />
+      {/* Filters — flat row, no card-in-card; grid auto-fit so dropdowns wrap cleanly */}
+      <div className="mb-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] sm:[grid-template-columns:minmax(280px,2fr)_repeat(3,minmax(180px,1fr))]">
+        <div className="relative min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('adm_search_by_subject')}
+            className="w-full pl-10 pr-3 py-2.5 min-h-[2.75rem] border border-[#E4E4E7] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#18181B]/15 focus:border-[#18181B]"
+            data-testid="email-templates-search-input"
+          />
         </div>
-        <Filter className="w-4 h-4 text-zinc-400" />
-        <select value={filterEvent} onChange={(e) => setFilterEvent(e.target.value)} className="px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white">
+        <WhiteSelect value={filterEvent} onChange={(e) => setFilterEvent(e.target.value)} data-testid="email-templates-event-select">
           <option value="">{t('allEvents')}</option>
           {Object.entries(EVENT_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        <select value={filterAud} onChange={(e) => setFilterAud(e.target.value)} className="px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white">
+        </WhiteSelect>
+        <WhiteSelect value={filterAud} onChange={(e) => setFilterAud(e.target.value)} data-testid="email-templates-audience-select">
           <option value="">{t('allAudiences')}</option>
           {Object.entries(AUDIENCE_LABEL).map(([k, v]) => <option key={k} value={k}>{t(v.labelKey)}</option>)}
-        </select>
-        <select
+        </WhiteSelect>
+        <WhiteSelect
           value={filterLang}
           onChange={(e) => onChangeFilterLang(e.target.value)}
-          className="px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white"
           title={t('adm_filter_by_template_language')}
+          data-testid="email-templates-lang-select"
         >
           <option value="">{t('adm_all_languages')}</option>
           <option value="ua">🇺🇦 UA</option>
           <option value="en">🇬🇧 EN</option>
-        </select>
-        {(() => {
-          let hasOverride = false;
-          try { hasOverride = localStorage.getItem(OVERRIDE_KEY) !== null; } catch { /* ignore */ }
-          if (hasOverride) {
-            return (
-              <button
-                onClick={clearFilterLangOverride}
-                className="text-[11px] px-2 py-1 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 border border-zinc-200 font-medium"
-                title={t('adm_showing_lang_matching_ui')}
-              >
-                ↻ {t('adm_showing_lang_matching_ui').split('—')[0].trim()}
-              </button>
-            );
-          }
-          if (filterLang) {
-            return (
-              <span className="text-[11px] px-2 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-200 font-medium">
-                {t('adm_showing_lang_matching_ui')}
-              </span>
-            );
-          }
-          return null;
-        })()}
+        </WhiteSelect>
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
-              <th className="text-left px-5 py-3 font-medium">{t('event')}</th>
-              <th className="text-left px-5 py-3 font-medium">{t('audienceLabel')}</th>
-              <th className="text-left px-5 py-3 font-medium">{t('languageLabel')}</th>
-              <th className="text-left px-5 py-3 font-medium">{t('subjectLabel')}</th>
+              <th className="text-left px-5 py-3 font-medium whitespace-nowrap">{t('event')}</th>
+              <th className="text-left px-5 py-3 font-medium whitespace-nowrap">{t('audienceLabel')}</th>
+              <th className="text-left px-5 py-3 font-medium whitespace-nowrap">{t('languageLabel')}</th>
+              <th className="text-left px-5 py-3 font-medium whitespace-nowrap">{t('subjectLabel')}</th>
               <th />
             </tr>
           </thead>
@@ -251,49 +283,67 @@ export default function EmailTemplatesPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
-      {selected && (
-        <div className="fixed inset-0 z-40 flex">
+      {/* Editor panel — rendered via portal to document.body so it escapes
+          the in-page layout (space-y-6 wrapping the page added a phantom
+          24px top offset). With portal, `fixed inset-0` truly fills the
+          viewport from y=0 covering the global header completely. */}
+      {selected && createPortal(
+        <div
+          className="fixed inset-0 flex"
+          style={{ zIndex: 9999, isolation: 'isolate' }}
+        >
           <div className="flex-1 bg-zinc-900/40" onClick={() => setSelected(null)} />
           <aside className="w-full max-w-3xl bg-white shadow-2xl overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-zinc-900">{selected._new ? t('adm2_82976e2a87') : t('adm2_2474e2a1f6')}</h2>
-                <p className="text-xs text-zinc-500">{selected.id}</p>
+            <div className="sticky top-0 z-10 bg-white border-b border-zinc-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0 flex items-start gap-3">
+                <button
+                  onClick={() => setSelected(null)}
+                  className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-white border border-[#E4E4E7] hover:bg-zinc-50 text-[#18181B] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+                  aria-label="Close"
+                  data-testid="email-template-close-btn"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-zinc-900 whitespace-nowrap">{selected._new ? t('adm2_82976e2a87') : t('adm2_2474e2a1f6')}</h2>
+                  <p className="text-xs text-zinc-500 truncate">{selected.id}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setPreview(p => !p)} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-sm text-zinc-700 flex items-center gap-1">
+              <div className="flex items-center gap-2 flex-wrap shrink-0 justify-end">
+                <button onClick={() => setPreview(p => !p)} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-sm text-zinc-700 flex items-center gap-1 whitespace-nowrap">
                   <Eye className="w-4 h-4" /> {preview ? 'HTML' : 'Preview'}
                 </button>
-                <button onClick={testDispatch} className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm flex items-center gap-1">
+                <button onClick={testDispatch} className="px-3 py-1.5 bg-white border border-[#E4E4E7] hover:bg-zinc-50 text-[#18181B] rounded-lg text-sm flex items-center gap-1 whitespace-nowrap">
                   <Send className="w-4 h-4" /> {t('adm_test')}
                 </button>
-                <button onClick={save} className="px-3 py-1.5 bg-[#635BFF] hover:bg-[#5147d4] text-white rounded-lg text-sm font-medium flex items-center gap-1">
+                <button onClick={save} className="px-3 py-1.5 bg-[#18181B] hover:bg-[#27272A] text-white rounded-lg text-sm font-medium flex items-center gap-1 whitespace-nowrap">
                   <Save className="w-4 h-4" />{t('saveAction')}</button>
               </div>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-3 gap-3">
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-zinc-600 mb-1">{t('event')}</label>
-                  <select disabled={!selected._new} value={selected.event} onChange={(e) => setSelected({ ...selected, event: e.target.value })} className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white disabled:opacity-60">
+                  <WhiteSelect disabled={!selected._new} value={selected.event} onChange={(e) => setSelected({ ...selected, event: e.target.value })} className="w-full disabled:opacity-60">
                     {Object.entries(EVENT_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                  </select>
+                  </WhiteSelect>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-600 mb-1">{t('adm_audience')}</label>
-                  <select disabled={!selected._new} value={selected.audience} onChange={(e) => setSelected({ ...selected, audience: e.target.value })} className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white disabled:opacity-60">
+                  <WhiteSelect disabled={!selected._new} value={selected.audience} onChange={(e) => setSelected({ ...selected, audience: e.target.value })} className="w-full disabled:opacity-60">
                     {Object.entries(AUDIENCE_LABEL).map(([k, v]) => <option key={k} value={k}>{t(v.labelKey)}</option>)}
-                  </select>
+                  </WhiteSelect>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-600 mb-1">{t('adm_language')}</label>
-                  <select disabled={!selected._new} value={selected.lang} onChange={(e) => setSelected({ ...selected, lang: e.target.value })} className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white disabled:opacity-60">
+                  <WhiteSelect disabled={!selected._new} value={selected.lang} onChange={(e) => setSelected({ ...selected, lang: e.target.value })} className="w-full disabled:opacity-60">
                     <option value="ua">{t('adm_ua')}</option>
                     <option value="en">{t('adm_en')}</option>
-                  </select>
+                  </WhiteSelect>
                 </div>
               </div>
 
@@ -325,7 +375,8 @@ export default function EmailTemplatesPage() {
               </div>
             </div>
           </aside>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

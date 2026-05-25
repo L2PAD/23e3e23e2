@@ -236,7 +236,7 @@ const ParserTestLab = () => {
                 onChange={(e) => setVin(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder={t('adm2_vin_17_67bc493249')}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-lg"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
                 maxLength={17}
               />
             </div>
@@ -269,7 +269,7 @@ const ParserTestLab = () => {
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <div className="text-sm text-gray-500 mb-1">VIN</div>
-                  <div className="font-mono text-xl font-bold">{r.vin}</div>
+                  <div className="text-xl font-bold">{r.vin}</div>
                 </div>
                 <div className="flex items-center gap-4">
                   <StatusBadge status={r.status} />
@@ -376,7 +376,7 @@ const ParserTestLab = () => {
                   {v.lotNumber && (
                     <div className="p-4 bg-gray-50 rounded-xl">
                       <div className="text-xs text-gray-500 mb-1">{t('adm_lot')}</div>
-                      <div className="font-mono font-semibold">{v.lotNumber}</div>
+                      <div className="font-semibold">{v.lotNumber}</div>
                     </div>
                   )}
                   

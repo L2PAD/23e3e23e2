@@ -407,6 +407,21 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 .kpi-card:hover { border-color: #D4D4D8; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
 .kpi-value { font-family: 'Mazzard', 'Mazzard H', 'Mazzard M', system-ui, sans-serif; font-size: 2.25rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; color: #18181B; }
 .kpi-label { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #71717A; margin-top: 8px; }
+
+/* Compact KPI variant — used inside dense dashboards (analytics, etc.).
+   Responsive font-size via clamp so big numbers like "15 000" never overflow
+   on mobile, while still looking strong on desktop. */
+.kpi-card--compact { padding: 14px 14px; }
+@media (min-width: 640px) { .kpi-card--compact { padding: 16px 18px; } }
+@media (min-width: 1024px) { .kpi-card--compact { padding: 18px 22px; } }
+.kpi-value--fit {
+  font-size: clamp(1.25rem, 5.5vw, 2rem);
+  line-height: 1.05;
+  max-width: 100%;
+}
+@media (min-width: 1024px) {
+  .kpi-value--fit { font-size: clamp(1.5rem, 1.8vw, 2.25rem); }
+}
 .sidebar { width: 260px; background: white; border-right: 1px solid #E4E4E7; min-height: 100vh; display: flex; flex-direction: column; }
 .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; font-size: 14px; font-weight: 500; color: #71717A; cursor: pointer; border-radius: 12px; margin: 2px 8px; transition: background-color 0.15s ease, color 0.15s ease; min-width: 0; }
 .sidebar-item > span:not(:first-child) { min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -426,10 +441,12 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 .input { background: white; border: 1px solid #E4E4E7; border-radius: 12px; padding: 12px 16px; font-size: 14px; color: #18181B; transition: border-color 0.15s ease, box-shadow 0.15s ease; width: 100%; }
 .input::placeholder { color: #A1A1AA; }
 .input:focus { outline: none; border-color: #18181B; box-shadow: 0 0 0 3px rgba(24,24,27,0.08); }
-.period-tabs { display: inline-flex; background: #F4F4F5; border-radius: 12px; padding: 4px; gap: 4px; }
-.period-tab { padding: 8px 16px; font-size: 13px; font-weight: 500; color: #71717A; border-radius: 8px; cursor: pointer; transition: color 0.15s ease, background-color 0.15s ease; border: none; background: transparent; }
-.period-tab:hover { color: #3F3F46; }
-.period-tab.active { background: white; color: #18181B; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.period-tabs { display: inline-flex; background: #FAFAFA; border: 1px solid #E4E4E7; border-radius: 12px; padding: 4px; gap: 4px; max-width: 100%; }
+.period-tab { padding: 6px 14px; font-size: 13px; font-weight: 500; color: #52525B; border-radius: 8px; cursor: pointer; transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease; border: none; background: transparent; line-height: 1.25; }
+.period-tab:hover { color: #18181B; }
+.period-tab:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(0,0,0,0.08); }
+.period-tab.active { background: #FFFFFF; color: #18181B; font-weight: 600; box-shadow: 0 0 0 1.5px #18181B; }
+.period-tab.active:hover { background: #FFFFFF; }
 .section-card { background: white; border-radius: 16px; border: 1px solid #E4E4E7; padding: 24px; }
 .section-title { font-family: 'Mazzard', 'Mazzard H', 'Mazzard M', system-ui, sans-serif; font-size: 16px; font-weight: 600; color: #18181B; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .section-title-clean { font-family: 'Mazzard', 'Mazzard H', 'Mazzard M', system-ui, sans-serif; font-size: 16px; font-weight: 600; color: #18181B; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
@@ -440,6 +457,12 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 .metric-value { font-size: 14px; font-weight: 600; color: #18181B; }
 .metric-value.alert { color: #DC2626; }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* WhiteSelect popover open animation (transform-origin set inline per direction) */
+@keyframes ws-popover-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
 .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
 select.input, .custom-select { background: white; border: 1px solid #E4E4E7; border-radius: 12px; padding: 12px 16px; padding-right: 40px; font-size: 14px; color: #18181B; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 select.input:hover, .custom-select:hover { border-color: #D4D4D8; }
@@ -581,8 +604,32 @@ select.input option, .custom-select option { background: white; color: #18181B; 
 /* --- Hover states --------------------------------------------------------- */
 .cabinet-scope[data-theme="dark"] .hover\:bg-\[\#F4F4F5\]:hover,
 .cabinet-scope[data-theme="dark"] .hover\:bg-zinc-100:hover,
-.cabinet-scope[data-theme="dark"] .hover\:bg-zinc-50:hover {
+.cabinet-scope[data-theme="dark"] .hover\:bg-zinc-50:hover,
+/* Phase B3.1 — catch the remaining off-white hover tints used by
+   WatchlistPage / ComparePage / CustomerCabinet shipments table /
+   any future page so hover NEVER flips a black card to a white card. */
+.cabinet-scope[data-theme="dark"] .hover\:bg-\[\#FAFAFA\]:hover,
+.cabinet-scope[data-theme="dark"] .hover\:bg-\[\#F9FAFB\]:hover,
+.cabinet-scope[data-theme="dark"] .hover\:bg-\[\#F8F8F8\]:hover,
+.cabinet-scope[data-theme="dark"] .hover\:bg-gray-50:hover,
+.cabinet-scope[data-theme="dark"] .hover\:bg-gray-100:hover,
+.cabinet-scope[data-theme="dark"] .hover\:bg-neutral-50:hover,
+.cabinet-scope[data-theme="dark"] .hover\:bg-neutral-100:hover,
+.cabinet-scope[data-theme="dark"] .hover\:bg-slate-50:hover,
+.cabinet-scope[data-theme="dark"] .hover\:bg-slate-100:hover {
   background-color: #1E1E22 !important;
+  color: #F4F4F5 !important;
+}
+/* And nuke any "hover:bg-white" (solid or alpha-suffixed) — these surface
+   as a glaring white panel on dark backgrounds and were the visible bug. */
+.cabinet-scope[data-theme="dark"] .hover\:bg-white:hover {
+  background-color: #1E1E22 !important;
+  color: #F4F4F5 !important;
+}
+/* Translucent white overlays (e.g. icon buttons next to the manager card
+   in the sidebar) are intentional — keep them readable on dark. */
+.cabinet-scope[data-theme="dark"] .hover\:bg-white\/50:hover {
+  background-color: rgba(255, 255, 255, 0.10) !important;
 }
 .cabinet-scope[data-theme="dark"] .hover\:text-\[\#18181B\]:hover {
   color: #F4F4F5 !important;

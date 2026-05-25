@@ -219,11 +219,11 @@ const ProxyManager = () => {
             ) : (
               proxyData.proxies?.map((proxy) => (
                 <tr key={proxy.id} className="hover:bg-[#FAFAFA]" data-testid={`proxy-row-${proxy.id}`}>
-                  <td className="px-6 py-4 font-mono text-sm">#{proxy.id}</td>
+                  <td className="px-6 py-4 text-sm">#{proxy.id}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <Shield size={16} className={proxy.has_auth ? 'text-green-500' : 'text-gray-300'} />
-                      <span className="font-mono text-sm">{proxy.server}</span>
+                      <span className="text-sm">{proxy.server}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">

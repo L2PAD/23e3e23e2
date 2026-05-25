@@ -265,15 +265,44 @@ const CarCard = ({ className = '', data, variant = 'main' }) => {
         setIsComparing(false);
         toast.success(t.removedFromCompare);
       } else {
-        await userEngagementApi.compare.add({
+        const res = await userEngagementApi.compare.add({
           vin,
           vehicleId: vin,
           snapshot: snapshotPayload(),
         });
         setIsComparing(true);
-        toast.success(t.addedToCompare, {
-          action: { label: t.openCompareBtn, onClick: () => { window.location.href = '/cabinet/compare'; } },
-        });
+        // 3 distinct UX states based on the resulting cart size:
+        //   count === 1 → "need at least 1 more" (no Open-compare CTA yet)
+        //   count === 2 → "Ready to compare!" (primary CTA to open the cabinet)
+        //   count === 3 → "Compare is full" (CTA still goes to the cabinet)
+        const count = typeof res?.count === 'number' ? res.count : null;
+        const openCompare = () => {
+          let cid = null;
+          try { cid = JSON.parse(localStorage.getItem('customer_session') || 'null')?.customerId; }
+          catch { cid = null; }
+          window.location.href = cid ? `/cabinet/${cid}/compare` : '/cabinet/compare';
+        };
+        if (count === 1 || res?.needsMore === true) {
+          // Stage 1 — informative, no CTA (you can't compare 1 car)
+          toast.success(t.addedToCompareNeedMore, {
+            duration: 5500,
+            description: t.compareNeedMoreDesc,
+          });
+        } else if (count === 2) {
+          // Stage 2 — first time it actually becomes useful → highlight CTA
+          toast.success(t.compareReadyTitle, {
+            duration: 6500,
+            description: t.compareReadyDesc,
+            action: { label: t.openCompareBtn, onClick: openCompare },
+          });
+        } else {
+          // Stage 3 — cap reached
+          toast.success(t.compareFullTitle, {
+            duration: 5500,
+            description: t.compareFullDesc,
+            action: { label: t.openCompareBtn, onClick: openCompare },
+          });
+        }
       }
     } catch (err) {
       if (err?.status === 401 || err?.status === 403) {

@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import RefreshButton from '../../components/ui/RefreshButton';
 import {
   ListChecks,
   Clock,
@@ -82,14 +85,29 @@ const TeamTasksPage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Team Tasks' },
+      ]} />
+
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-          {t('teamTasksControl')}
-        </h1>
-        <p className="text-sm text-[#71717A] mt-1">
-          {t('teamTasks')}
-        </p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <ListChecks size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('teamTasksControl')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('teamTasks')}
+            </p>
+          </div>
+        </div>
+        <div className="shrink-0 self-start">
+          <RefreshButton onClick={fetchTasks} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="team-tasks-refresh-btn" />
+        </div>
       </div>
 
       {/* Tabs */}
@@ -188,7 +206,7 @@ const TeamTasksPage = () => {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => handleReassign(task._id)}
-                            className="p-2 text-[#71717A] hover:text-[#4F46E5] hover:bg-[#EEF2FF] rounded-lg transition-colors"
+                            className="p-2 text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-colors"
                             title={t('reassign')}
                           >
                             <ArrowsClockwise size={16} />

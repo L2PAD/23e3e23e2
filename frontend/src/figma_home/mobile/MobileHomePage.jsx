@@ -410,8 +410,8 @@ export default function MobileHomePage() {
     const params = new URLSearchParams();
     if (filterBrand) params.set('make', filterBrand);
     if (filterModel) params.set('model', filterModel);
-    if (yearFrom) params.set('year_from', yearFrom);
-    if (yearTo) params.set('year_to', yearTo);
+    if (yearFrom) params.set('year_min', yearFrom);
+    if (yearTo) params.set('year_max', yearTo);
     window.location.href = `/catalog${params.toString() ? `?${params}` : ''}`;
   };
 
@@ -1628,13 +1628,10 @@ const MOBILE_PAGE = 6;
 
 function MobileSearchFromAmericaKorea({ t }) {
   const FONT = "'Mazzard', 'Mazzard H', system-ui, -apple-system, sans-serif";
-  const [visible, setVisible] = useState(MOBILE_PAGE);
-  const total = MOBILE_ALL_BRANDS.length;
-  const showMore = visible < total;
-  const expanded = visible > MOBILE_PAGE;
 
-  const handleMore = () => setVisible((v) => Math.min(total, v + MOBILE_PAGE));
-  const handleHide = () => setVisible(MOBILE_PAGE);
+  // June 2026 — only show the 6 popular brands; "Other brands +" links
+  // straight to the full catalog (the in-place expand behaviour was removed).
+  const BRANDS_TO_SHOW = MOBILE_FEATURED_BRANDS;
 
   return (
     <section
@@ -1697,7 +1694,7 @@ function MobileSearchFromAmericaKorea({ t }) {
             borderLeft: '1px solid #1c1c1c',
           }}
         >
-          {MOBILE_ALL_BRANDS.slice(0, visible).map((b) => (
+          {BRANDS_TO_SHOW.map((b) => (
             <a
               key={b.slug}
               href={`/catalog?make=${encodeURIComponent(b.slug)}`}
@@ -1746,53 +1743,28 @@ function MobileSearchFromAmericaKorea({ t }) {
         </div>
       </div>
 
-      {/* Other brands + / Hide brands − */}
+      {/* Other brands + → links to the full catalog (single-action, no toggle). */}
       <div style={{ marginTop: 22, display: 'flex', justifyContent: 'center' }}>
-        {showMore ? (
-          <button
-            type="button"
-            onClick={handleMore}
-            data-testid="mobile-other-brands"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: '4px 8px',
-              cursor: 'pointer',
-              fontFamily: FONT,
-              fontWeight: 500,
-              fontSize: 14,
-              lineHeight: '99.9%',
-              color: '#FEAE00',
-              textTransform: 'uppercase',
-              textDecoration: 'underline',
-              textUnderlineOffset: 3,
-            }}
-          >
-            {t?.otherBrandsPlus || 'Other brands +'}
-          </button>
-        ) : expanded ? (
-          <button
-            type="button"
-            onClick={handleHide}
-            data-testid="mobile-hide-brands"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: '4px 8px',
-              cursor: 'pointer',
-              fontFamily: FONT,
-              fontWeight: 500,
-              fontSize: 14,
-              lineHeight: '99.9%',
-              color: '#FEAE00',
-              textTransform: 'uppercase',
-              textDecoration: 'underline',
-              textUnderlineOffset: 3,
-            }}
-          >
-            {t?.hideBrandsMinus || 'Hide brands −'}
-          </button>
-        ) : null}
+        <a
+          href="/catalog"
+          data-testid="mobile-other-brands"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '4px 8px',
+            cursor: 'pointer',
+            fontFamily: FONT,
+            fontWeight: 500,
+            fontSize: 14,
+            lineHeight: '99.9%',
+            color: '#FEAE00',
+            textTransform: 'uppercase',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+          }}
+        >
+          {t?.otherBrandsPlus || 'Other brands +'}
+        </a>
       </div>
     </section>
   );

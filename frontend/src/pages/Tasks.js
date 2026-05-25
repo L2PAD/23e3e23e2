@@ -3,10 +3,12 @@ import axios from 'axios';
 import { API_URL } from '../App';
 import { useLang, getLocale } from '../i18n';
 import { toast } from 'sonner';
-import { Plus, Clock, Warning } from '@phosphor-icons/react';
+import WhiteDatePicker from '../components/ui/WhiteDatePicker';
+import { Plus, Clock, Warning, ListChecks } from '@phosphor-icons/react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { motion } from 'framer-motion';
+import RefreshButton from '../components/ui/RefreshButton';
 
 const TASK_STATUSES = ['todo', 'in_progress', 'completed', 'cancelled'];
 const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
@@ -56,14 +58,22 @@ const Tasks = () => {
 
   return (
     <motion.div data-testid="tasks-page" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>{t('tasksTitle')}</h1>
-          <p className="text-sm text-[#71717A] mt-1">{t('taskManagement')}</p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4 mb-6 lg:mb-8">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <ListChecks size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>{t('tasksTitle')}</h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">{t('taskManagement')}</p>
+          </div>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary w-full sm:w-auto" data-testid="create-task-btn">
-          <Plus size={18} weight="bold" />{t('newTask')}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <RefreshButton onClick={fetchTasks} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="tasks-refresh-btn" />
+          <button onClick={() => setShowModal(true)} className="btn-primary shrink-0 whitespace-nowrap" data-testid="create-task-btn">
+            <Plus size={18} weight="bold" /><span className="hidden sm:inline">{t('newTask')}</span>
+          </button>
+        </div>
       </div>
 
       <div className="card p-5 mb-5">
@@ -124,7 +134,7 @@ const Tasks = () => {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-2">{t('deadline')}</label>
-                <input type="date" value={formData.dueDate} onChange={(e) => setFormData({...formData, dueDate: e.target.value})} className="input w-full" data-testid="task-duedate-input" />
+                <WhiteDatePicker value={formData.dueDate} onChange={(e) => setFormData({...formData, dueDate: e.target.value})} data-testid="task-duedate-input" />
               </div>
             </div>
             <div>

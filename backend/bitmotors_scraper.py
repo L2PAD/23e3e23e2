@@ -598,6 +598,44 @@ def normalize_result(data: Dict) -> Dict:
     data['drivetrain'] = normalize_drivetrain(data.get('drivetrain'))
     data['title_status'] = normalize_title(data.get('title_status'))
     data['color'] = normalize_color(data.get('color'))
+
+    # ─── Phase A1: Canonical fields (additive, never destructive) ───────
+    # Compute stable make_canonical / model_canonical / search_title so
+    # downstream filters can use indexed exact-match instead of $regex.
+    # Title-based recovery handles the "Land Rover" bug where the raw
+    # parser sets make="Land" because of naive split-by-whitespace.
+    try:
+        from data.canonical import (
+            canonical_make as _can_mk,
+            canonical_model as _can_md,
+            parse_title_to_canonical as _parse_t,
+            build_search_title as _bld_st,
+        )
+        _y_t, _mk_t, _mkc_t, _mdc_t = _parse_t(data.get('title')) if data.get('title') else (None, None, None, None)
+        mk_can = _can_mk(data.get('make')) if data.get('make') else None
+        if (mk_can is None or mk_can == 'Land') and _mkc_t:
+            mk_can = _mkc_t
+        md_can = _can_md(data.get('model'), mk_can) if data.get('model') else None
+        if not md_can and _mdc_t and mk_can == _mkc_t:
+            md_can = _mdc_t
+        if mk_can:
+            data['make_canonical'] = mk_can
+        if md_can:
+            data['model_canonical'] = md_can
+        if data.get('model'):
+            data['model_full'] = data.get('model')
+        st = _bld_st(
+            year=data.get('year') if isinstance(data.get('year'), int) else _y_t,
+            make_canonical_value=mk_can,
+            model_canonical_value=md_can,
+            raw_model=data.get('model'),
+        )
+        if st:
+            data['search_title'] = st
+        data['canonical_version'] = 2
+    except Exception:
+        # Canonicalisation is best-effort — never block ingestion on it.
+        pass
     data['keys'] = normalize_keys(data.get('keys'))
     if data.get('odometer'):
         data['odometer'] = normalize_odometer(data['odometer'], data.get('odometer_unit', 'km'))
@@ -1470,6 +1508,17 @@ class BitmotorsFullSync:
         new_c = 0
         upd_c = 0
         now = datetime.now(timezone.utc)
+        # Lazy import — keeps module loadable when /data isn't on the path.
+        try:
+            from data.canonical import (
+                canonical_make as _can_mk,
+                canonical_model as _can_md,
+                parse_title_to_canonical as _parse_t,
+                build_search_title as _bld_st,
+            )
+            _CANON_OK = True
+        except Exception:
+            _CANON_OK = False
         for v in vehicles:
             vin = v.get('vin')
             if not vin:
@@ -1483,6 +1532,38 @@ class BitmotorsFullSync:
             doc['quality'] = q
             doc['fields_filled'] = ff
             doc['confidence'] = conf
+
+            # ── Phase A1: write canonical fields on every upsert ──────
+            # Even if the catalogue-card parser left make/model dirty
+            # (e.g. "Land" instead of "Land Rover"), the canonical layer
+            # fixes it on the way in. Index-friendly fields downstream.
+            if _CANON_OK:
+                try:
+                    _y_t, _, _mkc_t, _mdc_t = _parse_t(doc.get('title')) if doc.get('title') else (None, None, None, None)
+                    mk_can = _can_mk(doc.get('make')) if doc.get('make') else None
+                    if (mk_can is None or mk_can == 'Land') and _mkc_t:
+                        mk_can = _mkc_t
+                    md_can = _can_md(doc.get('model'), mk_can) if doc.get('model') else None
+                    if not md_can and _mdc_t and mk_can == _mkc_t:
+                        md_can = _mdc_t
+                    if mk_can:
+                        doc['make_canonical'] = mk_can
+                    if md_can:
+                        doc['model_canonical'] = md_can
+                    if doc.get('model'):
+                        doc['model_full'] = doc.get('model')
+                    st = _bld_st(
+                        year=doc.get('year') if isinstance(doc.get('year'), int) else _y_t,
+                        make_canonical_value=mk_can,
+                        model_canonical_value=md_can,
+                        raw_model=doc.get('model'),
+                    )
+                    if st:
+                        doc['search_title'] = st
+                    doc['canonical_version'] = 2
+                except Exception:
+                    pass
+
             try:
                 # Preserve richer make/model from previous write
                 existing = await self.db.vin_data.find_one(

@@ -15,6 +15,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import './ShipmentTrackingMap.css';
 import { useCabinetTheme } from '../../context/CabinetThemeContext';
 import {
   Anchor,
@@ -45,12 +46,15 @@ const clampProgress = (p) => {
   return Math.max(0, Math.min(1, n));
 };
 
-const fmtAgo = (d) => {
+const fmtAgo = (d, t) => {
+  // Best-effort i18n; if a caller forgets to pass `t` (or it isn't a fn yet),
+  // we fall back to plain "s/m/h ago" so the component NEVER crashes.
+  const _t = (typeof t === 'function') ? t : (_k, fb) => fb;
   if (!d) return '—';
   const s = Math.max(0, Math.round((Date.now() - d.getTime()) / 1000));
-  if (s < 60) return `${s}${t('r9_s_ago')}`;
-  if (s < 3600) return `${Math.floor(s / 60)}${t('r9_m_ago')}`;
-  return `${Math.floor(s / 3600)}h ${t('r9_h_ago')}`;
+  if (s < 60) return `${s}${_t('r9_s_ago', 's ago')}`;
+  if (s < 3600) return `${Math.floor(s / 60)}${_t('r9_m_ago', 'm ago')}`;
+  return `${Math.floor(s / 3600)}h ${_t('r9_h_ago', 'h ago')}`;
 };
 
 // ---------- Icons ----------
@@ -340,17 +344,31 @@ const ShipmentTrackingMap = ({ shipment, liveUpdate }) => {
           attributionControl={false}
           className={isDark ? 'vf-map-dark' : 'vf-map-light'}
         >
-          {/* Theme-aware tile layer — CartoDB Voyager (light) / Dark Matter (dark) */}
+          {/* Theme-aware tile layer.
+              Phase B3.1: dark mode uses `dark_nolabels` (clean base, no
+              washed-out labels) + a second labels-only TileLayer on top
+              so country / port names stay crisp after the CSS filter
+              brightens land masses. */}
           <TileLayer
-            key={isDark ? 'dark' : 'light'}
+            key={isDark ? 'dark-base' : 'light'}
             url={
               isDark
-                ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
+                ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_nolabels/{z}/{x}/{y}{r}.png'
                 : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
             }
             subdomains="abcd"
             maxZoom={19}
           />
+          {isDark && (
+            <TileLayer
+              key="dark-labels"
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/dark_only_labels/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              maxZoom={19}
+              pane="markerPane"
+              opacity={0.95}
+            />
+          )}
           <FitRouteBounds bounds={bounds} focusPosition={livePosition} />
 
           {/* Remaining route — dashed light blue */}
@@ -451,7 +469,7 @@ const ShipmentTrackingMap = ({ shipment, liveUpdate }) => {
             <div className="flex items-center justify-between gap-3 text-[11px] pt-1 border-t border-slate-700/60">
               <span className="text-slate-400 flex items-center gap-1"><Broadcast size={11} /> {t('cmp_updated')}</span>
               <span className="text-white font-mono font-semibold text-[10px]">
-                {fmtAgo(lastUpdateTime)}
+                {fmtAgo(lastUpdateTime, t)}
               </span>
             </div>
           </div>

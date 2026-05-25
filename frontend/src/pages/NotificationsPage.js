@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Bell, BellRinging, Check, CheckCircle, X, UserPlus, Handshake, FileText, CurrencyDollar, Warning, Clock, Gear, ShieldCheck, User, Users, Database, Funnel, ArrowsClockwise, Trash, Eye } from '@phosphor-icons/react';
 import { useLang, getLocale } from '../i18n';
+import WhiteSelect from '../components/ui/WhiteSelect';
+import RefreshButton from '../components/ui/RefreshButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -107,13 +109,13 @@ const NotificationsPage = () => {
 
   return (
     <div className="max-w-5xl mx-auto" data-testid="notifications-page">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>{t('notifications')}</h1>
-          <p className="text-sm text-[#71717A] mt-1">{t('allSystemNotifications')}</p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-[#18181B] break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>{t('notifications')}</h1>
+          <p className="text-sm text-[#71717A] mt-1 break-words">{t('allSystemNotifications')}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={fetchNotifications} className="flex items-center gap-2 px-4 py-2 text-[#71717A] hover:text-[#18181B] border border-[#E4E4E7] rounded-xl hover:bg-[#F4F4F5] transition-colors"><ArrowsClockwise size={18} />{t('refresh')}</button>
+        <div className="flex items-center gap-3 shrink-0">
+          <RefreshButton onClick={fetchNotifications} ariaLabel={t('refresh')} testId="notifications-refresh-btn" />
           {unreadCount > 0 && <button onClick={markAllAsRead} className="flex items-center gap-2 px-4 py-2 bg-[#4F46E5] text-white rounded-xl hover:bg-[#4338CA] transition-colors"><CheckCircle size={18} />{t('readAllBtn')} ({unreadCount})</button>}
         </div>
       </div>
@@ -137,10 +139,10 @@ const NotificationsPage = () => {
         </div>
         <div className="flex items-center gap-2">
           <Funnel size={18} className="text-[#71717A]" />
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="px-3 py-2 text-sm bg-white border border-[#E4E4E7] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4F46E5]">
+          <WhiteSelect value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
             <option value="all">{t('allTypesFilter')}</option>
             {notificationTypes.map(type => <option key={type} value={type}>{notificationConfig[type]?.label || type}</option>)}
-          </select>
+          </WhiteSelect>
         </div>
       </div>
 

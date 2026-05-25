@@ -23,6 +23,8 @@ import {
   Warning
 } from '@phosphor-icons/react';
 import { useLang } from '../i18n';
+import WhiteSelect from '../components/ui/WhiteSelect';
+import RefreshButton from '../components/ui/RefreshButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -53,14 +55,14 @@ const KPICard = ({ title, value, icon, trend, color = 'blue' }) => {
   };
 
   return (
-    <div className="kpi-card">
-      <div className="mb-4">
+    <div className="kpi-card kpi-card--compact min-w-0">
+      <div className="mb-2 sm:mb-3">
         <span className={iconColors[color]}>{icon}</span>
       </div>
-      <div className="kpi-value">{value}</div>
+      <div className="kpi-value kpi-value--fit truncate" title={String(value)}>{value}</div>
       <div className="kpi-label">{title}</div>
       {trend && (
-        <p className={`text-xs mt-1 ${trend >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+        <p className={`text-[11px] mt-1 ${trend >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
           {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% vs last period
         </p>
       )}
@@ -76,28 +78,31 @@ const FunnelChart = ({ data }) => {
   const maxValue = Math.max(...data.steps.map(s => s.value));
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-semibold mb-4">{t('i18n_conversion_funnel_417423')}</h3>
-      <div className="space-y-3">
-        {data.steps.map((step, idx) => (
-          <div key={step.name} className="relative">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium">{step.name}</span>
-              <span className="text-sm text-gray-500">
-                {step.value.toLocaleString()} ({step.rate}%)
+    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('i18n_conversion_funnel_417423')}</h3>
+      <div className="space-y-1.5 sm:space-y-2">
+        {data.steps.map((step, idx) => {
+          // Prefer translated label by stable `name_key`; fall back to raw `name`.
+          const label = step.name_key ? t(step.name_key) : step.name;
+          return (
+          <div key={step.name_key || step.name} className="relative">
+            <div className="flex items-center justify-between mb-0.5 gap-2">
+              <span className="text-[12.5px] sm:text-sm font-medium truncate">{label}</span>
+              <span className="text-[11.5px] sm:text-xs text-gray-500 whitespace-nowrap flex-shrink-0">
+                {step.value.toLocaleString()}{step.rate != null && <> · {step.rate}%</>}
               </span>
             </div>
-            <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
+            <div className="h-2.5 sm:h-3 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-lg transition-all"
-                style={{ width: `${(step.value / maxValue) * 100}%` }}
+                className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all"
+                style={{ width: `${Math.max(2, (step.value / maxValue) * 100)}%` }}
               />
             </div>
             {idx < data.steps.length - 1 && (
-              <div className="text-center text-xs text-gray-400 py-1">↓</div>
+              <div className="text-center text-[10px] leading-none text-gray-300 mt-0.5">↓</div>
             )}
           </div>
-        ))}
+        );})}
       </div>
     </div>
   );
@@ -108,37 +113,37 @@ const SourcesTable = ({ data }) => {
   const { t } = useLang();
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold mb-4">{t('i18n_traffic_sources_f8f6bb')}</h3>
-        <p className="text-gray-500">{t('i18n_no_data_ab3015')}</p>
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+        <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('i18n_traffic_sources_f8f6bb')}</h3>
+        <p className="text-gray-500 text-sm">{t('i18n_no_data_ab3015')}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-semibold mb-4">{t('i18n_traffic_sources_and_roi_0c15e6')}</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full">
+    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('i18n_traffic_sources_and_roi_0c15e6')}</h3>
+      <div className="overflow-x-auto -mx-2 sm:mx-0">
+        <table className="w-full min-w-[460px] text-[13px]">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_source_0945d8')}</th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_visits_e737a8')}</th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_leads_70641b')}</th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_deals_3bbd14')}</th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_profit_123a87')}</th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">CR</th>
+              <th className="text-left py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_source_0945d8')}</th>
+              <th className="text-right py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_visits_e737a8')}</th>
+              <th className="text-right py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_leads_70641b')}</th>
+              <th className="text-right py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_deals_3bbd14')}</th>
+              <th className="text-right py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_profit_123a87')}</th>
+              <th className="text-right py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">CR</th>
             </tr>
           </thead>
           <tbody>
             {data.map((source, idx) => (
-              <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-3 px-2 font-medium">{source.source || 'Direct'}</td>
-                <td className="py-3 px-2 text-right">{source.visits?.toLocaleString()}</td>
-                <td className="py-3 px-2 text-right">{source.leads}</td>
-                <td className="py-3 px-2 text-right">{source.deals}</td>
-                <td className="py-3 px-2 text-right">${source.profit?.toLocaleString()}</td>
-                <td className={`py-3 px-2 text-right font-semibold ${
+              <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 last:border-0">
+                <td className="py-2 px-2 font-medium whitespace-nowrap">{source.source || 'Direct'}</td>
+                <td className="py-2 px-2 text-right whitespace-nowrap">{source.visits?.toLocaleString()}</td>
+                <td className="py-2 px-2 text-right whitespace-nowrap">{source.leads}</td>
+                <td className="py-2 px-2 text-right whitespace-nowrap">{source.deals}</td>
+                <td className="py-2 px-2 text-right whitespace-nowrap">${source.profit?.toLocaleString()}</td>
+                <td className={`py-2 px-2 text-right font-semibold whitespace-nowrap ${
                   source.conversion > 5 ? 'text-emerald-600' :
                   source.conversion > 2 ? 'text-blue-600' :
                   source.conversion > 0 ? 'text-amber-600' : 'text-red-600'
@@ -159,9 +164,9 @@ const CampaignOptimizer = ({ data }) => {
   const { t } = useLang();
   if (!data?.decisions || data.decisions.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold mb-4">{t('i18n_campaign_optimizer_180c32')}</h3>
-        <p className="text-gray-500">{t('i18n_no_campaign_data_dccdf9')}</p>
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+        <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('i18n_campaign_optimizer_180c32')}</h3>
+        <p className="text-gray-500 text-sm">{t('i18n_no_campaign_data_dccdf9')}</p>
       </div>
     );
   }
@@ -169,20 +174,20 @@ const CampaignOptimizer = ({ data }) => {
   const { decisions, summary } = data;
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">{t('i18n_campaign_optimizer_180c32')}</h3>
-        <div className="flex gap-2">
-          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">
+    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-semibold">{t('i18n_campaign_optimizer_180c32')}</h3>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-[11px] sm:text-xs font-semibold">
             {summary.scaleCount} {t('i18n_scale_0883ab')}
           </span>
-          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
+          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-[11px] sm:text-xs font-semibold">
             {summary.keepCount} {t('i18n_keep_3d4a3f')}
           </span>
-          <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-semibold">
+          <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-[11px] sm:text-xs font-semibold">
             {summary.watchCount} {t('i18n_watch_5c91a0')}
           </span>
-          <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">
+          <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-[11px] sm:text-xs font-semibold">
             {summary.killCount} {t('i18n_stop_5d9160')}
           </span>
         </div>
@@ -190,8 +195,8 @@ const CampaignOptimizer = ({ data }) => {
 
       {summary.recommendations?.length > 0 && (
         <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <p className="text-sm font-medium text-blue-800">{t('i18n_quick_actions_c82775')}</p>
-          <ul className="mt-1 text-sm text-blue-700">
+          <p className="text-[13px] font-medium text-blue-800">{t('i18n_quick_actions_c82775')}</p>
+          <ul className="mt-1 text-[12.5px] text-blue-700 leading-snug">
             {summary.recommendations.map((rec, idx) => (
               <li key={idx}>• {rec}</li>
             ))}
@@ -199,40 +204,40 @@ const CampaignOptimizer = ({ data }) => {
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <div className="overflow-x-auto -mx-2 sm:mx-0">
+        <table className="w-full min-w-[680px] text-[13px]">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_campaign_15b3d1')}</th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_expenses_1ceb39')}</th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_leads_70641b')}</th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_deals_3bbd14')}</th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">ROI</th>
-              <th className="text-center py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_status_7203f7')}</th>
-              <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600">{t('i18n_action_773c46')}</th>
+              <th className="text-left py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_campaign_15b3d1')}</th>
+              <th className="text-right py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_expenses_1ceb39')}</th>
+              <th className="text-right py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_leads_70641b')}</th>
+              <th className="text-right py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_deals_3bbd14')}</th>
+              <th className="text-right py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">ROI</th>
+              <th className="text-center py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_status_7203f7')}</th>
+              <th className="text-left py-2 px-2 text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">{t('i18n_action_773c46')}</th>
             </tr>
           </thead>
           <tbody>
             {decisions.slice(0, 10).map((campaign, idx) => (
-              <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-3 px-2">
+              <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 last:border-0">
+                <td className="py-2 px-2 whitespace-nowrap">
                   <div className="font-medium">{campaign.campaign}</div>
-                  <div className="text-xs text-gray-500">{campaign.source}</div>
+                  <div className="text-[11px] text-gray-500">{campaign.source}</div>
                 </td>
-                <td className="py-3 px-2 text-right">${campaign.spend?.toLocaleString()}</td>
-                <td className="py-3 px-2 text-right">{campaign.leads}</td>
-                <td className="py-3 px-2 text-right">{campaign.deals}</td>
-                <td className={`py-3 px-2 text-right font-semibold ${
+                <td className="py-2 px-2 text-right whitespace-nowrap">${campaign.spend?.toLocaleString()}</td>
+                <td className="py-2 px-2 text-right whitespace-nowrap">{campaign.leads}</td>
+                <td className="py-2 px-2 text-right whitespace-nowrap">{campaign.deals}</td>
+                <td className={`py-2 px-2 text-right font-semibold whitespace-nowrap ${
                   campaign.roi > 30 ? 'text-emerald-600' :
                   campaign.roi > 0 ? 'text-blue-600' : 'text-red-600'
                 }`}>
                   {campaign.roi?.toFixed(1)}%
                 </td>
-                <td className="py-3 px-2 text-center">
+                <td className="py-2 px-2 text-center whitespace-nowrap">
                   <StatusBadge status={campaign.status} />
                 </td>
-                <td className="py-3 px-2">
-                  <div className="text-xs text-gray-600 max-w-[200px]">
+                <td className="py-2 px-2">
+                  <div className="text-[11.5px] text-gray-600 max-w-[200px] truncate">
                     {campaign.actions?.[0]}
                   </div>
                 </td>
@@ -318,7 +323,7 @@ const AdminAnalyticsDashboard = () => {
           <p>{error}</p>
           <button
             onClick={fetchData}
-            className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="mt-3 px-4 py-2 bg-[#18181B] text-white rounded-xl hover:bg-[#27272A] active:bg-black transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
           >
             {t('i18n_retry_0da390')}
           </button>
@@ -330,44 +335,42 @@ const AdminAnalyticsDashboard = () => {
   const kpi = dashboard?.kpi || {};
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 min-w-0 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
             {t('i18n_analytics_dashboard_28f116')}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">{t('i18n_marketing_performance_and_roi_ab828b')}</p>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('i18n_marketing_performance_and_roi_ab828b')}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
-          >
-            <option value={7}>{t('i18n_last_7_days_79531d')}</option>
-            <option value={14}>{t('i18n_last_14_days_a937d9')}</option>
-            <option value={30}>{t('i18n_last_30_days_f5c99e')}</option>
-            <option value={60}>{t('i18n_last_60_days_226c39')}</option>
-            <option value={90}>{t('i18n_last_90_days_f1b762')}</option>
-          </select>
-          <button
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="flex-1 sm:flex-none sm:w-[170px] min-w-0">
+            <WhiteSelect value={days} onChange={(e) => setDays(Number(e.target.value))}>
+              <option value={7}>{t('i18n_last_7_days_79531d')}</option>
+              <option value={14}>{t('i18n_last_14_days_a937d9')}</option>
+              <option value={30}>{t('i18n_last_30_days_f5c99e')}</option>
+              <option value={60}>{t('i18n_last_60_days_226c39')}</option>
+              <option value={90}>{t('i18n_last_90_days_f1b762')}</option>
+            </WhiteSelect>
+          </div>
+          <RefreshButton
             onClick={fetchData}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          >
-            {t('i18n_refresh_b6bf91')}
-          </button>
+            ariaLabel={t('i18n_refresh_b6bf91')}
+            testId="analytics-refresh-btn"
+            title={t('i18n_refresh_b6bf91')}
+          />
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 min-w-0">
         {/* Fake Traffic Alert */}
         {dashboard?.fakeTraffic && (
           <FakeTrafficAlert data={dashboard.fakeTraffic} />
         )}
 
         {/* KPI Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           <KPICard
             title={t('i18n_visits_e737a8')}
             value={kpi.visits?.toLocaleString() || '0'}
@@ -406,35 +409,40 @@ const AdminAnalyticsDashboard = () => {
           />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Funnel */}
-          <FunnelChart data={dashboard?.funnel} />
-
-          {/* Sources */}
-          <SourcesTable data={dashboard?.sources} />
+        {/* Main Content Grid — `min-w-0` on each cell prevents wide children
+            (tables) from pushing the page width beyond the viewport. */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 min-w-0">
+          <div className="min-w-0">
+            <FunnelChart data={dashboard?.funnel} />
+          </div>
+          <div className="min-w-0">
+            <SourcesTable data={dashboard?.sources} />
+          </div>
         </div>
 
         {/* Campaign Optimizer - Full Width */}
-        <CampaignOptimizer data={marketing} />
+        <div className="min-w-0">
+          <CampaignOptimizer data={marketing} />
+        </div>
 
         {/* Timeline Chart */}
         {dashboard?.timeline && dashboard.timeline.length > 0 && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold mb-4">{t('i18n_traffic_chart_625043')}</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dashboard.timeline}>
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('i18n_traffic_chart_625043')}</h3>
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={dashboard.timeline} margin={{ top: 5, right: 8, left: -16, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="_id" tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
+                <XAxis dataKey="_id" tick={{ fontSize: 10 }} stroke="#9ca3af" />
+                <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" width={40} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#fff',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
+                    fontSize: 12,
                   }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Line
                   type="monotone"
                   dataKey="total"

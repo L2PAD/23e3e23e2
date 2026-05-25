@@ -375,9 +375,12 @@
   background: #FEAE00;
   color: #0A0A0A;
   font-family: var(--bibi-font, 'Mazzard H', system-ui, sans-serif);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.04em;
+  /* H Medium 14 px — same typographic weight as "Send request" and
+     "Close" on the modal. Bold (700) was reading as too heavy versus
+     the other CTAs; H Medium keeps the brand consistency. */
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   box-shadow: 0 8px 24px rgba(254, 174, 0, 0.18);
   transition:

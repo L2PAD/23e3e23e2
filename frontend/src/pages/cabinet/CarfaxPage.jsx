@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useLang, getLocale } from '../../i18n';
+import RefreshButton from '../../components/ui/RefreshButton';
 import { 
   FileText, 
   Clock, 
@@ -290,13 +291,11 @@ export default function CarfaxPage() {
         </div>
         
         <div className="flex items-center gap-3">
-          <button
+          <RefreshButton
             onClick={loadRequests}
-            className="p-2 rounded-xl hover:bg-zinc-100 transition-colors"
-            data-testid="refresh-carfax"
-          >
-            <ArrowClockwise size={20} className="text-zinc-600" />
-          </button>
+            ariaLabel="Refresh"
+            testId="refresh-carfax"
+          />
           <button
             onClick={() => setShowNewRequest(true)}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl 

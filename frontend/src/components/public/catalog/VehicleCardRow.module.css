@@ -328,6 +328,18 @@
   white-space: nowrap;
 }
 .priceMuted { color: #514F4C; }
+
+/* SOLD-state muting for the LEFT spec block (Mileage / Engine / Drive /
+ * Damage / Condition / Auction). When the vehicle is marked as sold, the
+ * card's specs are no longer "live" data the buyer can act on, so we drop
+ * both the label and value into the same muted grey (#514F4C) used by the
+ * sold-price / sold-date pair on the right. The CTA button ("Find similar
+ * vehicles") stays at full brightness — that's the only actionable element
+ * for sold listings. */
+.specBlockMuted .specLabel,
+.specBlockMuted .specValue {
+  color: #514F4C;
+}
 .dateValue {
   font-family: 'Mazzard H', var(--font-mazzard, system-ui, sans-serif);
   font-weight: 700;

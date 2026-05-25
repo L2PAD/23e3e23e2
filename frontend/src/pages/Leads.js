@@ -3,11 +3,12 @@ import axios from 'axios';
 import { API_URL } from '../App';
 import { useLang } from '../i18n';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash, Receipt, Eye } from '@phosphor-icons/react';
+import { Plus, Pencil, Trash, Receipt, Eye, Target } from '@phosphor-icons/react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { motion } from 'framer-motion';
 import QuoteHistory from '../components/crm/QuoteHistory';
+import RefreshButton from '../components/ui/RefreshButton';
 
 const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost', 'archived'];
 const LEAD_SOURCES = ['website', 'referral', 'social_media', 'cold_call', 'advertisement', 'partner', 'other'];
@@ -136,21 +137,29 @@ const Leads = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('leadsTitle')}
-          </h1>
-          <p className="text-xs sm:text-sm text-[#71717A] mt-1">{t('leadManagement')}</p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4 mb-6 lg:mb-8">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Target size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('leadsTitle')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">{t('leadManagement')}</p>
+          </div>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowModal(true); }}
-          className="btn-primary w-full sm:w-auto"
-          data-testid="create-lead-btn"
-        >
-          <Plus size={18} weight="bold" />
-          {t('newLead')}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <RefreshButton onClick={fetchLeads} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="leads-refresh-btn" />
+          <button
+            onClick={() => { resetForm(); setShowModal(true); }}
+            className="btn-primary shrink-0 whitespace-nowrap"
+            data-testid="create-lead-btn"
+          >
+            <Plus size={18} weight="bold" />
+            <span className="hidden sm:inline">{t('newLead')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

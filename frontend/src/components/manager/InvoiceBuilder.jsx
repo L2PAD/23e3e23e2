@@ -9,6 +9,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { X, Plus, Trash2, Send, Package, Sparkles } from 'lucide-react';
 import { useLang } from '../../i18n';
+import WhiteSelect from '../../components/ui/WhiteSelect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -119,9 +120,9 @@ export default function InvoiceBuilder({ open, onClose, customerId, customerEmai
             <p className="text-2xl font-bold text-gray-900">{fmt(total, currency)}</p>
           </div>
           <div className="flex items-center gap-2">
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+            <WhiteSelect value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {['USD','EUR','UAH','BGN','GBP'].map((c) => <option key={c}>{c}</option>)}
-            </select>
+            </WhiteSelect>
             <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">{t('cmp_cancel_2')}</button>
             <button onClick={submit} disabled={loading || items.length === 0} className="flex items-center gap-2 px-5 py-2 bg-[#635BFF] text-white rounded-lg hover:bg-[#5147d4] disabled:opacity-50 text-sm font-medium">
               <Send className="w-4 h-4" /> {t('cmp_create_and_send')}

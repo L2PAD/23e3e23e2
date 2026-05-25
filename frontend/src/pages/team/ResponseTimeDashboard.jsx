@@ -20,6 +20,7 @@ import {
   TrendUp,
   TrendDown,
 } from '@phosphor-icons/react';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const ResponseTimeDashboard = () => {
   const { t } = useLang();
@@ -99,29 +100,37 @@ const ResponseTimeDashboard = () => {
       className="space-y-6"
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('responseMetrics')}
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('responseTimeGoal')}: 5 {t('minutes')}
-          </p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Timer size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('responseMetrics')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('responseTimeGoal')}: 5 {t('minutes')}
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
-          {[7, 14, 30].map(d => (
-            <button
-              key={d}
-              onClick={() => setDays(d)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                days === d
-                  ? 'bg-[#18181B] text-white'
-                  : 'bg-white border border-[#E4E4E7] text-[#71717A] hover:bg-[#F4F4F5]'
-              }`}
-            >
-              {d}d
-            </button>
-          ))}
+        <div className="flex items-center gap-2 shrink-0 self-start">
+          <RefreshButton onClick={fetchMetrics} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="response-time-refresh-btn" />
+          <div className="flex gap-1">
+            {[7, 14, 30].map(d => (
+              <button
+                key={d}
+                onClick={() => setDays(d)}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  days === d
+                    ? 'bg-[#18181B] text-white'
+                    : 'bg-white border border-[#E4E4E7] text-[#71717A] hover:bg-[#F4F4F5]'
+                }`}
+              >
+                {d}d
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -129,8 +138,8 @@ const ResponseTimeDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl border border-[#E4E4E7] p-5">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-[#EEF2FF] rounded-xl">
-              <Timer size={20} className="text-[#4F46E5]" weight="duotone" />
+            <div className="p-2 bg-[#F4F4F5] rounded-xl">
+              <Timer size={20} className="text-[#18181B]" weight="duotone" />
             </div>
             <span className="text-sm text-[#71717A]">{t('avgResponseTime')}</span>
           </div>

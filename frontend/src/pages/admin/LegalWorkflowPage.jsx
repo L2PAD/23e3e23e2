@@ -22,6 +22,8 @@ import {
   CurrencyEur, CheckSquare, XCircle, ListChecks, Calculator
 } from '@phosphor-icons/react';
 import CalculationsTab from '../../components/crm/calculations/CalculationsTab';
+import WhiteSelect from '../../components/ui/WhiteSelect';
+import SectionTabs, { OptionPillGroup } from '../../components/ui/SectionTabs';
 
 import { useLang } from '../../i18n';
 // ──────────────────────── STATIC HELPERS ─────────────────────────
@@ -135,37 +137,30 @@ export default function LegalWorkflowPage() {
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
-      <div className="flex items-center gap-3">
-        <Scales size={28} weight="duotone" className="text-[#4F46E5]" />
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#18181B]"
-              style={{ fontFamily: 'Mazzard, system-ui, sans-serif' }}>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+          <Scales size={18} weight="duotone" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words"
+              style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
             {t('legalAndPipelineWorkflow')}
           </h1>
-          <p className="text-sm text-[#71717A]">
+          <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
             {t('legalWorkflowSubtitle')}
           </p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-[#E4E4E7] overflow-x-auto">
-        {tabs.map(tab2 => (
-          <button
-            key={tab2.id}
-            onClick={() => setTab(tab2.id)}
-            data-testid={`legal-tab-${tab2.id}`}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
-              tab === tab2.id
-                ? 'text-[#4F46E5] border-b-2 border-[#4F46E5]'
-                : 'text-[#71717A] hover:text-[#18181B]'
-            }`}
-          >
-            <tab2.icon size={18} weight="duotone" />
-            {tab2.label}
-          </button>
-        ))}
-      </div>
+      {/* Tabs — unified black-outline standard */}
+      <SectionTabs
+        tabs={tabs.map((t2) => ({ id: t2.id, label: t2.label, icon: t2.icon }))}
+        activeId={tab}
+        onChange={setTab}
+        testIdPrefix="legal-tab"
+        ariaLabel="Legal workflow sections"
+        className="-mx-1 sm:mx-0"
+      />
 
       <div className="min-h-[500px]">
         {tab === 'customer_legal' && (
@@ -289,19 +284,19 @@ function CustomerLegalTab({ customers }) {
             <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-2">
               {t('clientLabel')} <span className="text-[#DC2626]">*</span>
             </label>
-            <select
+            <WhiteSelect
               value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              className="input w-full"
+              onChange={(v) => setCustomerId(v)}
               data-testid="legal-customer-select"
-            >
-              <option value="">— {t('selectClient')} —</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>
-                  {(c.firstName || '') + ' ' + (c.lastName || '')} · {c.email || c.phone || c.id}
-                </option>
-              ))}
-            </select>
+              placeholder={`— ${t('selectClient')} —`}
+              options={[
+                { value: '', label: `— ${t('selectClient')} —` },
+                ...customers.map(c => ({
+                  value: c.id,
+                  label: `${(c.firstName || '') + ' ' + (c.lastName || '')} · ${c.email || c.phone || c.id}`,
+                })),
+              ]}
+            />
           </div>
 
           {customerId && (
@@ -504,19 +499,19 @@ function DealPipelineTab({ deals, catalog, onRefresh }) {
         <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-2">
           {t('adm_deal_2')}
         </label>
-        <select
+        <WhiteSelect
           value={dealId}
-          onChange={(e) => setDealId(e.target.value)}
-          className="input w-full"
+          onChange={(v) => setDealId(v)}
           data-testid="pipeline-deal-select"
-        >
-          <option value="">— {t('selectDeal')} —</option>
-          {deals.map(d => (
-            <option key={d.id} value={d.id}>
-              {d.title || d.vin || d.id} · {STAGE_LABELS[d.stage || d.status] || (d.stage || d.status)}
-            </option>
-          ))}
-        </select>
+          placeholder={`— ${t('selectDeal')} —`}
+          options={[
+            { value: '', label: `— ${t('selectDeal')} —` },
+            ...deals.map(d => ({
+              value: d.id,
+              label: `${d.title || d.vin || d.id} · ${STAGE_LABELS[d.stage || d.status] || (d.stage || d.status)}`,
+            })),
+          ]}
+        />
 
         {selected && (
           <div className="mt-5 space-y-2 text-sm">
@@ -740,18 +735,18 @@ function DealPipelineTab({ deals, catalog, onRefresh }) {
                       <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">
                         {t('adm_auction')}
                       </label>
-                      <select
+                      <WhiteSelect
                         value={wonForm.auction}
-                        onChange={(e) => setWonForm(s => ({ ...s, auction: e.target.value }))}
-                        className="input w-full"
+                        onChange={(v) => setWonForm(s => ({ ...s, auction: v }))}
                         data-testid="won-auction"
-                      >
-                        <option value="Copart">{t('adm_copart')}</option>
-                        <option value="IAA">IAA</option>
-                        <option value="Manheim">{t('adm_manheim')}</option>
-                        <option value="ADESA">ADESA</option>
-                        <option value="Other">{t('docOther')}</option>
-                      </select>
+                        options={[
+                          { value: 'Copart', label: t('adm_copart') },
+                          { value: 'IAA', label: 'IAA' },
+                          { value: 'Manheim', label: t('adm_manheim') },
+                          { value: 'ADESA', label: 'ADESA' },
+                          { value: 'Other', label: t('docOther') },
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">
@@ -1096,25 +1091,34 @@ function DepositV2Tab({ customers, deals, catalog }) {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-2">{t('adm_customer')}</label>
-              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}
-                      className="input w-full" data-testid="dep-customer">
-                <option value="">— {t('selectShort')} —</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {(c.firstName || '') + ' ' + (c.lastName || '')} · {c.email || c.phone || c.id}
-                  </option>
-                ))}
-              </select>
+              <WhiteSelect
+                value={customerId}
+                onChange={(v) => setCustomerId(v)}
+                data-testid="dep-customer"
+                placeholder={`— ${t('selectShort')} —`}
+                options={[
+                  { value: '', label: `— ${t('selectShort')} —` },
+                  ...customers.map(c => ({
+                    value: c.id,
+                    label: `${(c.firstName || '') + ' ' + (c.lastName || '')} · ${c.email || c.phone || c.id}`,
+                  })),
+                ]}
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-2">{t('adm2_5eca18b883')}</label>
-              <select value={dealId} onChange={(e) => setDealId(e.target.value)}
-                      className="input w-full" data-testid="dep-deal">
-                <option value="">{t('adm_do_not_bind')}</option>
-                {deals.filter(d => !customerId || d.customerId === customerId).map(d => (
-                  <option key={d.id} value={d.id}>{d.title || d.vin || d.id}</option>
-                ))}
-              </select>
+              <WhiteSelect
+                value={dealId}
+                onChange={(v) => setDealId(v)}
+                data-testid="dep-deal"
+                placeholder={t('adm_do_not_bind')}
+                options={[
+                  { value: '', label: t('adm_do_not_bind') },
+                  ...deals
+                    .filter(d => !customerId || d.customerId === customerId)
+                    .map(d => ({ value: d.id, label: d.title || d.vin || d.id })),
+                ]}
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-2">
@@ -1428,40 +1432,46 @@ function ContractV2Tab({ customers, deals, catalog }) {
           <span>{t('adm_create_contract_v2')}</span>
         </div>
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            {(catalog?.contract_types || ['deposit','final','purchase']).map(t => (
-              <button key={t} onClick={() => setType(t)}
-                      data-testid={`ctype-${t}`}
-                      className={`px-3 py-2 rounded-lg text-sm font-semibold border-2 transition-colors ${
-                        type === t
-                          ? 'border-[#4F46E5] bg-[#E0E7FF] text-[#4F46E5]'
-                          : 'border-[#E4E4E7] bg-white text-[#71717A] hover:border-[#4F46E5]/40'
-                      }`}>
-                {t.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          <OptionPillGroup
+            options={(catalog?.contract_types || ['deposit', 'final', 'purchase']).map((ct) => ({
+              value: ct,
+              label: ct.toUpperCase(),
+            }))}
+            value={type}
+            onChange={setType}
+            testIdPrefix="ctype"
+            ariaLabel="Contract type"
+          />
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-2">{t('adm_customer')}</label>
-            <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}
-                    className="input w-full" data-testid="c2-customer">
-              <option value="">— {t('selectShort')} —</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>
-                  {(c.firstName || '') + ' ' + (c.lastName || '')} · {c.email || c.id}
-                </option>
-              ))}
-            </select>
+            <WhiteSelect
+              value={customerId}
+              onChange={(v) => setCustomerId(v)}
+              data-testid="c2-customer"
+              placeholder={`— ${t('selectShort')} —`}
+              options={[
+                { value: '', label: `— ${t('selectShort')} —` },
+                ...customers.map(c => ({
+                  value: c.id,
+                  label: `${(c.firstName || '') + ' ' + (c.lastName || '')} · ${c.email || c.id}`,
+                })),
+              ]}
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-2">{t('adm_deal_3')}</label>
-            <select value={dealId} onChange={(e) => setDealId(e.target.value)}
-                    className="input w-full" data-testid="c2-deal">
-              <option value="">— {t('selectShort')} —</option>
-              {deals.filter(d => !customerId || d.customerId === customerId).map(d => (
-                <option key={d.id} value={d.id}>{d.title || d.vin || d.id}</option>
-              ))}
-            </select>
+            <WhiteSelect
+              value={dealId}
+              onChange={(v) => setDealId(v)}
+              data-testid="c2-deal"
+              placeholder={`— ${t('selectShort')} —`}
+              options={[
+                { value: '', label: `— ${t('selectShort')} —` },
+                ...deals
+                  .filter(d => !customerId || d.customerId === customerId)
+                  .map(d => ({ value: d.id, label: d.title || d.vin || d.id })),
+              ]}
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-[#71717A] mb-2">{t('adm_notes')}</label>
@@ -1650,19 +1660,19 @@ function FinancialsTab({ customers, deals }) {
           <ListChecks size={22} weight="duotone" className="text-[#4F46E5]" />
           <span>{t('adm_deal_2')}</span>
         </div>
-        <select
+        <WhiteSelect
           value={dealId}
-          onChange={(e) => setDealId(e.target.value)}
+          onChange={(v) => setDealId(v)}
           data-testid="fin-deal-select"
-          className="input w-full"
-        >
-          <option value="">— {t('selectDeal')} —</option>
-          {deals.map(d => (
-            <option key={d.id} value={d.id}>
-              {(d.title || d.vin || d.id)} · {STAGE_LABELS[d.stage] || d.stage || ''}
-            </option>
-          ))}
-        </select>
+          placeholder={`— ${t('selectDeal')} —`}
+          options={[
+            { value: '', label: `— ${t('selectDeal')} —` },
+            ...deals.map(d => ({
+              value: d.id,
+              label: `${(d.title || d.vin || d.id)} · ${STAGE_LABELS[d.stage] || d.stage || ''}`,
+            })),
+          ]}
+        />
         <div className="text-xs text-[#71717A] mt-3 bg-[#F9FAFB] rounded-lg p-3 flex gap-2">
           <Info size={16} className="flex-shrink-0 mt-0.5" />
           <div>

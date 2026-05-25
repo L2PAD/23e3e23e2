@@ -12,8 +12,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useLang } from '../../i18n';
+import RefreshButton from '../../components/ui/RefreshButton';
 import { 
   User, 
   SignOut, 
@@ -25,6 +27,7 @@ import {
   XCircle,
   Warning,
   ArrowClockwise,
+  ArrowLeft,
   Eye,
   LockKey
 } from '@phosphor-icons/react';
@@ -176,6 +179,7 @@ const AnalyticsCard = ({ title, value, subtitle, icon: Icon, color = 'zinc' }) =
 
 export default function StaffSessionsBoard() {
   const { t } = useLang();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [suspiciousSessions, setSuspiciousSessions] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -245,21 +249,36 @@ export default function StaffSessionsBoard() {
 
   return (
     <div className="space-y-6" data-testid="staff-sessions-board">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{t('staffSessions')}</h1>
-          <p className="text-zinc-500">{t('teamLoadControl')}</p>
-        </div>
+      {/* Header — back button TOP-LEFT, refresh TOP-RIGHT (admin convention) */}
+      <div className="flex items-start gap-3">
         <button
-          onClick={loadData}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 
-                     transition-colors text-sm font-medium disabled:opacity-50"
+          type="button"
+          onClick={() => {
+            // Prefer returning to the previous page (team dashboard) when present.
+            // Fallback: navigate to /admin (master) or /team (team-lead) home.
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              const fallback = window.location.pathname.startsWith('/team') ? '/team' : '/admin';
+              navigate(fallback);
+            }
+          }}
+          aria-label={t('back') || 'Back'}
+          data-testid="staff-sessions-back-btn"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-[#E4E4E7] bg-white hover:bg-[#FAFAFA] text-[#18181B] shrink-0 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
         >
-          <ArrowClockwise size={16} className={loading ? 'animate-spin' : ''} />
-          {t('refresh')}
+          <ArrowLeft size={16} weight="bold" />
         </button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 break-words leading-tight">{t('staffSessions')}</h1>
+          <p className="text-[12.5px] sm:text-sm text-zinc-500 break-words mt-1">{t('teamLoadControl')}</p>
+        </div>
+        <RefreshButton
+          onClick={loadData}
+          loading={loading}
+          ariaLabel={t('refresh')}
+          testId="staff-sessions-refresh-btn"
+        />
       </div>
 
       {/* Analytics */}

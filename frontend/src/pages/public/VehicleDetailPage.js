@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Heart, GitCompare } from 'lucide-react';
+import { Heart, Scale } from 'lucide-react';
 import Breadcrumbs from '../../components/public/Breadcrumbs';
 import CarGallery from '../../components/public/CarGallery';
 import CarCalculator from '../../components/public/CarCalculator';
@@ -39,7 +39,7 @@ export default function VehicleDetailPage() {
           <div className="flex items-start justify-between gap-6 mt-10">
             <h1 className="text-[36px] md:text-[64px] font-bold text-white leading-tight" data-testid="single-car-title">{title}</h1>
             <div className="flex items-center gap-4 flex-shrink-0">
-              <button className="w-10 h-10 rounded-full border border-[#FEAE00] flex items-center justify-center text-[#FEAE00] hover:bg-[#FEAE00] hover:text-black transition-colors" aria-label="Compare"><GitCompare size={16} /></button>
+              <button className="w-10 h-10 rounded-full border border-[#FEAE00] flex items-center justify-center text-[#FEAE00] hover:bg-[#FEAE00] hover:text-black transition-colors" aria-label="Compare"><Scale size={16} /></button>
               <button className="w-10 h-10 rounded-full border border-[#FEAE00] flex items-center justify-center text-[#FEAE00] hover:bg-[#FEAE00] hover:text-black transition-colors" aria-label="Favorite"><Heart size={16} /></button>
             </div>
           </div>

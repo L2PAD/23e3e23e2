@@ -25,6 +25,8 @@ import {
   Sparkle
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
@@ -259,6 +261,11 @@ const ManagerTasksPage = () => {
 
   return (
     <div className="space-y-6" data-testid="manager-tasks-page">
+      <Breadcrumb items={[
+        { label: 'My Workspace', to: '/manager' },
+        { label: 'My Tasks' },
+      ]} />
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-zinc-900 mb-2">{t('myTasksPage')}</h1>

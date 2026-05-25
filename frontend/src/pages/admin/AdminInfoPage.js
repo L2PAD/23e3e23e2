@@ -28,6 +28,7 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import BlogArticlesEditor from './BlogArticlesEditor';
 import GoogleReviewsEditor from './GoogleReviewsEditor';
+import RefreshButton from '../../components/ui/RefreshButton';
 import { useLang } from '../../i18n';
 import {
   ShieldCheck,
@@ -54,6 +55,8 @@ import {
   Megaphone,
   Newspaper,
   PencilSimple,
+  CaretDown,
+  Check,
 } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
@@ -157,6 +160,94 @@ const inputCls =
 
 const textareaCls =
   'w-full bg-white border border-[#E4E4E7] rounded-lg px-3.5 py-2.5 text-[14px] text-[#18181B] placeholder:text-[#A1A1AA] focus:outline-none focus:border-[#18181B] focus:ring-2 focus:ring-[#18181B]/10 transition-all resize-y';
+
+// ─────────────────────────────────────────────────────────────────────────
+//  GroupDropdown — compact section picker (replaces the tall vertical sidebar).
+//  Renders ONE button per nav-group. Clicking opens a popover listing that
+//  group's items. The active group (the one containing the current tab) is
+//  visually emphasised (filled black). The active item is shown right below
+//  the button row as a breadcrumb-style label.
+// ─────────────────────────────────────────────────────────────────────────
+function GroupDropdown({ group, activeId, onPick }) {
+  const [open, setOpen] = React.useState(false);
+  const containerRef = React.useRef(null);
+  const ownsActive = group.items.some((it) => it.id === activeId);
+  const activeItem = group.items.find((it) => it.id === activeId);
+
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative min-w-0 flex-1 sm:flex-none sm:w-[200px]" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid={`info-group-${group.id}`}
+        className={`w-full flex items-center justify-between gap-2 px-3.5 h-10 rounded-xl text-[13px] font-semibold transition-all border ${
+          ownsActive
+            ? 'bg-[#18181B] text-white border-[#18181B]'
+            : 'bg-white text-[#52525B] border-[#E4E4E7] hover:bg-[#FAFAFA] hover:border-[#D4D4D8]'
+        }`}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="truncate uppercase tracking-[0.04em] text-[11.5px]">{group.label}</span>
+          {ownsActive && activeItem && (
+            <span className="text-[11.5px] font-normal opacity-80 truncate hidden md:inline">
+              · {activeItem.label}
+            </span>
+          )}
+        </span>
+        <CaretDown size={14} weight="bold" className={`flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className="absolute z-30 mt-1.5 left-0 right-0 sm:right-auto sm:min-w-[240px] bg-white border border-[#E4E4E7] rounded-xl shadow-xl overflow-hidden"
+        >
+          <div className="py-1.5">
+            {group.items.map((it) => {
+              const Icon = it.icon;
+              const isActive = it.id === activeId;
+              return (
+                <button
+                  key={it.id}
+                  type="button"
+                  role="option"
+                  aria-selected={isActive}
+                  onClick={() => { onPick(it.id); setOpen(false); }}
+                  data-testid={`info-tab-${it.id}`}
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13.5px] font-medium text-left transition-colors ${
+                    isActive
+                      ? 'bg-[#F4F4F5] text-[#18181B]'
+                      : 'text-[#52525B] hover:bg-[#FAFAFA] hover:text-[#18181B]'
+                  }`}
+                >
+                  <Icon size={16} weight={isActive ? 'fill' : 'regular'} className="flex-shrink-0" />
+                  <span className="flex-1 truncate">{it.label}</span>
+                  {isActive && <Check size={14} weight="bold" className="text-[#18181B] flex-shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 export default function AdminInfoPage() {
@@ -590,74 +681,102 @@ export default function AdminInfoPage() {
   return (
     <div data-testid="admin-info-page">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]">{t('adm_info_site_content')}</h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('adm_legal_documents_faq_reviews_header_footer_and_cook')}
-          </p>
+      {/*
+        ── Info — Site content header (June 2026) ────────────────────────
+        Mobile (< md):
+          ┌──────────────────────────────────────────────┐
+          │ Info — Site content              [Refresh]   │  Row 1
+          │ Legal documents, FAQ, reviews…               │
+          ├──────────────────────────────────────────────┤
+          │ [ 💾 Save changes ]      ✓ Saved 11:15…      │  Row 2
+          └──────────────────────────────────────────────┘
+        Desktop (≥ md):
+          [ title block ]   ✓Saved [Save changes] [Refresh]
+
+        Refresh is the standard black square icon (no "Reload" text, no
+        white background) — matches Payments / Services / Email / etc.
+      */}
+      <div className="mb-6">
+        {/* Row 1: title + Refresh pinned top-RIGHT (always). On desktop we
+            also dock the "Save changes" CTA and the "Saved at …" status
+            into this same row to the LEFT of Refresh — keeps the primary
+            save action close to the page-level controls. */}
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold text-[#18181B] leading-tight break-words">{t('adm_info_site_content')}</h1>
+            <p className="text-sm text-[#71717A] mt-1 break-words">
+              {t('adm_legal_documents_faq_reviews_header_footer_and_cook')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Desktop-only: Save status + Save button live inline with Refresh. */}
+            {savedAt && !dirty && (
+              <span className="hidden md:inline-flex items-center gap-1.5 text-[12px] text-[#16A34A]">
+                <CheckCircle size={14} weight="fill" /> Saved {savedAt.toLocaleTimeString()}
+              </span>
+            )}
+            <button
+              onClick={save}
+              disabled={!dirty || saving}
+              className="hidden md:inline-flex items-center gap-2 px-4 h-10 rounded-lg bg-[#18181B] hover:bg-black text-white text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="info-save-desktop"
+            >
+              <FloppyDisk size={15} weight="fill" /> {saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}
+            </button>
+            <RefreshButton
+              onClick={load}
+              disabled={saving}
+              loading={false}
+              ariaLabel={t('adm_reload')}
+              testId="info-reload"
+              title={t('adm_reload')}
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {savedAt && !dirty && (
-            <span className="hidden md:inline-flex items-center gap-1.5 text-[12px] text-[#16A34A]">
-              <CheckCircle size={14} weight="fill" /> Saved {savedAt.toLocaleTimeString()}
-            </span>
-          )}
-          <button
-            onClick={load}
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-3.5 h-10 rounded-lg border border-[#E4E4E7] bg-white text-[#52525B] hover:bg-[#FAFAFA] hover:border-[#D4D4D8] text-[13px] font-medium transition-colors disabled:opacity-50"
-            data-testid="info-reload"
-          >
-            <ArrowsClockwise size={15} /> {t('adm_reload')}
-          </button>
+
+        {/* Row 2 (mobile-only): Save changes as primary action, full-width.
+            Status badge ("Saved 11:15:23") sits to its right. */}
+        <div className="mt-4 md:hidden flex items-center gap-3">
           <button
             onClick={save}
             disabled={!dirty || saving}
-            className="inline-flex items-center gap-2 px-4 h-10 rounded-lg bg-[#18181B] hover:bg-black text-white text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-[#18181B] hover:bg-black text-white text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid="info-save"
           >
             <FloppyDisk size={15} weight="fill" /> {saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}
           </button>
+          {savedAt && !dirty && (
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-[#16A34A]">
+              <CheckCircle size={14} weight="fill" /> Saved {savedAt.toLocaleTimeString()}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Two-column layout: sidebar + main */}
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-        {/* ── Sidebar with grouped navigation ─────────────────────────── */}
-        <aside className="bg-white border border-[#E4E4E7] rounded-2xl p-3 lg:sticky lg:top-4 lg:self-start">
+      {/* Section picker — 3 compact dropdowns (Legal & Privacy / Content / Layout) */}
+      <div className="bg-white border border-[#E4E4E7] rounded-2xl p-3 sm:p-4 mb-5">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
           {NAV_GROUPS.map((grp) => (
-            <div key={grp.id} className="mb-4 last:mb-0">
-              <div className="px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#A1A1AA]">
-                {grp.label}
-              </div>
-              <div className="space-y-1">
-                {grp.items.map((it) => {
-                  const Icon = it.icon;
-                  const active = tab === it.id;
-                  return (
-                    <button
-                      key={it.id}
-                      onClick={() => setTab(it.id)}
-                      data-testid={`info-tab-${it.id}`}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13.5px] font-medium transition-colors ${
-                        active
-                          ? 'bg-[#18181B] text-white'
-                          : 'text-[#52525B] hover:bg-[#F4F4F5] hover:text-[#18181B]'
-                      }`}
-                    >
-                      <Icon size={16} weight={active ? 'fill' : 'regular'} />
-                      <span className="flex-1 text-left">{it.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <GroupDropdown
+              key={grp.id}
+              group={grp}
+              activeId={tab}
+              onPick={setTab}
+            />
           ))}
-        </aside>
+        </div>
+        {/* Inline breadcrumb on small screens — desktop already shows it in the trigger */}
+        {activeItem && (
+          <div className="mt-3 sm:hidden flex items-center gap-2 text-[12.5px] text-[#71717A]">
+            <span>{activeItem.group}</span>
+            <span className="text-[#D4D4D8]">/</span>
+            <span className="text-[#18181B] font-semibold">{activeItem.item.label}</span>
+          </div>
+        )}
+      </div>
 
-        {/* ── Main content area ────────────────────────────────────────── */}
-        <div className="min-w-0 space-y-5">
+      {/* Main content area — full width now that the sidebar is gone */}
+      <div className="min-w-0 space-y-5">
           {/* Breadcrumb */}
           {activeItem && (
             <div className="flex items-center gap-2 text-[12.5px] text-[#71717A]">
@@ -1063,7 +1182,6 @@ export default function AdminInfoPage() {
             </div>
           )}
         </div>
-      </div>
 
       {/* Light-theme Quill styling */}
       <style>{`

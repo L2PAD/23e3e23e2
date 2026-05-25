@@ -11,6 +11,12 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import axios from 'axios';
 import { Toaster } from 'sonner';
 
+// Phase B1: React Query — frontend HTTP cache + stale-while-revalidate.
+// One QueryClient lives at the root; every catalogue/welcome/detail fetch
+// uses it. Default staleTime = 5 min so back-navigation never re-pulls
+// listing pages, only revalidates on focus.
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 // i18n
 import { LanguageProvider } from './i18n';
 
@@ -127,6 +133,9 @@ import TeamPerformancePage from './pages/team/TeamPerformancePage';
 import ManagerWorkspacePage from './pages/manager/ManagerWorkspacePage';
 import ManagerShipmentsPage from './pages/manager/ManagerShipmentsPage';
 import UniversalTrackerPage from './pages/manager/UniversalTrackerPage';
+import ManagerEngagementPage from './pages/manager/ManagerEngagementPage';
+import ManagerWishlistPage from './pages/manager/ManagerWishlistPage';
+import TeamWishlistApprovalsPage from './pages/team/TeamWishlistApprovalsPage';
 
 import NotificationsPage from './pages/NotificationsPage';
 import ParserTestLab from './pages/ParserTestLab';
@@ -285,10 +294,29 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// Phase B1 — single root QueryClient for the whole app.
+// Defaults tuned for catalogue-class data:
+//   • staleTime 5 min — listing pages don't refetch on back-nav
+//   • gcTime    30 min — keep cache warm across route changes
+//   • retry once on network blips, no aggressive polling
+//   • refetchOnWindowFocus = false (auctions update every hour, not every tab focus)
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
+  },
+});
+
 function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <CabinetThemeProvider>
           <AuthProvider>
@@ -504,6 +532,7 @@ function App() {
               <Route path="alerts" element={<TeamAlertsPage />} />
               <Route path="performance" element={<TeamPerformancePage />} />
               <Route path="orders" element={<TeamOrdersPage />} />
+              <Route path="wishlist-approvals" element={<TeamWishlistApprovalsPage />} />
             </Route>
 
             {/* ====== MANAGER WORKSPACE ====== */}
@@ -516,6 +545,8 @@ function App() {
               <Route path="orders" element={<ManagerOrdersPage />} />
               <Route path="shipments" element={<ManagerShipmentsPage />} />
               <Route path="tracking" element={<UniversalTrackerPage />} />
+              <Route path="engagement" element={<ManagerEngagementPage />} />
+              <Route path="wishlist" element={<ManagerWishlistPage />} />
             </Route>
 
             {/* ====== CUSTOMER CABINET (CLIENT PORTAL) ====== */}
@@ -553,6 +584,7 @@ function App() {
           </AuthProvider>
         </CabinetThemeProvider>
     </LanguageProvider>
+    </QueryClientProvider>
     </BrowserRouter>
   );
 }

@@ -32,6 +32,106 @@ const FALLBACK_CFG = {
       before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
       after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
     },
+    {
+      id: "fallback-2",
+      enabled: true,
+      model: "Audi Q5",
+      order_date: "03.03.2026",
+      finished_date: "11.06.2026",
+      price: "12,900 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
+    {
+      id: "fallback-3",
+      enabled: true,
+      model: "Mercedes-Benz GLC",
+      order_date: "18.01.2026",
+      finished_date: "22.05.2026",
+      price: "18,400 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
+    {
+      id: "fallback-4",
+      enabled: true,
+      model: "Toyota Camry",
+      order_date: "07.02.2026",
+      finished_date: "30.05.2026",
+      price: "9,200 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
+    {
+      id: "fallback-5",
+      enabled: true,
+      model: "Jeep Grand Cherokee",
+      order_date: "25.10.2025",
+      finished_date: "08.03.2026",
+      price: "15,750 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
+    {
+      id: "fallback-6",
+      enabled: true,
+      model: "Hyundai Sonata",
+      order_date: "14.04.2026",
+      finished_date: "20.07.2026",
+      price: "8,300 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
+    {
+      id: "fallback-7",
+      enabled: true,
+      model: "Volkswagen Tiguan",
+      order_date: "02.11.2025",
+      finished_date: "19.02.2026",
+      price: "11,200 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
+    {
+      id: "fallback-8",
+      enabled: true,
+      model: "Ford Explorer",
+      order_date: "21.05.2026",
+      finished_date: "30.08.2026",
+      price: "16,800 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
+    {
+      id: "fallback-9",
+      enabled: true,
+      model: "Honda CR-V",
+      order_date: "09.09.2025",
+      finished_date: "12.01.2026",
+      price: "10,450 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
+    {
+      id: "fallback-10",
+      enabled: true,
+      model: "Kia Sportage",
+      order_date: "30.06.2026",
+      finished_date: "15.09.2026",
+      price: "9,900 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
+    {
+      id: "fallback-11",
+      enabled: true,
+      model: "Mazda CX-5",
+      order_date: "11.08.2025",
+      finished_date: "04.12.2025",
+      price: "13,650 EURO",
+      before_image_url: "/figma/DT-Klausen-LS-135-12@2x.webp",
+      after_image_url: "/figma/DT-Klausen-LS-135-22@2x.webp",
+    },
   ],
 };
 
@@ -87,15 +187,26 @@ const BeforeAfterSection = () => {
     [cfg.items],
   );
 
+  // Compute step (layout width + gap) using offsetWidth so the calculation
+  // is INDEPENDENT of any CSS transform: scale() applied to inactive cards.
+  const getStep = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return 0;
+    const card = el.querySelector(`.${styles.card}`);
+    if (!card) return 0;
+    const cs = window.getComputedStyle(el);
+    const gap = parseFloat(cs.columnGap || cs.gap || "0") || 0;
+    return card.offsetWidth + gap;
+  }, []);
+
   const handleScroll = useCallback(() => {
     const el = trackRef.current;
     if (!el) return;
-    const card = el.querySelector(`.${styles.card}`);
-    if (!card) return;
-    const cardWidth = card.getBoundingClientRect().width + 24;
-    const idx = Math.round(el.scrollLeft / cardWidth);
+    const step = getStep();
+    if (!step) return;
+    const idx = Math.round(el.scrollLeft / step);
     setActiveIdx(Math.max(0, Math.min(visibleCards.length - 1, idx)));
-  }, [visibleCards.length]);
+  }, [visibleCards.length, getStep]);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -112,15 +223,23 @@ const BeforeAfterSection = () => {
   const scrollToIdx = (i) => {
     const el = trackRef.current;
     if (!el) return;
-    const card = el.querySelector(`.${styles.card}`);
-    if (!card) return;
-    const cardWidth = card.getBoundingClientRect().width + 24;
-    el.scrollTo({ left: cardWidth * i, behavior: "smooth" });
+    const step = getStep();
+    if (!step) return;
+    el.scrollTo({ left: step * i, behavior: "smooth" });
+    setActiveIdx(Math.max(0, Math.min(visibleCards.length - 1, i)));
   };
 
-  const prev = () => scrollToIdx(Math.max(0, activeIdx - 1));
-  const next = () =>
-    scrollToIdx(Math.min(visibleCards.length - 1, activeIdx + 1));
+  // Cyclic navigation — wraps around so user can keep scrolling endlessly.
+  const prev = () => {
+    if (visibleCards.length === 0) return;
+    const target = activeIdx === 0 ? visibleCards.length - 1 : activeIdx - 1;
+    scrollToIdx(target);
+  };
+  const next = () => {
+    if (visibleCards.length === 0) return;
+    const target = activeIdx === visibleCards.length - 1 ? 0 : activeIdx + 1;
+    scrollToIdx(target);
+  };
 
   if (cfg.enabled === false) return null;
 
@@ -204,7 +323,6 @@ const BeforeAfterSection = () => {
                 className={styles.navBtn}
                 onClick={prev}
                 aria-label="Previous"
-                disabled={activeIdx === 0}
                 data-testid="ba-prev"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -228,7 +346,6 @@ const BeforeAfterSection = () => {
                 className={styles.navBtn}
                 onClick={next}
                 aria-label="Next"
-                disabled={activeIdx === visibleCards.length - 1}
                 data-testid="ba-next"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

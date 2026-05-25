@@ -28,6 +28,8 @@ import {
   Warning,
   Check
 } from '@phosphor-icons/react';
+import ControlSubNav from '../../components/admin/ControlSubNav';
+import ControlPageHeader from '../../components/admin/ControlPageHeader';
 
 const CadencesPage = () => {
   const { t } = useLang();
@@ -83,8 +85,11 @@ const CadencesPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-[#4F46E5] border-t-transparent rounded-full"></div>
+      <div data-testid="cadences-page">
+        <ControlSubNav />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin w-8 h-8 border-2 border-[#4F46E5] border-t-transparent rounded-full"></div>
+        </div>
       </div>
     );
   }
@@ -94,30 +99,30 @@ const CadencesPage = () => {
       data-testid="cadences-page"
       initial={{ opacity: 0, y: 10 }} 
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('cadencesTitle')}
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('cadencesSubtitle')}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#EEF2FF] rounded-xl">
-          <Timer size={20} className="text-[#4F46E5]" weight="duotone" />
-          <span className="text-sm font-medium text-[#4F46E5]">{activeRuns.length} {t('active')}</span>
-        </div>
-      </div>
+      <ControlSubNav />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-5 sm:space-y-6">
+        <ControlPageHeader
+          icon={Timer}
+          title={t('cadencesTitle')}
+          subtitle={t('cadencesSubtitle')}
+          action={
+            <div className="flex items-center gap-1.5 px-3 h-10 bg-[#F4F4F5] rounded-lg whitespace-nowrap">
+              <Timer size={15} className="text-[#18181B]" weight="duotone" />
+              <span className="text-xs sm:text-sm font-medium text-[#18181B] whitespace-nowrap">
+                {activeRuns.length} {t('active')}
+              </span>
+            </div>
+          }
+        />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
         {/* Cadence Definitions */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-[#E4E4E7] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#E4E4E7] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Lightning size={20} className="text-[#4F46E5]" weight="duotone" />
+              <Lightning size={20} className="text-[#18181B]" weight="duotone" />
               <h3 className="font-semibold text-[#18181B]">{t('adm_cadence_definition')}</h3>
             </div>
           </div>
@@ -254,6 +259,7 @@ const CadencesPage = () => {
           />
         )}
       </AnimatePresence>
+      </div>
     </motion.div>
   );
 };

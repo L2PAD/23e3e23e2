@@ -2481,6 +2481,78 @@ async def _main_startup():
             logger.info("✓✓✓ LemonSync started ✓✓✓")
         except Exception as _e:
             logger.warning(f"[STARTUP] LemonSync init failed: {_e}")
+
+    # ── Phase A1 — vin_data canonical indexes (idempotent) ──────────
+    # Source-of-truth indexes for the public catalogue. Mirrors the
+    # `scripts/migrate_a1_canonical_and_indexes.py` schema so the
+    # endpoint stays fast even on fresh deploys that haven't run the
+    # migration script yet.
+    if db is not None:
+        async def _safe_idx(coll, keys, name, **opts):
+            try:
+                await coll.create_index(keys, name=name, **opts)
+            except Exception as _ie:
+                logger.debug(f"[STARTUP] vin_data idx {name} skipped: {_ie}")
+        try:
+            await _safe_idx(db.vin_data, [("vin", 1)], "vin_unique_sparse", unique=True, sparse=True)
+            await _safe_idx(db.vin_data, [("make_canonical", 1)], "make_canonical_1")
+            await _safe_idx(db.vin_data, [("model_canonical", 1)], "model_canonical_1")
+            await _safe_idx(db.vin_data, [("year", 1)], "year_1")
+            await _safe_idx(db.vin_data, [("current_bid", 1)], "current_bid_1")
+            await _safe_idx(db.vin_data, [("odometer", 1)], "odometer_1")
+            await _safe_idx(db.vin_data, [("auction_name", 1)], "auction_name_1")
+            await _safe_idx(db.vin_data, [("damage_primary", 1)], "damage_primary_1")
+            await _safe_idx(db.vin_data, [("status", 1), ("last_seen", -1)], "status_last_seen")
+            await _safe_idx(db.vin_data, [("make_canonical", 1), ("model_canonical", 1)], "make_model_canonical")
+            await _safe_idx(db.vin_data, [("make_canonical", 1), ("year", 1)], "make_year_canonical")
+            await _safe_idx(db.vin_data, [("current_bid", 1), ("year", 1)], "price_year")
+            await _safe_idx(db.vin_data, [("search_title", 1)], "search_title_1")
+            # Engagement collections — used by sort=popular $lookup
+            await _safe_idx(db.compare, [("vin", 1)], "vin_1")
+            await _safe_idx(db.shares, [("vin", 1)], "vin_1")
+            logger.info("[STARTUP] ✓ vin_data canonical indexes ensured (Phase A1)")
+        except Exception as _e:
+            logger.warning(f"[STARTUP] vin_data canonical indexes failed: {_e}")
+
+    # ── Phase A2 — Background enrichment worker ─────────────────────────
+    # Quietly fills missing engine/drivetrain/current_bid/fuel/transmission
+    # on `vin_data` docs by re-visiting their detail pages. Polite to the
+    # source (3 concurrent, 30 s cycles, 5 min idle when nothing to do).
+    # Per-VIN circuit breaker after 3 failures.
+    if db is not None:
+        try:
+            import httpx as _httpx
+            from workers.enrichment_worker import enrichment_worker_loop
+
+            def _enrich_client():
+                # Fresh client per cycle so connection state doesn't leak
+                # across long idle sleeps.
+                return _httpx.AsyncClient(
+                    timeout=_httpx.Timeout(10.0),
+                    follow_redirects=True,
+                    headers={"User-Agent": "BIBI-EnrichmentWorker/1.0"},
+                )
+
+            try:
+                from app.core.worker_registry import worker_registry as _wr
+                _wr.register(
+                    "enrichment_worker",
+                    lambda: enrichment_worker_loop(db, _enrich_client),
+                    restart_policy="on_failure",
+                    critical=False,             # non-critical — catalogue
+                                                # still works without it
+                    restart_backoff_sec=120.0,
+                    max_restarts=5,
+                )
+                logger.info("[STARTUP] ✓ enrichment_worker registered (Phase A2)")
+            except Exception as _wre:
+                # Defensive fallback: run unsupervised — same behaviour,
+                # just no restart-on-crash semantics.
+                logger.warning(f"[STARTUP] worker_registry register failed, fallback: {_wre}")
+                asyncio.create_task(enrichment_worker_loop(db, _enrich_client))
+                logger.info("[STARTUP] ✓ enrichment_worker started (fallback path)")
+        except Exception as _e:
+            logger.warning(f"[STARTUP] enrichment_worker init failed: {_e}")
     
     # ── Phase 3.4 / C-1 — Worker registry parallel mirror ──
     # Ringostat CRON is the first worker migrated to the centralised
@@ -2721,6 +2793,14 @@ async def _main_startup():
     print("="*80)
     logger.info("BIBI V3.2 - Ready")
 
+    # ── Phase B3 observability layer (Wave 3 freeze) ──
+    try:
+        from app.core.observability import init_observability
+        init_observability(fastapi_app)
+        logger.info("[STARTUP] ✓ Observability layer ready (errors / slow-query / parser-fail / events)")
+    except Exception as _obs_e:   # noqa: BLE001
+        logger.warning(f"[STARTUP] observability init skipped: {_obs_e}")
+
     # ── Register security hooks (nonce replay-guard + HMAC failure audit) ──
     register_nonce_verifier(_verify_ext_nonce)
     register_hmac_fail_audit(_audit_hmac_failure)
@@ -2852,6 +2932,14 @@ async def _main_startup():
         logger.info("[STARTUP] ✓ payments indexes ensured")
     except Exception as e:
         logger.warning(f"[STARTUP] payments indexes failed: {e}")
+
+    # ─── Wishlist deals (Top deals of the week) indexes ────────────────
+    try:
+        from app.routers import wishlist_deals as _wld
+        await _wld.ensure_indexes()
+        logger.info("[STARTUP] ✓ wishlist_deals indexes ensured")
+    except Exception as e:
+        logger.warning(f"[STARTUP] wishlist_deals indexes failed: {e}")
 
     # ─── Phase 5.4 / C-3A — Google ClientID one-time backfill ───────────
     # If `app_settings.auth.google.clientId` is empty AND the legacy
@@ -3201,6 +3289,30 @@ async def _deprecate_legacy_endpoints(request: Request, call_next):
             },
         )
     return await call_next(request)
+
+
+# ── Phase B3 — global uncaught-error capture (Wave 3 freeze) ──
+# Best-effort: routes ANY uncaught exception through the observability
+# layer so it reaches Sentry / the in-process ring buffer. We RE-RAISE
+# afterwards so FastAPI's default 500 response logic still fires.
+@fastapi_app.middleware("http")
+async def _capture_uncaught_errors(request: Request, call_next):
+    start = time.time()
+    try:
+        return await call_next(request)
+    except Exception as err:
+        try:
+            from app.core.observability import report_error
+            report_error(err, context={
+                "path":    str(request.url.path),
+                "method":  request.method,
+                "elapsed_ms": int((time.time() - start) * 1000),
+                # Intentionally NOT including IP / query string / headers
+                # (those carry PII risk; Sentry's own enrichment is enough).
+            })
+        except Exception:   # noqa: BLE001
+            pass
+        raise
 
 
 # ── Audit log helper (best-effort; TTL 90d via index created on startup) ──
@@ -3698,6 +3810,28 @@ except Exception as _e:
     logger.exception("[admin_engagement] failed to mount router: %s", _e)
 
 try:
+    from app.routers import manager_engagement as _manager_engagement_mod
+    fastapi_app.include_router(_manager_engagement_mod.router)
+    logger.info("[manager_engagement] router mounted: %d routes",
+                sum(1 for _ in _manager_engagement_mod.router.routes))
+except Exception as _e:
+    logger.exception("[manager_engagement] failed to mount router: %s", _e)
+
+try:
+    from app.routers import wishlist_deals as _wishlist_deals_mod
+    fastapi_app.include_router(_wishlist_deals_mod.public_router)
+    fastapi_app.include_router(_wishlist_deals_mod.manager_router)
+    fastapi_app.include_router(_wishlist_deals_mod.team_lead_router)
+    logger.info(
+        "[wishlist_deals] routers mounted: public=%d, manager=%d, team_lead=%d",
+        sum(1 for _ in _wishlist_deals_mod.public_router.routes),
+        sum(1 for _ in _wishlist_deals_mod.manager_router.routes),
+        sum(1 for _ in _wishlist_deals_mod.team_lead_router.routes),
+    )
+except Exception as _e:
+    logger.exception("[wishlist_deals] failed to mount routers: %s", _e)
+
+try:
     from app.routers import admin_overview as _admin_overview_mod
     fastapi_app.include_router(_admin_overview_mod.router)
     logger.info("[admin_overview] router mounted: %d routes",
@@ -4121,14 +4255,104 @@ async def dashboard_master(period: str = "week"):
 
 @fastapi_app.get("/api/system/health")
 async def health():
+    """Public health probe. Cheap, always-on.
+
+    Returns the standard service fingerprint PLUS a Phase B3 observability
+    snapshot so an uptime monitor (or sysadmin) can spot a problem in a
+    single GET.
+    """
+    # Observability snapshot is best-effort — never break the health probe.
+    try:
+        from app.core.observability import get_health_snapshot
+        observability = get_health_snapshot()
+    except Exception as _e:  # noqa: BLE001
+        observability = {"error": f"observability unavailable: {_e}"}
+
+    # Optional Mongo ping (kept fast — does not aggregate)
+    mongo_ok = True
+    try:
+        await db.command("ping")
+    except Exception:
+        mongo_ok = False
+
     return {
-        "status": "healthy",
+        "status": "healthy" if mongo_ok else "degraded",
         "service": "bibi-v3.2",
-        "version": "3.2.0",
+        "version": "3.2.1",
+        "release": os.environ.get("BIBI_RELEASE", "v3.2.1-wave3-freeze"),
         "queue_running": ingestion_queue.processing,
         "active_sessions": len(session_service.get_active()),
         "parser_enabled": parser_config.enabled,
+        "mongo_ok": mongo_ok,
+        "observability": observability,
+        "ts": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# PHASE B3 — User-observation events + ops issues (Wave 3 freeze)
+# ═══════════════════════════════════════════════════════════════════
+# Privacy-respecting event endpoint. The frontend POSTs a thin event
+# (filter changed, abandoned search, detail view, …) and we count it
+# in-process. NO PII is persisted — only an event name + a whitelisted
+# set of properties (e.g. which filter, sort direction).
+class _EventIn(BaseModel):
+    event: str
+    props: Optional[Dict[str, Any]] = None
+
+
+@fastapi_app.post("/api/events/track")
+async def track_event(payload: _EventIn):
+    try:
+        from app.core.observability import record_event
+        ok = record_event(payload.event, payload.props or {})
+        return {"ok": bool(ok)}
+    except Exception:
+        # NEVER fail the user's interaction over an observation event.
+        return {"ok": False}
+
+
+@fastapi_app.get("/api/admin/observability/issues")
+async def admin_observability_issues(
+    limit: int = 50,
+    current_user: Dict[str, Any] = Depends(require_admin),  # noqa: F841
+):
+    """Admin-only: latest in-process errors / slow queries / parser fails.
+
+    Bounded ring buffer (default 200 entries). Survives across requests,
+    discarded on process restart. Use Sentry for permanent retention
+    (SENTRY_DSN env var enables it).
+    """
+    try:
+        from app.core.observability import (
+            get_recent_errors, get_recent_slow_queries,
+            get_recent_parser_failures, get_health_snapshot,
+        )
+        return {
+            "snapshot": get_health_snapshot(),
+            "errors":   get_recent_errors(limit),
+            "slow_queries":    get_recent_slow_queries(limit),
+            "parser_failures": get_recent_parser_failures(limit),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"observability unavailable: {e}")
+
+
+@fastapi_app.get("/api/admin/observability/events")
+async def admin_observability_events(
+    top: int = 20,
+    current_user: Dict[str, Any] = Depends(require_admin),  # noqa: F841
+):
+    """Admin-only: aggregated user-observation counters.
+
+    Used to answer questions like "which filters do users actually touch"
+    and "what are the most-viewed cars" — without ever logging PII.
+    """
+    try:
+        from app.core.observability import get_event_summary
+        return get_event_summary(top)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"observability unavailable: {e}")
 
 # ═══════════════════════════════════════════════════════════════════
 # WEBSOCKET (Real-time Feed)
@@ -7290,6 +7514,12 @@ async def customer_cabinet_delete_avatar(customer_id: str):
 # Analytics Dashboard
 @fastapi_app.get("/api/analytics/dashboard")
 async def analytics_dashboard(days: int = 30):
+    """Analytics dashboard mock — fields aligned with AdminAnalyticsDashboard.jsx.
+
+    `funnel.steps[*].name_key` is a stable i18n key the frontend translates.
+    `name` is kept as an English fallback so any future locale that lacks the
+    key still renders something readable.
+    """
     return {
         "success": True,
         "data": {
@@ -7299,6 +7529,7 @@ async def analytics_dashboard(days: int = 30):
                 "vinSearches": 800,
                 "leads": 450,
                 "deals": 150,
+                "conversion": 3.5,
                 "conversionRate": 3.5,
             },
             "summary": {
@@ -7315,34 +7546,35 @@ async def analytics_dashboard(days: int = 30):
                 "sessions": 5,
             },
             "timeline": [
-                {"date": "2026-04-01", "pageViews": 450, "visitors": 150, "conversions": 5},
-                {"date": "2026-04-02", "pageViews": 520, "visitors": 180, "conversions": 8},
-                {"date": "2026-04-03", "pageViews": 480, "visitors": 160, "conversions": 6},
-                {"date": "2026-04-04", "pageViews": 550, "visitors": 200, "conversions": 9},
-                {"date": "2026-04-05", "pageViews": 600, "visitors": 220, "conversions": 11},
-                {"date": "2026-04-06", "pageViews": 530, "visitors": 190, "conversions": 7},
-                {"date": "2026-04-07", "pageViews": 580, "visitors": 210, "conversions": 10},
+                {"_id": "2026-04-01", "total": 450, "pageViews": 450, "visitors": 150, "conversions": 5},
+                {"_id": "2026-04-02", "total": 520, "pageViews": 520, "visitors": 180, "conversions": 8},
+                {"_id": "2026-04-03", "total": 480, "pageViews": 480, "visitors": 160, "conversions": 6},
+                {"_id": "2026-04-04", "total": 550, "pageViews": 550, "visitors": 200, "conversions": 9},
+                {"_id": "2026-04-05", "total": 600, "pageViews": 600, "visitors": 220, "conversions": 11},
+                {"_id": "2026-04-06", "total": 530, "pageViews": 530, "visitors": 190, "conversions": 7},
+                {"_id": "2026-04-07", "total": 580, "pageViews": 580, "visitors": 210, "conversions": 10},
             ],
             "funnel": {
                 "steps": [
-                    {"name": "Відвідування", "value": 5200},
-                    {"name": "Перегляд авто", "value": 2800},
-                    {"name": "Калькулятор", "value": 1500},
-                    {"name": "Заявка", "value": 450},
-                    {"name": "Угода", "value": 150},
+                    {"name_key": "funnel_step_visits",        "name": "Visits",          "value": 5200, "rate": 100.0},
+                    {"name_key": "funnel_step_vehicle_views", "name": "Vehicle Views",   "value": 2800, "rate": 53.8},
+                    {"name_key": "funnel_step_calculator",    "name": "Calculator",      "value": 1500, "rate": 28.8},
+                    {"name_key": "funnel_step_lead",          "name": "Lead",            "value": 450,  "rate":  8.7},
+                    {"name_key": "funnel_step_deal",          "name": "Deal",            "value": 150,  "rate":  2.9},
                 ]
             },
             "sources": [
-                {"name": "Google", "visitors": 2500, "conversions": 75},
-                {"name": "Direct", "visitors": 1800, "conversions": 50},
-                {"name": "Facebook", "visitors": 600, "conversions": 15},
-                {"name": "Instagram", "visitors": 300, "conversions": 10},
+                {"source": "Google",    "visits": 6500, "leads": 220, "deals": 75, "profit": 18500, "conversion": 3.4},
+                {"source": "Direct",    "visits": 4200, "leads": 140, "deals": 50, "profit": 12200, "conversion": 3.3},
+                {"source": "Facebook",  "visits": 2100, "leads":  60, "deals": 15, "profit":  3600, "conversion": 2.9},
+                {"source": "Instagram", "visits": 1300, "leads":  30, "deals": 10, "profit":  2400, "conversion": 2.3},
             ],
+            "fakeTraffic": None,
             "topPages": [
-                {"path": "/", "views": 3500, "avgTime": 45},
-                {"path": "/vehicles", "views": 2800, "avgTime": 120},
+                {"path": "/",           "views": 3500, "avgTime":  45},
+                {"path": "/vehicles",   "views": 2800, "avgTime": 120},
                 {"path": "/calculator", "views": 1500, "avgTime": 180},
-                {"path": "/vin-check", "views": 800, "avgTime": 90},
+                {"path": "/vin-check",  "views":  800, "avgTime":  90},
             ]
         }
     }
@@ -7350,17 +7582,38 @@ async def analytics_dashboard(days: int = 30):
 # Marketing Campaigns
 @fastapi_app.get("/api/marketing/campaigns")
 async def marketing_campaigns(days: int = 30):
+    """Marketing campaigns mock — fields aligned with CampaignOptimizer in
+    AdminAnalyticsDashboard.jsx. `campaign` label uses an English ad-network
+    convention so it reads correctly in every UI locale."""
+    decisions = [
+        {"campaign": "Spring Promo",   "source": "google_ads",  "spend": 5000, "leads": 120, "deals": 25, "roi": 180.0, "status": "scale", "actions": ["Increase budget by 30%"]},
+        {"campaign": "BMW Series",     "source": "facebook_ads","spend": 3000, "leads":  80, "deals": 15, "roi": 150.0, "status": "keep",  "actions": ["Maintain budget"]},
+        {"campaign": "Test Drive",     "source": "instagram",   "spend": 2000, "leads":  40, "deals":  5, "roi":  80.0, "status": "watch", "actions": ["Refresh creatives"]},
+        {"campaign": "Re-engagement",  "source": "email",       "spend":  500, "leads":  15, "deals":  1, "roi":  20.0, "status": "kill",  "actions": ["Pause campaign"]},
+    ]
+    summary = {
+        "scaleCount":  sum(1 for d in decisions if d["status"] == "scale"),
+        "keepCount":   sum(1 for d in decisions if d["status"] == "keep"),
+        "watchCount":  sum(1 for d in decisions if d["status"] == "watch"),
+        "killCount":   sum(1 for d in decisions if d["status"] == "kill"),
+        "recommendations": [
+            "Shift 30% of 'Test Drive' budget into 'Spring Promo' (highest ROI).",
+            "Pause 'Re-engagement' — ROI under 25% for the last 14 days.",
+        ],
+    }
     return {
         "success": True,
         "data": {
+            "decisions": decisions,
+            "summary": summary,
             "campaigns": [
-                {"id": "1", "name": "Весняна акція", "status": "scale", "spend": 5000, "leads": 120, "conversions": 25, "roi": 180},
-                {"id": "2", "name": "BMW Series", "status": "keep", "spend": 3000, "leads": 80, "conversions": 15, "roi": 150},
-                {"id": "3", "name": "Тест-драйв", "status": "watch", "spend": 2000, "leads": 40, "conversions": 5, "roi": 80},
+                {"id": d["campaign"], "name": d["campaign"], "status": d["status"],
+                 "spend": d["spend"], "leads": d["leads"], "conversions": d["deals"], "roi": d["roi"]}
+                for d in decisions
             ],
-            "totalSpend": 10000,
-            "totalLeads": 240,
-            "totalConversions": 45,
+            "totalSpend":       sum(d["spend"]  for d in decisions),
+            "totalLeads":       sum(d["leads"]  for d in decisions),
+            "totalConversions": sum(d["deals"]  for d in decisions),
             "avgCPA": 42,
             "avgROI": 136,
         }
@@ -7393,8 +7646,23 @@ async def public_vehicles(
     transmission: Optional[str] = None,   # CSV
     auction_status: Optional[str] = None, # CSV: within7,upcoming,buyNow
     sort: str = "popular",
+    price_filter_mode: str = "strict",     # "strict" (default, honest) | "liberal" (legacy)
 ):
+    # Phase B3 — start timer for slow-query observation (set early so the
+    # value is in scope by the time we hit the aggregate call below).
+    _pv_t0 = time.time()
     """Public vehicles listing — every UI filter maps to a real backend query.
+
+    ── PHASE A1 PERFORMANCE PATCH ────────────────────────────────────
+    • Brand / model filters now use indexed exact-match on
+      `make_canonical` / `model_canonical` (catalogue-aware). The legacy
+      `make` regex is kept as an OR fallback so docs that haven't been
+      re-migrated yet still match.
+    • `enrich_vehicles_from_details` (live HTTP to bidmotors.bg) is no
+      longer fired on the listing path. Enrichment must happen during
+      ingestion. Listing returns whatever the DB has — instant.
+    • All other filters keep their regex fallback for backwards-compat
+      until later phases add canonical fields for body_type, fuel, etc.
 
     Supported `sort` values (Figma SORT dropdown):
       • popular          — engagement score (favorites + compare + shares + has_image)
@@ -7409,10 +7677,41 @@ async def public_vehicles(
     query: Dict[str, Any] = {"status": {"$in": ["published", "active", None]}}
     and_clauses: List[Dict[str, Any]] = []
 
+    # ── BRAND / MODEL: canonical exact-match (indexed) with raw fallback ──
     if make:
-        query["make"] = {"$regex": make, "$options": "i"}
+        # Accept `|` or `,` separated list; values may be canonical names
+        # ("Land Rover") or raw aliases ("Land", "VW", "MB"). We expand
+        # via the canonical mapper, then $in on make_canonical.
+        try:
+            from data.canonical import canonical_make as _can_mk
+        except Exception:
+            _can_mk = None
+        raw_makes = [m.strip() for m in re.split(r"[|,]", make) if m.strip()]
+        canonical = []
+        if _can_mk:
+            for m in raw_makes:
+                c = _can_mk(m)
+                if c:
+                    canonical.append(c)
+        canonical = list({c for c in canonical if c})
+        if canonical:
+            # Indexed exact-match path OR backwards-compat regex on legacy `make`
+            and_clauses.append({"$or": [
+                {"make_canonical": {"$in": canonical}},
+                {"make": {"$regex": "|".join(re.escape(c) for c in raw_makes), "$options": "i"}},
+            ]})
+        else:
+            query["make"] = {"$regex": make, "$options": "i"}
     if model:
-        query["model"] = {"$regex": model, "$options": "i"}
+        raw_models = [m.strip() for m in re.split(r"[|,]", model) if m.strip()]
+        if raw_models:
+            # Frontend already sends canonical model names (from the dropdown),
+            # so exact-match on model_canonical first; fall back to regex on
+            # legacy `model` to cover not-yet-migrated docs.
+            and_clauses.append({"$or": [
+                {"model_canonical": {"$in": raw_models}},
+                {"model": {"$regex": "|".join(re.escape(m) for m in raw_models), "$options": "i"}},
+            ]})
     if year_min is not None:
         query["year"] = {"$gte": year_min}
     if year_max is not None:
@@ -7588,23 +7887,59 @@ async def public_vehicles(
         trans = [t.strip() for t in transmission.split(",") if t.strip()]
         if trans:
             query["transmission"] = {"$regex": "|".join(re.escape(t) for t in trans), "$options": "i"}
-    # Price filter (works on current_bid OR legacy price)
+    # ── Price filter (works on current_bid / estimated_total_price / legacy price) ──
+    # PHASE B2.1 OPERATIONAL FIX (May 2026):
+    #   The filter was previously fully ignored because the listing path
+    #   stores NULL price for ~100% of docs (price is enriched per-VIN via
+    #   /api/vin/{vin}/enrich, not during catalogue ingestion).
+    #   The old "liberal" semantics treated NULL price as "unknown, include"
+    #   — which made the slider visible but functionally a no-op. Per the
+    #   "trust > engineering vanity" directive, the filter must actually
+    #   filter; honest empty results are better than fake matches.
+    #
+    #   Default mode = "strict":   docs MUST have a known, positive price
+    #                              field AND fall within the range.
+    #   Legacy  mode = "liberal":  NULL price is treated as "match" (old
+    #                              behaviour). Opt-in via
+    #                              ?price_filter_mode=liberal so any
+    #                              integration that relied on the old
+    #                              behaviour can keep working.
+    #
+    # Once Phase A2 populates `current_bid` / `estimated_total_price` on
+    # every card during ingestion, the strict filter becomes naturally
+    # useful — no further code change required.
     if price_min is not None or price_max is not None:
-        price_clauses_min = []
-        price_clauses_max = []
+        # Fields to consider as "the lot's price" (in this order). We check
+        # all three so a lot with only `estimated_total_price` (post-enrich)
+        # still matches.
+        PRICE_FIELDS = ("current_bid", "estimated_total_price", "price")
+
+        priced_exists = {"$or": [
+            {f: {"$exists": True, "$ne": None, "$gt": 0}} for f in PRICE_FIELDS
+        ]}
+
+        range_clauses: List[Dict[str, Any]] = []
         if price_min is not None:
-            price_clauses_min = [
-                {"current_bid": {"$gte": price_min}},
-                {"price":       {"$gte": price_min}},
-            ]
+            range_clauses.append({"$or": [
+                {f: {"$gte": price_min, "$gt": 0}} for f in PRICE_FIELDS
+            ]})
         if price_max is not None:
-            price_clauses_max = [
-                {"current_bid": {"$lte": price_max}},
-                {"price":       {"$lte": price_max}},
-            ]
-        and_block = query.setdefault("$and", [])
-        if price_clauses_min: and_block.append({"$or": price_clauses_min})
-        if price_clauses_max: and_block.append({"$or": price_clauses_max})
+            range_clauses.append({"$or": [
+                {f: {"$lte": price_max, "$gt": 0}} for f in PRICE_FIELDS
+            ]})
+
+        matches_range = {"$and": [priced_exists, *range_clauses]} if range_clauses else priced_exists
+
+        if (price_filter_mode or "strict").lower() == "liberal":
+            # Legacy behaviour: also include docs that have no known price.
+            priced_unknown = {"$nor": [
+                {f: {"$exists": True, "$ne": None, "$gt": 0}} for f in PRICE_FIELDS
+            ]}
+            and_clauses.append({"$or": [matches_range, priced_unknown]})
+        else:
+            # Strict (default, honest): only return docs whose known price
+            # falls within the requested range.
+            and_clauses.append(matches_range)
     # auction_status — best-effort by sale_date
     if auction_status:
         try:
@@ -7702,19 +8037,36 @@ async def public_vehicles(
     items = await db.vin_data.aggregate(pipeline).to_list(length=limit)
     total = await db.vin_data.count_documents(query)
 
-    # ─── Detail-page enrichment ─────────────────────────────────────
-    # The catalogue listing only carries 6 fields per card.  Engine,
-    # Drive, Fuel type and Current bid live on the per-vehicle detail
-    # page.  Fetch in parallel with a strict timeout so the public
-    # listing stays snappy; un-enriched items remain visible with "—".
+    # ── Phase B3 — slow-query observation (additive) ──
+    # The aggregate above is what users hit most often. Anything over
+    # BIBI_SLOW_QUERY_MS (default 300 ms) is recorded so we can spot a
+    # regression *before* a user reports it.
     try:
-        if BITMOTORS_AVAILABLE and items:
-            from bitmotors_scraper import enrich_vehicles_from_details
-            items = await enrich_vehicles_from_details(
-                db, items, total_timeout=4.0, per_request_timeout=4.0,
+        from app.core.observability import record_slow_query
+        elapsed_ms = (time.time() - _pv_t0) * 1000
+        if elapsed_ms >= 0:
+            record_slow_query(
+                "vin_data", "public_vehicles.aggregate",
+                elapsed_ms,
+                query_preview=str(query)[:200],
             )
-    except Exception as _e:
-        logger.debug(f"[public/vehicles] enrich skipped: {_e}")
+    except Exception:   # noqa: BLE001
+        pass
+
+    # ─── Detail-page enrichment ─────────────────────────────────────
+    # ── Phase A1 PERFORMANCE PATCH ──────────────────────────────────
+    # The previous version fired `enrich_vehicles_from_details` here —
+    # parallel HTTPS calls to bidmotors.bg with a 4-second total timeout —
+    # which added up to +4s of latency to every catalogue request.
+    #
+    # Enrichment now belongs to the ingestion pipeline (background
+    # workers populate engine/drivetrain/current_bid into `vin_data`
+    # during sync). The public listing reads whatever the DB has and
+    # returns instantly. Items missing those fields render with "—" as
+    # they did before — UI behaviour unchanged.
+    #
+    # Original call (kept as inactive reference):
+    #     items = await enrich_vehicles_from_details(db, items, ...)
 
     # ─── Derive SOLD status ─────────────────────────────────────────
     # A vehicle is considered sold when either:
@@ -7755,7 +8107,38 @@ async def public_vehicles(
     except Exception as _e:
         logger.debug(f"[public/vehicles] sold-derivation skipped: {_e}")
 
-    return {"success": True, "data": items, "total": total, "limit": limit, "skip": skip}
+    # ─── Honest meta for price filter UX hint ──────────────────────────
+    # When the user is filtering by price, frontend wants to be able to
+    # tell them: "X out of Y matching cars don't have price data yet" so
+    # the empty/short result set is explainable instead of mysterious.
+    # Computed only when caller asked for price filtering; otherwise we
+    # skip the extra count to keep the listing path O(1).
+    meta: Dict[str, Any] = {"price_filter_mode": (price_filter_mode or "strict").lower()}
+    if price_min is not None or price_max is not None:
+        try:
+            # Re-run the query WITHOUT the price clause to know how many
+            # docs matched everything else. Cheap (indexed) at our scale.
+            non_price_query: Dict[str, Any] = dict(query)
+            ands = non_price_query.get("$and") or []
+            price_clause_signature = ("current_bid", "estimated_total_price", "price")
+            stripped = []
+            for clause in ands:
+                # Best-effort: drop the clause our price block produced.
+                s = repr(clause)
+                if all(f in s for f in price_clause_signature):
+                    continue
+                stripped.append(clause)
+            if stripped:
+                non_price_query["$and"] = stripped
+            else:
+                non_price_query.pop("$and", None)
+            total_without_price = await db.vin_data.count_documents(non_price_query)
+            meta["total_without_price_filter"] = total_without_price
+            meta["hidden_by_price_filter"] = max(0, total_without_price - total)
+        except Exception as _e:
+            logger.debug(f"[public/vehicles] price meta skipped: {_e}")
+
+    return {"success": True, "data": items, "total": total, "limit": limit, "skip": skip, "meta": meta}
 
 @fastapi_app.get("/api/public/vehicles/{vehicle_id}")
 async def public_vehicle_detail(vehicle_id: str):
@@ -7788,6 +8171,12 @@ async def public_brands():
     """Return every brand from the comprehensive static catalogue, merged
     with live DB counts.
 
+    ── PHASE A1: COUNTS FROM `make_canonical` (indexed aggregation) ──
+    Counts are computed via a single `$group` over `make_canonical`,
+    which has a dedicated index — meaning O(distinct makes) instead of
+    O(N docs). The legacy `make`-loop fallback runs only when no
+    canonical data exists yet.
+
     Each item: `{ name, count, available }`. `available=True` iff at least
     one card with status published/active exists for the brand right now.
     The dropdown UI dims `available=False` rows so users still see the
@@ -7795,19 +8184,37 @@ async def public_brands():
     """
     from data.vehicle_catalog import VEHICLE_CATALOG, BRAND_ALIASES_REVERSE
     try:
-        cursor = db.vin_data.find(
-            {"status": {"$in": ["published", "active", None]}},
-            {"_id": 0, "make": 1},
-        )
+        # Fast path: aggregate over indexed make_canonical
+        pipeline = [
+            {"$match": {
+                "status": {"$in": ["published", "active", None]},
+                "make_canonical": {"$exists": True, "$ne": None},
+            }},
+            {"$group": {"_id": "$make_canonical", "n": {"$sum": 1}}},
+        ]
         db_counts: Dict[str, int] = {}
-        async for row in cursor:
-            raw = (row.get("make") or "").strip()
+        async for row in db.vin_data.aggregate(pipeline):
+            key = row.get("_id")
+            if key:
+                db_counts[key] = int(row.get("n") or 0)
+
+        # Legacy fallback for any docs missing make_canonical
+        legacy_pipeline = [
+            {"$match": {
+                "status": {"$in": ["published", "active", None]},
+                "make_canonical": {"$exists": False},
+                "make": {"$exists": True, "$ne": None},
+            }},
+            {"$group": {"_id": "$make", "n": {"$sum": 1}}},
+        ]
+        async for row in db.vin_data.aggregate(legacy_pipeline):
+            raw = (row.get("_id") or "").strip()
             if not raw:
                 continue
             key = _BRAND_CANONICAL.get(raw.lower(), raw)
             if "-" not in key and " " not in key:
                 key = key[:1].upper() + key[1:]
-            db_counts[key] = db_counts.get(key, 0) + 1
+            db_counts[key] = db_counts.get(key, 0) + int(row.get("n") or 0)
 
         # Merge: every brand from the catalogue + any extras present in the
         # DB but absent from the catalogue (defensive — keeps the dropdown
@@ -7815,8 +8222,6 @@ async def public_brands():
         all_names = set(VEHICLE_CATALOG.keys()) | set(db_counts.keys())
         items = []
         for name in all_names:
-            # Sum counts for aliases too so e.g. "Chev" rows count under
-            # the canonical "Chevrolet".
             aliases = BRAND_ALIASES_REVERSE.get(name, [name])
             count = sum(db_counts.get(a, 0) for a in aliases)
             items.append({
@@ -7854,33 +8259,65 @@ async def public_models(brand: Optional[str] = None):
     from data.vehicle_catalog import (
         VEHICLE_CATALOG, BRAND_ALIASES_REVERSE, all_models_for,
     )
+    try:
+        from data.canonical import canonical_make as _can_mk
+    except Exception:
+        _can_mk = None
     raw_brands = [b.strip() for b in re.split(r"[|,]", brand) if b.strip()]
+    # Canonicalise each brand so frontend can send any alias
+    canonical_brands: List[str] = []
+    if _can_mk:
+        for b in raw_brands:
+            c = _can_mk(b)
+            if c:
+                canonical_brands.append(c)
+    canonical_brands = list({c for c in canonical_brands if c}) or raw_brands
+
+    # Legacy expansion list (for the fallback aggregation on docs that
+    # haven't been migrated yet — they still carry the dirty `make`).
     expanded: List[str] = []
     for b in raw_brands:
         expanded.extend(BRAND_ALIASES_REVERSE.get(b, [b]))
     expanded = list({e for e in expanded if e})
+
     try:
-        cursor = db.vin_data.find(
-            {
+        # Fast path: canonical aggregation over indexed make_canonical + model_canonical
+        pipeline = [
+            {"$match": {
                 "status": {"$in": ["published", "active", None]},
-                "make":   {"$in": expanded},
-            },
-            {"_id": 0, "model": 1},
-        )
+                "make_canonical": {"$in": canonical_brands},
+                "model_canonical": {"$exists": True, "$ne": None},
+            }},
+            {"$group": {"_id": "$model_canonical", "n": {"$sum": 1}}},
+        ]
         db_counts: Dict[str, int] = {}
-        async for row in cursor:
-            m = (row.get("model") or "").strip()
+        async for row in db.vin_data.aggregate(pipeline):
+            key = row.get("_id")
+            if key:
+                db_counts[key] = int(row.get("n") or 0)
+
+        # Legacy fallback for docs without model_canonical
+        legacy_pipeline = [
+            {"$match": {
+                "status": {"$in": ["published", "active", None]},
+                "model_canonical": {"$exists": False},
+                "make": {"$in": expanded},
+                "model": {"$exists": True, "$ne": None},
+            }},
+            {"$group": {"_id": "$model", "n": {"$sum": 1}}},
+        ]
+        async for row in db.vin_data.aggregate(legacy_pipeline):
+            m = (row.get("_id") or "").strip()
             if not m:
                 continue
             if "-" not in m and " " not in m:
                 key = m[:1].upper() + m[1:]
             else:
                 key = m
-            db_counts[key] = db_counts.get(key, 0) + 1
+            db_counts[key] = db_counts.get(key, 0) + int(row.get("n") or 0)
 
-        # Static models for the picked brand(s).
-        catalogue = all_models_for(raw_brands)
-        # Defensive: keep DB-only models that the static catalogue missed.
+        # Static models for the picked brand(s) (using canonical names).
+        catalogue = all_models_for(canonical_brands)
         all_models = list({*catalogue, *db_counts.keys()})
         items = []
         for name in all_models:
@@ -8647,6 +9084,346 @@ async def vin_lookup_v2(vin: str):
         ))
     except Exception:
         pass
+    return res
+
+
+# ─────────────────────────────────────────────────────────────────────
+# PHASE B2 — Detail-page instant-shell pattern
+# ─────────────────────────────────────────────────────────────────────
+#
+# The legacy /api/vin/{vin} above runs the full live fallback chain
+# (SEARCH → WESTMOTORS → LEMON → PAGE), which can take 2–6 seconds on
+# unknown VINs. That latency was the dominant reason single-car pages
+# felt slow — the entire UI waited for the chain before painting.
+#
+# We solve perceived speed with TWO new endpoints (no API fragmentation,
+# legacy /api/vin/{vin} stays unchanged):
+#
+#   GET /api/vin/{vin}/shell   guaranteed-fast DB-only snapshot
+#                              never blocks; honest "missing fields"
+#                              target <150 ms
+#
+#   GET /api/vin/{vin}/enrich  optional live enhancement
+#                              runs SEARCH → WESTMOTORS → LEMON → PAGE
+#                              writes back to vin_data so next /shell
+#                              call already has the data
+#
+# Rules of the road (per stakeholder directive):
+#   • shell = DB only — zero external calls, zero scraping, zero retries
+#   • truthful partial: returns ONLY fields it actually has
+#   • freshness: explicit fresh/stale/expired/unknown labels + age_seconds
+#   • no realtime — the frontend triggers /enrich, awaits, and re-renders.
+#     No websockets, no polling, no streaming.
+# ─────────────────────────────────────────────────────────────────────
+
+# Freshness windows for shell-served data (in seconds)
+_SHELL_FRESH_WINDOW_SEC = 24 * 3600       # ≤ 24 h → "fresh"
+_SHELL_EXPIRED_WINDOW_SEC = 7 * 24 * 3600  # > 7 d → "expired"
+
+
+# Fields the frontend considers "essential" for a confident render. When
+# any of these is missing from the DB row, /shell flags them in
+# `missing_fields` so the UI can show honest skeletons instead of
+# inventing defaults.
+_SHELL_ESSENTIAL_FIELDS = (
+    "title", "make", "model", "year",
+    "odometer", "current_bid",
+    "fuel_type", "transmission", "drivetrain",
+    "damage_primary",
+    "image_urls",
+)
+
+
+def _shell_freshness(last_seen, last_enriched_at):
+    """Return ('fresh'|'stale'|'expired'|'unknown', age_seconds_or_None)
+    based on whichever of `last_enriched_at` / `last_seen` is newer.
+    Both arguments may be datetimes or None."""
+    candidates = [t for t in (last_enriched_at, last_seen) if t is not None]
+    if not candidates:
+        return ("unknown", None)
+    newest = max(candidates)
+    try:
+        from datetime import datetime, timezone as _tz
+        now = datetime.now(_tz.utc)
+        # Naive datetimes default to UTC for comparison
+        if newest.tzinfo is None:
+            newest = newest.replace(tzinfo=_tz.utc)
+        age = max(0, int((now - newest).total_seconds()))
+    except Exception:
+        return ("unknown", None)
+    if age <= _SHELL_FRESH_WINDOW_SEC:
+        return ("fresh", age)
+    if age <= _SHELL_EXPIRED_WINDOW_SEC:
+        return ("stale", age)
+    return ("expired", age)
+
+
+def _shell_project(doc):
+    """Trim a raw vin_data doc to the public shell projection. Returns a
+    plain dict ready for JSON serialisation. NEVER raises."""
+    if not doc:
+        return None
+    img_urls = doc.get("image_urls") or doc.get("images") or []
+    if isinstance(img_urls, str):
+        img_urls = [img_urls]
+    if not isinstance(img_urls, list):
+        img_urls = []
+    # Hard cap on hot fields so payload stays small
+    return {
+        "vin": doc.get("vin"),
+        "title": doc.get("title"),
+        "make": doc.get("make"),
+        "model": doc.get("model"),
+        "make_canonical": doc.get("make_canonical"),
+        "model_canonical": doc.get("model_canonical"),
+        "year": doc.get("year"),
+        "lot_number": doc.get("lot_number") or doc.get("lot"),
+        "auction_name": doc.get("auction_name"),
+        "color": doc.get("color"),
+        "engine": doc.get("engine"),
+        "fuel_type": doc.get("fuel_type"),
+        "transmission": doc.get("transmission"),
+        "drivetrain": doc.get("drivetrain"),
+        "body_style": doc.get("body_style"),
+        "title_status": doc.get("title_status"),
+        "damage_primary": doc.get("damage_primary"),
+        "damage_secondary": doc.get("damage_secondary"),
+        "odometer": doc.get("odometer"),
+        "current_bid": doc.get("current_bid"),
+        "price": doc.get("price"),
+        "sale_date": doc.get("sale_date"),
+        "location": doc.get("location"),
+        "country": doc.get("country"),
+        "keys": doc.get("keys"),
+        "image_urls": img_urls[:30],
+        "source_url": doc.get("source_url"),
+        "is_live": False,        # shell never claims live data
+        "_shell_only": True,     # frontend hint — call /enrich for fresh
+    }
+
+
+@fastapi_app.get("/api/vin/{vin}/shell")
+async def vin_shell(vin: str):
+    """Instant-shell — DB-only, never blocks, never calls external sources.
+
+    Looks in `vin_data` first (the rich enriched table). Falls back to
+    `vin_data_westmotors` / `vin_data_lemon` URL queues to confirm the VIN
+    is at least known to us (so the page can render a partial card +
+    "Updating…" badge instead of a 404).
+
+    Response shape:
+        {
+          found: bool,
+          source: "DB"|"WESTMOTORS_INDEX"|"LEMON_INDEX"|"NOT_FOUND",
+          freshness: "fresh"|"stale"|"expired"|"unknown",
+          age_seconds: int | null,
+          last_enriched_at: ISO | null,
+          missing_fields: [str],    // essential fields absent from doc
+          data: { ...projection... } | null,
+          response_time_ms: int,
+          shell: true               // marker so frontend never confuses
+                                    // this with /api/vin/{vin}
+        }
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="db not available")
+    start = time.time()
+    vin_clean = (vs_normalize_vin(vin) if VIN_SERVICE_AVAILABLE and vin else (vin or "")).strip().upper()
+
+    if not vin_clean:
+        return {
+            "found": False, "source": "INVALID", "shell": True,
+            "freshness": "unknown", "age_seconds": None,
+            "last_enriched_at": None, "missing_fields": list(_SHELL_ESSENTIAL_FIELDS),
+            "data": None, "response_time_ms": int((time.time() - start) * 1000),
+        }
+
+    # 1. Hot path — fully enriched row in vin_data (indexed `vin_unique_sparse`)
+    doc = await db.vin_data.find_one({"vin": vin_clean})
+    if doc:
+        projection = _shell_project(doc)
+        missing = [f for f in _SHELL_ESSENTIAL_FIELDS
+                   if projection.get(f) in (None, "", [])]
+        last_seen = doc.get("last_seen")
+        last_enr = doc.get("last_enriched_at") or doc.get("updated_at") or last_seen
+        freshness, age = _shell_freshness(last_seen, last_enr)
+        return {
+            "found": True,
+            "source": "DB",
+            "shell": True,
+            "freshness": freshness,
+            "age_seconds": age,
+            "last_enriched_at": last_enr.isoformat() if last_enr else None,
+            "missing_fields": missing,
+            "data": projection,
+            "response_time_ms": int((time.time() - start) * 1000),
+        }
+
+    # 2. URL-index fallback — VIN exists but isn't enriched yet
+    #    (westmotors/lemon discovery queue). Return found=true with empty
+    #    `data` so the page renders a skeleton and the frontend can fire
+    #    /enrich to populate.
+    wm = await db.vin_data_westmotors.find_one({"vin": vin_clean}, projection={
+        "_id": 0, "vin": 1, "url": 1, "last_seen": 1, "lastmod": 1, "region": 1,
+    })
+    if wm:
+        last_seen = wm.get("last_seen") or wm.get("lastmod")
+        freshness, age = _shell_freshness(last_seen, last_seen)
+        return {
+            "found": True,
+            "source": "WESTMOTORS_INDEX",
+            "shell": True,
+            "freshness": freshness,
+            "age_seconds": age,
+            "last_enriched_at": None,
+            "missing_fields": list(_SHELL_ESSENTIAL_FIELDS),
+            "data": {
+                "vin": vin_clean,
+                "source_url": wm.get("url"),
+                "country": (wm.get("region") or "").upper() or None,
+                "is_live": False,
+                "_shell_only": True,
+                "_pending_enrich": True,
+            },
+            "response_time_ms": int((time.time() - start) * 1000),
+        }
+
+    lm = await db.vin_data_lemon.find_one({"vin": vin_clean}, projection={
+        "_id": 0, "vin": 1, "url": 1, "last_seen": 1, "lastmod": 1, "region": 1, "lot": 1,
+    })
+    if lm:
+        last_seen = lm.get("last_seen") or lm.get("lastmod")
+        freshness, age = _shell_freshness(last_seen, last_seen)
+        return {
+            "found": True,
+            "source": "LEMON_INDEX",
+            "shell": True,
+            "freshness": freshness,
+            "age_seconds": age,
+            "last_enriched_at": None,
+            "missing_fields": list(_SHELL_ESSENTIAL_FIELDS),
+            "data": {
+                "vin": vin_clean,
+                "lot_number": lm.get("lot"),
+                "source_url": lm.get("url"),
+                "country": (lm.get("region") or "").upper() or None,
+                "is_live": False,
+                "_shell_only": True,
+                "_pending_enrich": True,
+            },
+            "response_time_ms": int((time.time() - start) * 1000),
+        }
+
+    # 3. Truly unknown
+    return {
+        "found": False,
+        "source": "NOT_FOUND",
+        "shell": True,
+        "freshness": "unknown",
+        "age_seconds": None,
+        "last_enriched_at": None,
+        "missing_fields": list(_SHELL_ESSENTIAL_FIELDS),
+        "data": None,
+        "response_time_ms": int((time.time() - start) * 1000),
+    }
+
+
+@fastapi_app.get("/api/vin/{vin}/enrich")
+async def vin_enrich(vin: str):
+    """Optional live enhancement — same fallback chain as legacy
+    /api/vin/{vin}, but exposed as a SEPARATE endpoint so the frontend
+    can fire it in the background AFTER /shell already painted the page.
+
+    Writes the resolved payload back into `vin_data` (via the existing
+    `vs_get_car_by_vin` cache layer) so the next /shell call for the
+    same VIN returns instantly from DB.
+
+    Returns the same shape as legacy /api/vin/{vin} PLUS:
+      - shell: false
+      - last_enriched_at: ISO (time of this enrichment)
+      - freshness: "fresh" (always — we just touched it)
+    """
+    if not VIN_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="vin_service not loaded")
+    start = time.time()
+    vin_clean = (vs_normalize_vin(vin) if vin else "") or ""
+
+    # Reuse the production VIN resolver — it already has caching, retries,
+    # SEARCH→WESTMOTORS→LEMON→PAGE fallback and statvin enrichment.
+    main_task = asyncio.create_task(vs_get_car_by_vin(vin, db=db))
+    history_task: Optional[asyncio.Task] = None
+    if STATVIN_AVAILABLE and vs_is_valid_vin(vin_clean):
+        history_task = asyncio.create_task(sv_enrich(vin_clean))
+
+    res = await main_task
+    history_payload: Optional[Dict[str, Any]] = None
+    if history_task is not None:
+        budget_left = max(0.1, 3.5 - (time.time() - start))
+        try:
+            history_payload = await asyncio.wait_for(history_task, timeout=budget_left)
+        except asyncio.TimeoutError:
+            history_task.cancel()
+            history_payload = None
+        except Exception:
+            history_payload = None
+
+    # Mirror the legacy /api/vin/{vin} merge logic so frontend gets a
+    # consistent shape regardless of which endpoint it used.
+    if history_payload:
+        res["history"] = {
+            "source": "stat.vin",
+            "sale_date": history_payload.get("sale_date"),
+            "purchase_date": history_payload.get("purchase_date_iso"),
+            "sale_price_usd": history_payload.get("sale_price_usd"),
+            "damage_primary": history_payload.get("damage_primary"),
+            "lot_number": history_payload.get("lot_number"),
+            "auction_name": history_payload.get("auction_name"),
+            "location": history_payload.get("location"),
+            "image_urls": history_payload.get("image_urls", [])[:30],
+            "title": history_payload.get("title"),
+            "make": history_payload.get("make"),
+            "model": history_payload.get("model"),
+            "year": history_payload.get("year"),
+            "color": history_payload.get("color"),
+            "engine": history_payload.get("engine"),
+            "fuel_type": history_payload.get("fuel_type"),
+            "source_url": history_payload.get("source_url"),
+            "has_history": bool(history_payload.get("has_history")),
+            "response_time_ms": history_payload.get("response_time_ms"),
+        }
+    else:
+        res["history"] = None
+
+    # Persist last_enriched_at marker so /shell can report accurate
+    # freshness on subsequent calls. Also persist the freshly-fetched
+    # detail-page images (BidMotors live detail-parse returns `images`,
+    # whereas DB stores `image_urls`) so the next /shell load instantly
+    # shows the full gallery from cache. Best-effort, non-blocking.
+    try:
+        from datetime import datetime, timezone as _tz
+        if res.get("found") and vin_clean and db is not None:
+            update_fields = {"last_enriched_at": datetime.now(_tz.utc)}
+            try:
+                live_images = (res.get("data") or {}).get("images") or []
+                if isinstance(live_images, list) and len(live_images) > 0:
+                    # Cap at 30 to keep the doc small.
+                    update_fields["image_urls"] = list(live_images[:30])
+                    update_fields["image_count"] = len(update_fields["image_urls"])
+            except Exception:
+                pass
+            await db.vin_data.update_one(
+                {"vin": vin_clean},
+                {"$set": update_fields},
+                upsert=False,
+            )
+    except Exception as _e:
+        logger.debug(f"[vin/{vin_clean}/enrich] mark last_enriched_at failed: {_e}")
+
+    elapsed_ms = int((time.time() - start) * 1000)
+    res["response_time_ms"] = elapsed_ms
+    res["query"] = vin
+    res["shell"] = False
+    res["freshness"] = "fresh"
     return res
 
 
@@ -17838,37 +18615,95 @@ async def remove_favorite(vehicle_id: str, authorization: Optional[str] = Header
     })
     return {"success": bool(res.deleted_count), "deleted": res.deleted_count}
 
+# =============================================================================
+# COMPARE — per-customer authenticated comparison list (max 3 items)
+# =============================================================================
+#
+# Mirrors the favorites flow but stores into `db.compare`. The cabinet UI
+# (`/cabinet/:id/compare`) renders 2-3 vehicles side-by-side; the public
+# car cards toggle an item in/out of this list. Same auth contract as
+# favorites: `Authorization: Bearer <customer-session-token>`.
+# =============================================================================
+
+_COMPARE_MAX = 3  # FE expects isFull at count>=3; keep them in sync
+
+
+def _compare_owner_query(customer_id: str) -> Dict[str, Any]:
+    """Match both new (`customerId`) and legacy (`userId`) ownership fields."""
+    return {"$or": [{"customerId": customer_id}, {"userId": customer_id}]}
+
+
 @fastapi_app.get("/api/compare/me")
-async def get_my_compare():
-    """Get compare list"""
-    items = await db.compare.find({"userId": "test_customer_001"}, {"_id": 0}).to_list(10)
-    # Normalize datetime/ObjectId via serialize_doc fallback
-    out = []
-    for it in items:
+async def get_my_compare(authorization: Optional[str] = Header(None)):
+    """Return the authenticated customer's compare list (array of snapshots)."""
+    customer = await require_customer(authorization)
+    customer_id = customer.get("customerId") or customer.get("id")
+
+    cursor = db.compare.find(
+        _compare_owner_query(customer_id), {"_id": 0}
+    ).sort("createdAt", -1).limit(_COMPARE_MAX * 2)
+    rows = await cursor.to_list(length=_COMPARE_MAX * 2)
+
+    out: List[Dict[str, Any]] = []
+    for it in rows:
         try:
             out.append(serialize_doc(it))
         except Exception:
             it.pop("_id", None)
+            # Normalize datetimes manually as a safety net
+            for k in ("createdAt", "updatedAt"):
+                v = it.get(k)
+                if hasattr(v, "isoformat"):
+                    it[k] = v.isoformat()
             out.append(it)
-    return out  # array, hooks expect this shape
+    return out  # array — matches hook + public CarCard expectations
+
 
 @fastapi_app.post("/api/compare/add")
-async def add_to_compare(data: Dict[str, Any] = Body(...)):
-    """Add to compare (idempotent by VIN/vehicleId)"""
+async def add_to_compare(
+    data: Dict[str, Any] = Body(...),
+    authorization: Optional[str] = Header(None),
+):
+    """Add to compare (idempotent by VIN/vehicleId). Caps at `_COMPARE_MAX`."""
+    customer = await require_customer(authorization)
+    customer_id = customer.get("customerId") or customer.get("id")
+
     raw_vin = (data.get("vin") or data.get("vehicleId") or "").strip().upper().replace(" ", "").replace("-", "")
     veh_id = data.get("vehicleId") or raw_vin
     if not raw_vin and not veh_id:
         raise HTTPException(status_code=400, detail="vin or vehicleId required")
 
     snapshot = data.get("snapshot") or {}
+    # Pull useful fields from the top-level payload too so the client can pass
+    # them without nesting (matches favorites payload shape).
+    for k in ("title", "make", "model", "year", "trim", "price", "currency",
+              "image", "lot_number", "auction_name", "odometer", "odometer_unit"):
+        if data.get(k) is not None and snapshot.get(k) in (None, ""):
+            snapshot[k] = data[k]
     snapshot.setdefault("vin", raw_vin)
     snapshot.setdefault("vehicleId", veh_id)
 
+    # Enforce cap (only when this is a new insert, not a re-add of existing).
+    existing = await db.compare.find_one(
+        {**_compare_owner_query(customer_id),
+         "$or": [{"vin": raw_vin}, {"vehicleId": veh_id}]},
+        {"_id": 1},
+    )
+    if not existing:
+        count = await db.compare.count_documents(_compare_owner_query(customer_id))
+        if count >= _COMPARE_MAX:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Compare list is full (max {_COMPARE_MAX}). Remove one to add another.",
+            )
+
     now = datetime.now(timezone.utc)
     await db.compare.update_one(
-        {"userId": "test_customer_001", "$or": [{"vin": raw_vin}, {"vehicleId": veh_id}]},
+        {**_compare_owner_query(customer_id),
+         "$or": [{"vin": raw_vin}, {"vehicleId": veh_id}]},
         {"$set": {
-            "userId": "test_customer_001",
+            "customerId": customer_id,
+            "userId": customer_id,  # legacy mirror
             "vehicleId": veh_id,
             "vin": raw_vin or None,
             "snapshot": snapshot,
@@ -17876,23 +18711,173 @@ async def add_to_compare(data: Dict[str, Any] = Body(...)):
         }, "$setOnInsert": {"createdAt": now}},
         upsert=True,
     )
-    return {"success": True, "vehicleId": veh_id, "vin": raw_vin}
+    count = await db.compare.count_documents(_compare_owner_query(customer_id))
+    return {
+        "success": True,
+        "vehicleId": veh_id,
+        "vin": raw_vin,
+        "count": count,
+        "needsMore": count < 2,  # FE hint for "add at least one more" UX
+    }
+
 
 @fastapi_app.delete("/api/compare/remove/{vehicle_id}")
-async def remove_from_compare(vehicle_id: str):
-    """Remove from compare (accepts VIN or vehicleId)"""
+async def remove_from_compare(
+    vehicle_id: str,
+    authorization: Optional[str] = Header(None),
+):
+    """Remove from compare (accepts VIN or vehicleId)."""
+    customer = await require_customer(authorization)
+    customer_id = customer.get("customerId") or customer.get("id")
+
     raw = vehicle_id.strip().upper().replace(" ", "").replace("-", "")
     res = await db.compare.delete_one({
-        "userId": "test_customer_001",
+        **_compare_owner_query(customer_id),
         "$or": [{"vehicleId": vehicle_id}, {"vehicleId": raw}, {"vin": raw}],
     })
     return {"success": True, "deleted": res.deleted_count}
 
+
 @fastapi_app.delete("/api/compare/clear")
-async def clear_compare():
-    """Clear compare list"""
-    await db.compare.delete_many({"userId": "test_customer_001"})
+async def clear_compare(authorization: Optional[str] = Header(None)):
+    """Clear compare list for the authenticated customer."""
+    customer = await require_customer(authorization)
+    customer_id = customer.get("customerId") or customer.get("id")
+    await db.compare.delete_many(_compare_owner_query(customer_id))
     return {"success": True}
+
+
+@fastapi_app.post("/api/compare/resolve")
+async def resolve_compare(authorization: Optional[str] = Header(None)):
+    """Resolve compare list with enriched vehicle data for the cabinet table.
+
+    Returns `{ "comparison": [ {vehicleId, vin, title, image, images, year,
+    make, model, trim, bodyType, fuel, transmission, drive, engineVolume,
+    price, marketPrice, maxBid, finalAllInPrice, mileage, mileageUnit,
+    damage, primaryDamage, secondaryDamage, location, locationCity,
+    locationState, saleDate, auctionName, lotNumber, confidence,
+    dealStatus, ...} ] }`.
+
+    Hydration priority: live `vin_data` (freshest) > stored snapshot >
+    legacy row fields. Missing fields fall back to `None`/`—`.
+    """
+    customer = await require_customer(authorization)
+    customer_id = customer.get("customerId") or customer.get("id")
+
+    rows = await db.compare.find(
+        _compare_owner_query(customer_id), {"_id": 0}
+    ).sort("createdAt", -1).limit(_COMPARE_MAX * 2).to_list(length=_COMPARE_MAX * 2)
+
+    comparison: List[Dict[str, Any]] = []
+    for r in rows:
+        vin = (r.get("vin") or "").upper()
+        snapshot = r.get("snapshot") or {}
+
+        # Pull the full vin_data document for richer fields (body, damage,
+        # location, sale date, transmission, fuel, etc.). This is best-effort —
+        # if the VIN isn't in vin_data we'll fall back to the snapshot.
+        full: Dict[str, Any] = {}
+        if vin:
+            try:
+                doc = await db.vin_data.find_one({"vin": vin}, {"_id": 0})
+                if doc:
+                    full = dict(doc)
+            except Exception:
+                full = {}
+
+        # Helper: first non-empty value across a chain of keys (snapshot
+        # falls back to vin_data).
+        def pick(*keys):
+            for k in keys:
+                if k in snapshot and snapshot.get(k) not in (None, "", []):
+                    return snapshot.get(k)
+                if k in full and full.get(k) not in (None, "", []):
+                    return full.get(k)
+            return None
+
+        # Hero image: try every common shape
+        image = (
+            pick("image")
+            or (full.get("images") or [None])[0]
+            or (snapshot.get("images") or [None])[0]
+            or (full.get("image_urls") or [None])[0]
+            or (snapshot.get("image_urls") or [None])[0]
+        )
+        images = (
+            full.get("images")
+            or full.get("image_urls")
+            or snapshot.get("images")
+            or snapshot.get("image_urls")
+            or ([image] if image else [])
+        )
+
+        merged: Dict[str, Any] = {
+            "vehicleId": r.get("vehicleId") or vin,
+            "vin": vin or None,
+            "title": pick("title"),
+            "image": image,
+            "images": images,
+            # Core identification (sorted by importance — UI renders in this order)
+            "year": pick("year"),
+            "make": pick("make"),
+            "model": pick("model"),
+            "trim": pick("trim"),
+            "bodyType": pick("body_type", "bodyType", "body_style"),
+            "fuel": pick("fuel", "fuel_type"),
+            "transmission": pick("transmission"),
+            "drive": pick("drive", "drive_type"),
+            "engineVolume": pick("engine", "engine_volume", "engine_size"),
+            # Pricing
+            "price": pick("price", "buy_now_price", "current_bid"),
+            "currency": pick("currency") or "USD",
+            "marketPrice": pick("market_price", "marketPrice", "estimated_price"),
+            "maxBid": pick("max_bid", "maxBid", "current_bid"),
+            "finalAllInPrice": pick("final_all_in_price", "finalAllInPrice", "all_in_price"),
+            # Auction
+            "auctionName": pick("auction_name", "auction"),
+            "lotNumber": pick("lot_number", "lot"),
+            "saleDate": pick("sale_date", "saleDate", "auction_date"),
+            # Condition + odometer + location
+            "mileage": pick("odometer", "mileage"),
+            "mileageUnit": pick("odometer_unit", "mileageUnit") or "mi",
+            "damage": pick("damage", "primary_damage"),
+            "primaryDamage": pick("primary_damage", "primaryDamage"),
+            "secondaryDamage": pick("secondary_damage", "secondaryDamage"),
+            "location": pick("location", "site_location", "auction_location"),
+            "locationCity": pick("city", "locationCity"),
+            "locationState": pick("state", "locationState"),
+            # Computed / quality signals
+            "confidence": pick("confidence", "confidence_score"),
+            "dealStatus": pick("deal_status", "dealStatus"),
+            # Source metadata
+            "sourcePage": snapshot.get("sourcePage"),
+            "archived": bool(full.get("archived")),
+        }
+
+        # Computed title fallback
+        if not merged.get("title"):
+            parts = [merged.get("year"), merged.get("make"), merged.get("model"), merged.get("trim")]
+            ttl = " ".join(str(p) for p in parts if p)
+            if ttl.strip():
+                merged["title"] = ttl.strip()
+
+        # Build a friendly composite location if we only have city/state
+        if not merged.get("location") and (merged.get("locationCity") or merged.get("locationState")):
+            merged["location"] = ", ".join(
+                [p for p in (merged.get("locationCity"), merged.get("locationState")) if p]
+            )
+
+        # Normalize timestamps
+        for k in ("createdAt", "updatedAt"):
+            v = r.get(k)
+            if hasattr(v, "isoformat"):
+                merged[k] = v.isoformat()
+            elif v is not None:
+                merged[k] = v
+
+        comparison.append(merged)
+
+    return {"comparison": comparison, "count": len(comparison)}
 
 # =============================================================================
 # CAR SHARING — generate share URLs, persist share records, list own shares

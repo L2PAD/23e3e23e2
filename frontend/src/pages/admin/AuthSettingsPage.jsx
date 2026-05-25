@@ -4,18 +4,20 @@
  * GET  /api/admin/settings/auth   — current values (jwt.secret masked)
  * PATCH /api/admin/settings/auth  — deep-merge update
  *
- * Fields grouped into five blocks:
- *   1. URLs             (baseUrl, frontendUrl)
- *   2. Google Sign-In   (clientId, enable/disable)
- *   3. JWT              (secret, expiries)
- *   4. Feature flags    (password / google / register / reset toggles)
- *   5. Password policy  (min length, reset TTL)
- *   6. Email            (mode, from, reply-to)
+ * Sections (each saves its own slice via PATCH):
+ *   1. Public URLs       (baseUrl, frontendUrl)
+ *   2. Google Sign-In    (clientId, allowed domains, enable/disable)
+ *   3. Password & reset  (min length, reset TTL, feature toggles)
+ *   4. JWT               (secret, expiries)
+ *   5. Email transport   (mode, from, reply-to)
  *
- * All changes are applied via a single "Save" button per block — each block
- * sends only its own slice via PATCH, so partial failures don't lose other
- * edits. The "Resolved effective values" panel at the top always shows the
- * URLs/IDs that are actually in effect (after fallbacks).
+ * UX redesign notes:
+ *   • The "Currently effective" panel sits as a discrete, dense banner at the
+ *     top — no double-border / no monospace dev font, just neat key/value
+ *     rows with subtle background.
+ *   • Each block uses the same white card + 40px icon pill + inline Save
+ *     button. No more mixed colour palettes (blue card next to white cards).
+ *   • All-Mazzard typography.
  */
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -34,54 +36,60 @@ import {
   WarningCircle,
   Info,
 } from '@phosphor-icons/react';
+import WhiteSelect from '../../components/ui/WhiteSelect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// ── small building blocks ──────────────────────────────────────────
+// ── building blocks ───────────────────────────────────────────────
 const Block = ({ icon: Icon, title, description, children, onSave, saving, testId }) => (
   <div
-    className="bg-white border border-[#E4E4E7] rounded-2xl p-6 shadow-sm"
+    className="bg-white border border-[#E4E4E7] rounded-2xl p-4 sm:p-5"
     data-testid={testId}
   >
-    <div className="flex items-start justify-between gap-4 mb-5">
-      <div className="flex items-start gap-3">
+    {/* Header row — icon + title on the left, Save on the right.
+        The description sits BELOW this row at full width so long copy
+        doesn't get squeezed into a 60px ribbon on mobile. */}
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         {Icon && (
-          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
-            <Icon size={20} weight="duotone" />
+          <div className="w-9 h-9 rounded-lg bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Icon size={17} weight="duotone" />
           </div>
         )}
-        <div>
-          <h2 className="font-semibold text-[#18181B] text-lg">{title}</h2>
-          {description && (
-            <p className="text-sm text-[#71717A] mt-1 max-w-2xl">{description}</p>
-          )}
-        </div>
+        <h2 className="text-[15px] font-semibold text-[#18181B] leading-tight truncate">
+          {title}
+        </h2>
       </div>
       {onSave && (
         <button
           type="button"
           onClick={onSave}
           disabled={saving}
-          className="shrink-0 px-4 py-2 rounded-lg bg-[#FEAE00] hover:bg-[#FFBF2D] text-black font-semibold text-sm flex items-center gap-2 disabled:opacity-50"
+          className="shrink-0 inline-flex items-center justify-center gap-1.5 sm:gap-2 h-9 px-3 sm:px-4 rounded-xl bg-[#18181B] hover:bg-[#27272A] text-white text-[12.5px] font-semibold disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
           data-testid={`${testId}-save`}
         >
-          <FloppyDisk size={16} weight="bold" />
-          {saving ? 'Saving...' : 'Save'}
+          <FloppyDisk size={14} weight="bold" />
+          <span className="hidden xs:inline sm:inline">{saving ? 'Saving…' : 'Save'}</span>
         </button>
       )}
     </div>
-    <div className="space-y-4">{children}</div>
+    {description && (
+      <p className="mt-2 text-[12.5px] text-[#71717A] leading-relaxed">
+        {description}
+      </p>
+    )}
+    <div className="mt-4 space-y-4">{children}</div>
   </div>
 );
 
 const Field = ({ label, hint, error, children }) => (
   <div>
-    <label className="block text-xs font-semibold text-[#52525B] mb-1.5 uppercase tracking-wide">
+    <label className="block text-[10.5px] font-semibold text-[#71717A] mb-1.5 uppercase tracking-[0.12em]">
       {label}
     </label>
     {children}
-    {hint && <p className="text-xs text-[#71717A] mt-1">{hint}</p>}
-    {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+    {hint && <p className="text-[11.5px] text-[#71717A] mt-1 leading-snug">{hint}</p>}
+    {error && <p className="text-[11.5px] text-red-600 mt-1">{error}</p>}
   </div>
 );
 
@@ -89,7 +97,7 @@ const Input = (props) => (
   <input
     {...props}
     className={
-      'w-full px-3 py-2.5 rounded-lg border border-[#E4E4E7] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FEAE00]/40 focus:border-[#FEAE00] ' +
+      'w-full px-3 py-2.5 rounded-xl border border-[#E4E4E7] text-[13px] bg-white text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#18181B]/15 focus:border-[#18181B] ' +
       (props.className || '')
     }
   />
@@ -104,7 +112,7 @@ const Toggle = ({ checked, onChange, disabled, ...rest }) => (
     disabled={disabled}
     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
       checked ? 'bg-[#18181B]' : 'bg-[#E4E4E7]'
-    } disabled:opacity-40`}
+    } disabled:opacity-40 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10`}
     {...rest}
   >
     <span
@@ -115,6 +123,22 @@ const Toggle = ({ checked, onChange, disabled, ...rest }) => (
   </button>
 );
 
+// ── effective values row ──────────────────────────────────────────
+const EffRow = ({ label, value, valueClassName = '', testId }) => (
+  <div className="flex items-center justify-between gap-3 py-1.5">
+    <dt className="text-[12px] text-[#71717A] shrink-0">{label}</dt>
+    <dd
+      className={
+        'text-[12.5px] text-[#18181B] truncate min-w-0 max-w-[60%] text-right ' +
+        valueClassName
+      }
+      data-testid={testId}
+    >
+      {value}
+    </dd>
+  </div>
+);
+
 // ── main page ──────────────────────────────────────────────────────
 export default function AuthSettingsPage({ embedded = false }) {
   const { t } = useLang();
@@ -122,7 +146,6 @@ export default function AuthSettingsPage({ embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState('');
 
-  // local draft state for editable fields
   const [urls, setUrls] = useState({ baseUrl: '', frontendUrl: '' });
   const [google, setGoogle] = useState({ clientId: '', allowedDomains: '' });
   const [jwt, setJwt] = useState({ secret: '', accessExpires: '15m', refreshExpires: '7d' });
@@ -145,9 +168,6 @@ export default function AuthSettingsPage({ embedded = false }) {
       setUrls({ baseUrl: data.baseUrl || '', frontendUrl: data.frontendUrl || '' });
       setGoogle({
         clientId: (data.google && data.google.clientId) || '',
-        // Stored as comma-separated string in the UI (`bibi.cars, partner.com`)
-        // for friction-free typing; server-side `customer_google_verify`
-        // accepts BOTH list and CSV. Empty string => no restriction.
         allowedDomains: Array.isArray(data.google?.allowedDomains)
           ? data.google.allowedDomains.join(', ')
           : (data.google?.allowedDomains || ''),
@@ -212,119 +232,131 @@ export default function AuthSettingsPage({ embedded = false }) {
   return (
     <div className={embedded ? '' : 'p-6 max-w-5xl mx-auto'} data-testid="auth-settings-page">
       {!embedded && (
-      <div className="mb-6">
-        <div className="flex items-center gap-3">
-          <ShieldCheck size={28} weight="duotone" className="text-[#18181B]" />
-          <h1 className="text-2xl font-semibold text-[#18181B]">{t('adm_auth_url_settings')}</h1>
-        </div>
-        <p className="text-sm text-[#71717A] mt-1 ml-11">
-          {t('adm3_b874d83ea3')}
-          <code className="mx-1 px-1.5 py-0.5 bg-[#F4F4F5] rounded text-[#18181B]">app_settings</code>{t('adm3_c525139017')}
-        </p>
-      </div>
-      )}
-
-      {/* ── Effective values (read-only) ─────────────────────────── */}
-      <div
-        className="bg-blue-50/60 border border-blue-200 rounded-2xl p-4 mb-6 text-sm"
-        data-testid="auth-resolved-panel"
-      >
-        <div className="flex items-start gap-2 text-blue-900">
-          <Info size={18} weight="fill" className="mt-0.5 shrink-0" />
-          <div className="flex-1">
-            <div className="font-semibold mb-2">{t('adm2_fallback_c34694fc28')}</div>
-            <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5 text-[13px]">
-              <div className="flex justify-between gap-4">
-                <dt className="text-blue-800/80">baseUrl</dt>
-                <dd className="font-mono text-blue-950 truncate" data-testid="resolved-baseUrl">
-                  {resolved.baseUrl || '—'}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-blue-800/80">frontendUrl</dt>
-                <dd className="font-mono text-blue-950 truncate" data-testid="resolved-frontendUrl">
-                  {resolved.frontendUrl || '—'}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-blue-800/80">{t('adm_googleclientid')}</dt>
-                <dd className="font-mono text-blue-950 truncate">
-                  {resolved.googleClientId ? (
-                    <span className="text-emerald-700 flex items-center gap-1">
-                      <CheckCircle size={14} weight="fill" /> {t('adm_installed')}
-                    </span>
-                  ) : (
-                    <span className="text-amber-700 flex items-center gap-1">
-                      <WarningCircle size={14} weight="fill" /> {t('adm_not_configured')}
-                    </span>
-                  )}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-blue-800/80">request base_url</dt>
-                <dd className="font-mono text-blue-900/70 truncate">{resolved.requestBaseUrl || '—'}</dd>
-              </div>
-            </dl>
+        <div className="mb-6">
+          <div className="flex items-center gap-3">
+            <ShieldCheck size={26} weight="duotone" className="text-[#18181B]" />
+            <h1 className="text-[22px] font-semibold text-[#18181B]">
+              {t('adm_auth_url_settings') || 'Auth & URLs'}
+            </h1>
           </div>
         </div>
+      )}
+
+      {/* ── Effective values (compact, single-panel) ─────────────────── */}
+      <div
+        className="bg-white border border-[#E4E4E7] rounded-2xl p-4 sm:p-5 mb-5"
+        data-testid="auth-resolved-panel"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-[#F4F4F5] border border-[#E4E4E7] text-[#18181B] flex items-center justify-center shrink-0">
+            <Info size={16} weight="duotone" />
+          </div>
+          <h2 className="text-[14px] font-semibold text-[#18181B] leading-tight truncate">
+            {t('adm2_fallback_c34694fc28') || 'Currently effective (with fallback)'}
+          </h2>
+        </div>
+        <p className="mt-2 text-[12px] text-[#71717A] leading-relaxed">
+          Values your backend resolves at runtime — after env + DB overrides.
+        </p>
+
+        <dl className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 divide-y md:divide-y-0 divide-[#F4F4F5]">
+          <EffRow
+            label="baseUrl"
+            value={resolved.baseUrl || '—'}
+            testId="resolved-baseUrl"
+          />
+          <EffRow
+            label="frontendUrl"
+            value={resolved.frontendUrl || '—'}
+            testId="resolved-frontendUrl"
+          />
+          <EffRow
+            label={t('adm_googleclientid') || 'google.clientId'}
+            value={
+              resolved.googleClientId ? (
+                <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                  <CheckCircle size={13} weight="fill" />
+                  {t('adm_installed') || 'installed'}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
+                  <WarningCircle size={13} weight="fill" />
+                  {t('adm_not_configured') || 'not configured'}
+                </span>
+              )
+            }
+          />
+          <EffRow
+            label="request base_url"
+            value={resolved.requestBaseUrl || '—'}
+            valueClassName="text-[#71717A]"
+          />
+        </dl>
       </div>
 
-      <div className="space-y-5">
-        {/* ── 1. URLs ─────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        {/* ── 1. Public URLs ─────────────────────────────────────────── */}
         <Block
           icon={LinkIcon}
-          title={t('publicUrls')}
-          description={t('adm2_baseurl_url_callback_ema_b07c2ed7d7')}
+          title={t('publicUrls') || 'Public URLs'}
+          description={
+            t('adm2_baseurl_url_callback_ema_b07c2ed7d7') ||
+            'baseUrl — public backend URL (callback, email); frontendUrl — frontend URL (reset links).'
+          }
           testId="auth-urls-block"
           saving={saving === 'urls'}
-          onSave={() =>
-            patch({ baseUrl: urls.baseUrl, frontendUrl: urls.frontendUrl }, 'urls')
-          }
+          onSave={() => patch({ baseUrl: urls.baseUrl, frontendUrl: urls.frontendUrl }, 'urls')}
         >
-          <Field
-            label="Base URL (backend)"
-            hint={t('adm_example_httpsbibicarsbg_no_trailing_slash')}
-          >
-            <Input
-              value={urls.baseUrl}
-              onChange={(e) => setUrls({ ...urls, baseUrl: e.target.value })}
-              placeholder="https://bibicars.bg"
-              data-testid="auth-input-baseUrl"
-            />
-          </Field>
-          <Field
-            label={t('frontendUrl')}
-            hint={t('adm_where_resetpassword_emails_lead_and_redirect_after')}
-          >
-            <Input
-              value={urls.frontendUrl}
-              onChange={(e) => setUrls({ ...urls, frontendUrl: e.target.value })}
-              placeholder="https://bibicars.bg"
-              data-testid="auth-input-frontendUrl"
-            />
-          </Field>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field
+              label="Base URL (backend)"
+              hint={t('adm_example_httpsbibicarsbg_no_trailing_slash')}
+            >
+              <Input
+                value={urls.baseUrl}
+                onChange={(e) => setUrls({ ...urls, baseUrl: e.target.value })}
+                placeholder="https://bibicars.bg"
+                data-testid="auth-input-baseUrl"
+              />
+            </Field>
+            <Field
+              label={t('frontendUrl') || 'Frontend URL'}
+              hint={t('adm_where_resetpassword_emails_lead_and_redirect_after')}
+            >
+              <Input
+                value={urls.frontendUrl}
+                onChange={(e) => setUrls({ ...urls, frontendUrl: e.target.value })}
+                placeholder="https://bibicars.bg"
+                data-testid="auth-input-frontendUrl"
+              />
+            </Field>
+          </div>
         </Block>
 
-        {/* ── 2. Google Sign-In ───────────────────────────────────── */}
+        {/* ── 2. Google Sign-In ──────────────────────────────────────── */}
         <Block
           icon={GoogleLogo}
           title="Google Sign-In (GIS popup)"
           description={t('adm_google_identity_services_popup_id_token_verificati')}
           testId="auth-google-block"
           saving={saving === 'google'}
-          onSave={() => patch({
-            google: {
-              clientId: google.clientId.trim(),
-              // CSV → list of clean lowercase domains; empty list = no restriction
-              allowedDomains: google.allowedDomains
-                .split(/[,\n]/)
-                .map((d) => d.trim().replace(/^@/, '').toLowerCase())
-                .filter(Boolean),
-            },
-          }, 'google')}
+          onSave={() =>
+            patch(
+              {
+                google: {
+                  clientId: google.clientId.trim(),
+                  allowedDomains: google.allowedDomains
+                    .split(/[,\n]/)
+                    .map((d) => d.trim().replace(/^@/, '').toLowerCase())
+                    .filter(Boolean),
+                },
+              },
+              'google',
+            )
+          }
         >
           <Field
-            label={t('clientId')}
+            label={t('clientId') || 'Client ID'}
             hint={t('adm2_xxxxxxxxxxxx_apps_google_3320c64959')}
           >
             <Input
@@ -334,13 +366,9 @@ export default function AuthSettingsPage({ embedded = false }) {
               data-testid="auth-input-googleClientId"
             />
           </Field>
-          {/* Allowed-domains whitelist (B2B mode). Empty = any verified
-              Gmail. Comma- OR newline-separated. Server validates after
-              token verification — rejects with 403 if email's domain is
-              not in the list. */}
           <Field
-            label="Allowed Domains"
-            hint="Comma-separated list of allowed email domains (e.g. bibi.cars, partner.com). Leave empty to allow any verified Google account."
+            label="Allowed domains"
+            hint="Comma-separated (e.g. bibi.cars, partner.com). Leave empty to allow any verified Google account."
           >
             <Input
               value={google.allowedDomains}
@@ -349,10 +377,12 @@ export default function AuthSettingsPage({ embedded = false }) {
               data-testid="auth-input-googleAllowedDomains"
             />
           </Field>
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <div className="font-medium text-sm text-[#18181B]">{t('adm_enable_google_signin')}</div>
-              <div className="text-xs text-[#71717A] mt-0.5">
+          <div className="flex items-center justify-between rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] px-3.5 py-2.5">
+            <div className="min-w-0 pr-3">
+              <div className="text-[13px] font-medium text-[#18181B]">
+                {t('adm_enable_google_signin') || 'Enable Google Sign-In'}
+              </div>
+              <div className="text-[11.5px] text-[#71717A] mt-0.5">
                 {t('adm_if_disabled_the_google_button_is_hidden_on_the_log')}
               </div>
             </div>
@@ -367,10 +397,10 @@ export default function AuthSettingsPage({ embedded = false }) {
           </div>
         </Block>
 
-        {/* ── 3. Password auth & reset policy ─────────────────────── */}
+        {/* ── 3. Password & reset policy ─────────────────────────────── */}
         <Block
           icon={Key}
-          title={t('adm_password_auth_reset')}
+          title={t('adm_password_auth_reset') || 'Password auth & reset'}
           description={t('adm_emailpassword_registration_settings_and_password_r')}
           testId="auth-password-block"
           saving={saving === 'password'}
@@ -382,50 +412,43 @@ export default function AuthSettingsPage({ embedded = false }) {
                   resetTokenTtlMinutes: Number(password.resetTokenTtlMinutes) || 60,
                 },
               },
-              'password'
+              'password',
             )
           }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label={t('adm_min_password_length')} hint={t('adm_applies_to_register_and_reset')}>
+            <Field label={t('adm_min_password_length') || 'Min password length'} hint={t('adm_applies_to_register_and_reset')}>
               <Input
                 type="number"
                 min={4}
                 max={64}
                 value={password.minLength}
-                onChange={(e) =>
-                  setPassword({ ...password, minLength: e.target.value })
-                }
+                onChange={(e) => setPassword({ ...password, minLength: e.target.value })}
                 data-testid="auth-input-minLength"
               />
             </Field>
-            <Field label={t('adm2_ttl_reset_ad4f34ff62')} hint={t('adm_how_long_is_the_link_valid')}>
+            <Field label={t('adm2_ttl_reset_ad4f34ff62') || 'Reset link TTL (minutes)'} hint={t('adm_how_long_is_the_link_valid')}>
               <Input
                 type="number"
                 min={1}
                 max={1440}
                 value={password.resetTokenTtlMinutes}
-                onChange={(e) =>
-                  setPassword({
-                    ...password,
-                    resetTokenTtlMinutes: e.target.value,
-                  })
-                }
+                onChange={(e) => setPassword({ ...password, resetTokenTtlMinutes: e.target.value })}
                 data-testid="auth-input-resetTtl"
               />
             </Field>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
             {[
               ['passwordEnabled', 'Password login'],
-              ['registerEnabled', t('adm2_ec89a714bb')],
-              ['resetPasswordEnabled', t('adm2_38ff59c865')],
+              ['registerEnabled', t('adm2_ec89a714bb') || 'Self-registration'],
+              ['resetPasswordEnabled', t('adm2_38ff59c865') || 'Password reset'],
             ].map(([key, label]) => (
               <div
                 key={key}
-                className="flex items-center justify-between bg-[#FAFAFA] border border-[#E4E4E7] rounded-lg px-3 py-2"
+                className="flex items-center justify-between bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl px-3 py-2.5"
               >
-                <span className="text-sm text-[#18181B]">{label}</span>
+                <span className="text-[12.5px] text-[#18181B] font-medium">{label}</span>
                 <Toggle
                   checked={features[key]}
                   onChange={(v) => {
@@ -439,7 +462,7 @@ export default function AuthSettingsPage({ embedded = false }) {
           </div>
         </Block>
 
-        {/* ── 4. JWT ──────────────────────────────────────────────── */}
+        {/* ── 4. JWT ─────────────────────────────────────────────────── */}
         <Block
           icon={ToggleLeft}
           title="JWT (staff tokens)"
@@ -453,13 +476,12 @@ export default function AuthSettingsPage({ embedded = false }) {
                 refreshExpires: jwt.refreshExpires,
               },
             };
-            // Only send secret if user actually typed a new one
             if (jwtDirty) slice.jwt.secret = jwt.secret;
             patch(slice, 'jwt');
           }}
         >
           <Field
-            label={t('secretLabel')}
+            label={t('secretLabel') || 'JWT secret'}
             hint={
               doc?.jwt?.secretIsSet
                 ? t('adm2_19525c9b2e')
@@ -484,22 +506,22 @@ export default function AuthSettingsPage({ embedded = false }) {
                     setJwt({ ...jwt, secret: doc?.jwt?.secret || '' });
                     setJwtDirty(false);
                   }}
-                  className="shrink-0 px-3 py-2 rounded-lg border border-[#E4E4E7] text-sm text-[#71717A] hover:bg-[#F4F4F5] flex items-center gap-1"
+                  className="shrink-0 px-3 py-2 rounded-xl border border-[#E4E4E7] text-[12.5px] text-[#71717A] hover:bg-[#FAFAFA] flex items-center gap-1"
                 >
-                  <ArrowCounterClockwise size={14} /> {t('adm_reset')}
+                  <ArrowCounterClockwise size={13} /> {t('adm_reset') || 'Reset'}
                 </button>
               )}
             </div>
           </Field>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label={t('accessTokenTtl')} hint={t('adm_go_duration_format_15m_1h_24h')}>
+            <Field label={t('accessTokenTtl') || 'Access TTL'} hint={t('adm_go_duration_format_15m_1h_24h')}>
               <Input
                 value={jwt.accessExpires}
                 onChange={(e) => setJwt({ ...jwt, accessExpires: e.target.value })}
                 data-testid="auth-input-accessExpires"
               />
             </Field>
-            <Field label={t('refreshTokenTtl')}>
+            <Field label={t('refreshTokenTtl') || 'Refresh TTL'}>
               <Input
                 value={jwt.refreshExpires}
                 onChange={(e) => setJwt({ ...jwt, refreshExpires: e.target.value })}
@@ -509,7 +531,7 @@ export default function AuthSettingsPage({ embedded = false }) {
           </div>
         </Block>
 
-        {/* ── 5. Email ────────────────────────────────────────────── */}
+        {/* ── 5. Email transport ─────────────────────────────────────── */}
         <Block
           icon={EnvelopeSimple}
           title="Email (reset-password transport)"
@@ -529,40 +551,35 @@ export default function AuthSettingsPage({ embedded = false }) {
                   replyTo: email.replyTo.trim(),
                 },
               },
-              'email'
+              'email',
             )
           }
         >
-          <Field label={t('adm_mode')}>
-            <select
+          <Field label={t('adm_mode') || 'Mode'}>
+            <WhiteSelect
               value={email.mode}
               onChange={(e) => setEmail({ ...email, mode: e.target.value })}
-              className="w-full px-3 py-2.5 rounded-lg border border-[#E4E4E7] text-sm bg-white"
               data-testid="auth-select-emailMode"
             >
-              <option value="dry_run">{t('adm2_dry_run_b66359ea15')}</option>
-              <option value="smtp" disabled>
-                {t('adm3_4733065469')}
-              </option>
-              <option value="resend" disabled>
-                {t('adm3_77e3eecbd2')}
-              </option>
-            </select>
+              <option value="dry_run">{t('adm2_dry_run_b66359ea15') || 'dry-run (log only)'}</option>
+              <option value="smtp" disabled>{t('adm3_4733065469') || 'SMTP (not configured)'}</option>
+              <option value="resend" disabled>{t('adm3_77e3eecbd2') || 'Resend (not configured)'}</option>
+            </WhiteSelect>
           </Field>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label={t('fromLabel')}>
+            <Field label={t('fromLabel') || 'From'}>
               <Input
                 value={email.from}
                 onChange={(e) => setEmail({ ...email, from: e.target.value })}
-                placeholder={t('adm_noreplybibicarsbg')}
+                placeholder={t('adm_noreplybibicarsbg') || 'no-reply@bibicars.bg'}
                 data-testid="auth-input-emailFrom"
               />
             </Field>
-            <Field label={t('replyTo')}>
+            <Field label={t('replyTo') || 'Reply-to'}>
               <Input
                 value={email.replyTo}
                 onChange={(e) => setEmail({ ...email, replyTo: e.target.value })}
-                placeholder={t('adm_supportbibicarsbg')}
+                placeholder={t('adm_supportbibicarsbg') || 'support@bibicars.bg'}
                 data-testid="auth-input-emailReplyTo"
               />
             </Field>

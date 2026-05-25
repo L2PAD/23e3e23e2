@@ -48,6 +48,28 @@ export default function MobileMenu({
   lang = 'en',
   onLangChange,
 }) {
+  // Detect customer auth via localStorage (same pattern Header1 uses).
+  // We read it inside the component so the state refreshes when the menu
+  // re-opens after a login flow elsewhere on the page.
+  const [authState, setAuthState] = useState({ isAuthed: false, customerId: null, name: '' });
+  useEffect(() => {
+    if (!open) return; // only re-read when the drawer opens
+    try {
+      const raw = localStorage.getItem('customer_session');
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed?.customerId) {
+        setAuthState({
+          isAuthed: true,
+          customerId: parsed.customerId,
+          name: parsed.name || parsed.email || '',
+        });
+      } else {
+        setAuthState({ isAuthed: false, customerId: null, name: '' });
+      }
+    } catch {
+      setAuthState({ isAuthed: false, customerId: null, name: '' });
+    }
+  }, [open]);
   const { t } = useLang();
   // Lock body scroll while menu is open
   useEffect(() => {
@@ -225,22 +247,39 @@ export default function MobileMenu({
           })}
         </nav>
 
-        {/* LOG IN — Helvetica Medium 14px */}
+        {/* LOG IN / MY CABINET — Helvetica Medium 14px.
+            Switches state + label based on the customer's auth.
+            Authed → amber-filled with a green "online" dot + "MY CABINET — name"
+            Guest  → standard amber LOG IN. */}
         <a
-          href="/cabinet/login"
+          href={authState.isAuthed && authState.customerId ? `/cabinet/${authState.customerId}` : '/cabinet/login'}
           onClick={onClose}
           data-testid="mobile-menu-login"
-          className="block w-full text-center bg-[#FEAE00] text-black uppercase rounded hover:brightness-110 transition"
+          data-authed={authState.isAuthed ? 'true' : 'false'}
+          className="relative flex items-center justify-center w-full text-center bg-[#FEAE00] text-black uppercase rounded hover:brightness-110 transition gap-2"
           style={{
             height: 56,
-            lineHeight: '56px',
             fontFamily: HELVETICA,
             fontSize: 14,
             fontWeight: 500,
             letterSpacing: '0.04em',
           }}
         >
-          {t('mobileMenuLogIn') || 'LOG IN'}
+          {authState.isAuthed && (
+            <span
+              aria-hidden="true"
+              className="inline-block rounded-full bg-emerald-500 ring-2 ring-black/10"
+              style={{ width: 8, height: 8 }}
+              title="Signed in"
+            />
+          )}
+          <span className="truncate max-w-[230px]">
+            {authState.isAuthed
+              ? (t('mobileMenuMyCabinet') || 'MY CABINET')
+                + (authState.name ? ` — ${String(authState.name).split('@')[0].slice(0, 18).toUpperCase()}` : '')
+              : (t('mobileMenuLogIn') || 'LOG IN')
+            }
+          </span>
         </a>
 
         {/* Lower phones — Helvetica Medium 14px, yellow */}

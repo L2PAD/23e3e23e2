@@ -1,8 +1,12 @@
 /**
- * AdminSettingsPage — Production-clean admin settings
- * 2 tabs: CRM | Security
- * (Integrations live in their own dedicated page at /admin/integrations
- *  to avoid duplication.)
+ * AdminSettingsPage — General tab inside System.
+ *
+ * Two collapsible sections:
+ *   • CRM pipelines (read-only) — Lead pipeline + Deal lifecycle as native
+ *     `<select>` dropdowns instead of the noisy chip palette. Each option
+ *     keeps its color dot so the visual hierarchy is preserved without
+ *     occupying half the screen.
+ *   • Security · 2FA (TOTP) — interactive, unchanged behaviour.
  */
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -12,19 +16,18 @@ import {
   Gear,
   ShieldCheck,
   CheckCircle,
-  WarningCircle,
   Copy,
   X,
+  CaretDown,
 } from '@phosphor-icons/react';
+import SectionTabs from '../../components/ui/SectionTabs';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// ────────────────────────────────────────────────────
-// Tabs
-// ────────────────────────────────────────────────────
+// ── Tabs ────────────────────────────────────────────────
 const TABS = [
-  { id: 'crm', label: 'CRM', icon: Gear },
-  { id: 'security', label: 'Security', icon: ShieldCheck },
+  { id: 'crm', label: 'CRM' },
+  { id: 'security', label: 'Security · 2FA' },
 ];
 
 export default function AdminSettingsPage({ embedded = false }) {
@@ -33,35 +36,23 @@ export default function AdminSettingsPage({ embedded = false }) {
   return (
     <div className={embedded ? '' : 'p-6 max-w-6xl mx-auto'}>
       {!embedded && (
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#18181B]">{t('settings')}</h1>
-        <p className="text-sm text-[#71717A] mt-1">
-          {t('adm_productionready_settings_only_what_is_actually_use')}
-        </p>
-      </div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-[#18181B]">{t('settings')}</h1>
+          <p className="text-sm text-[#71717A] mt-1">
+            {t('adm_productionready_settings_only_what_is_actually_use')}
+          </p>
+        </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-[#E4E4E7]">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              data-testid={`settings-tab-${t.id}`}
-              className={`px-5 py-3 flex items-center gap-2 font-medium border-b-2 transition-colors ${
-                active
-                  ? 'border-[#18181B] text-[#18181B]'
-                  : 'border-transparent text-[#71717A] hover:text-[#18181B]'
-              }`}
-            >
-              <Icon size={18} weight={active ? 'fill' : 'regular'} />
-              {t.label}
-            </button>
-          );
-        })}
+      {/* Secondary tabs (CRM / Security) — same unified component */}
+      <div className="mb-5">
+        <SectionTabs
+          tabs={TABS}
+          activeId={tab}
+          onChange={setTab}
+          testIdPrefix="settings-tab"
+          ariaLabel="General sections"
+        />
       </div>
 
       {/* Content */}
@@ -71,76 +62,165 @@ export default function AdminSettingsPage({ embedded = false }) {
   );
 }
 
-// ────────────────────────────────────────────────────
-// CRM Settings
-// ────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────
+// CRM pipelines (read-only catalog rendered as dropdowns)
+// ────────────────────────────────────────────────────────
 const LEAD_STATUSES = [
-  { code: 'new', label: 'New', color: 'bg-blue-100 text-blue-700' },
-  { code: 'contacted', label: 'Contacted', color: 'bg-cyan-100 text-cyan-700' },
-  { code: 'qualified', label: 'Qualified', color: 'bg-indigo-100 text-indigo-700' },
-  { code: 'negotiation', label: 'Negotiations', color: 'bg-purple-100 text-purple-700' },
-  { code: 'won', label: 'Won', color: 'bg-emerald-100 text-emerald-700' },
-  { code: 'lost', label: 'Lost', color: 'bg-zinc-100 text-zinc-600' },
+  { code: 'new',         label: 'New',           dot: '#3B82F6' },
+  { code: 'contacted',   label: 'Contacted',     dot: '#06B6D4' },
+  { code: 'qualified',   label: 'Qualified',     dot: '#6366F1' },
+  { code: 'negotiation', label: 'Negotiations',  dot: '#A855F7' },
+  { code: 'won',         label: 'Won',           dot: '#10B981' },
+  { code: 'lost',        label: 'Lost',          dot: '#71717A' },
 ];
 
 const DEAL_STATUSES = [
-  { code: 'pending', label: 'Awaiting', color: 'bg-amber-100 text-amber-700' },
-  { code: 'in_progress', label: 'In Progress', color: 'bg-blue-100 text-blue-700' },
-  { code: 'contract', label: 'Contract', color: 'bg-indigo-100 text-indigo-700' },
-  { code: 'payment', label: 'Payment', color: 'bg-purple-100 text-purple-700' },
-  { code: 'shipping', label: 'Delivery', color: 'bg-cyan-100 text-cyan-700' },
-  { code: 'delivered', label: 'Delivered', color: 'bg-emerald-100 text-emerald-700' },
-  { code: 'cancelled', label: 'Canceled', color: 'bg-zinc-100 text-zinc-600' },
+  { code: 'pending',     label: 'Awaiting',     dot: '#F59E0B' },
+  { code: 'in_progress', label: 'In Progress',  dot: '#3B82F6' },
+  { code: 'contract',    label: 'Contract',     dot: '#6366F1' },
+  { code: 'payment',     label: 'Payment',      dot: '#A855F7' },
+  { code: 'shipping',    label: 'Delivery',     dot: '#06B6D4' },
+  { code: 'delivered',   label: 'Delivered',    dot: '#10B981' },
+  { code: 'cancelled',   label: 'Canceled',     dot: '#71717A' },
 ];
 
 function CRMSettings() {
   const { t } = useLang();
   return (
-    <div className="space-y-5">
-      <Block title={t('leadStatuses')} description={t('adm_sales_funnel_pipeline_from_lead_to_deal')}>
-        <div className="flex flex-wrap gap-2">
-          {LEAD_STATUSES.map((s) => (
-            <div key={s.code} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${s.color}`}>
-              {s.label} <span className="text-xs opacity-60 ml-1">· {s.code}</span>
-            </div>
-          ))}
-        </div>
-      </Block>
+    <div className="space-y-4">
+      <StatusDropdown
+        title={t('leadStatuses') || 'Lead pipeline'}
+        description={
+          t('adm_sales_funnel_pipeline_from_lead_to_deal') ||
+          'Sales funnel — from Lead to Deal'
+        }
+        items={LEAD_STATUSES}
+        testId="lead-statuses"
+      />
+      <StatusDropdown
+        title={t('dealStatuses') || 'Deal statuses'}
+        description={
+          t('dealLifecycle') || 'Deal lifecycle from creation to delivery'
+        }
+        items={DEAL_STATUSES}
+        testId="deal-statuses"
+      />
 
-      <Block title={t('dealStatuses')} description={t('dealLifecycle')}>
-        <div className="flex flex-wrap gap-2">
-          {DEAL_STATUSES.map((s) => (
-            <div key={s.code} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${s.color}`}>
-              {s.label} <span className="text-xs opacity-60 ml-1">· {s.code}</span>
-            </div>
-          ))}
-        </div>
-      </Block>
-
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
-        <WarningCircle size={18} className="inline mr-1" weight="fill" />
-        <b>{t('pipelineLocked')}</b> {t('adm3_a6c4d0e909')}
+      <div className="rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] px-4 py-3 flex items-start gap-2.5">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#F59E0B] mt-1.5 shrink-0" />
+        <p className="text-[12.5px] text-[#3F3F46] leading-relaxed">
+          <span className="font-semibold text-[#18181B]">
+            {t('pipelineLocked') || 'Pipeline is locked.'}
+          </span>{' '}
+          {t('adm3_a6c4d0e909') ||
+            'Codes are referenced by reports, workers and Stripe — they cannot be edited from the UI.'}
+        </p>
       </div>
     </div>
   );
 }
 
-function Block({ title, description, children }) {
-  const { t } = useLang();
+/**
+ * Compact dropdown that lists statuses with their color dot + code.
+ * Uses a native `<select>` underneath so it remains accessible / keyboard-
+ * navigable and mobile-friendly, while the visible "row" mimics the look of
+ * the surrounding cards.
+ */
+function StatusDropdown({ title, description, items, testId }) {
+  const [selected, setSelected] = useState(items[0]?.code || '');
+  const current = items.find((x) => x.code === selected) || items[0];
+
   return (
-    <div className="bg-white border border-[#E4E4E7] rounded-2xl p-5">
-      <div className="mb-4">
-        <h2 className="font-semibold text-[#18181B]">{title}</h2>
-        {description && <p className="text-xs text-[#71717A] mt-1">{description}</p>}
+    <details
+      className="group bg-white border border-[#E4E4E7] rounded-2xl overflow-hidden"
+      data-testid={testId}
+    >
+      <summary
+        className="list-none cursor-pointer px-4 sm:px-5 py-4 flex items-center justify-between gap-3 hover:bg-[#FAFAFA] transition-colors"
+      >
+        <div className="min-w-0">
+          <h3 className="text-[14.5px] font-semibold text-[#18181B] leading-tight">
+            {title}
+          </h3>
+          <p className="text-[12px] text-[#71717A] mt-0.5 truncate">
+            {description}
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[12px] text-[#52525B]">
+            <span
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ background: current.dot }}
+            />
+            {items.length} statuses
+          </span>
+          <CaretDown
+            size={14}
+            className="text-[#71717A] transition-transform group-open:rotate-180"
+          />
+        </div>
+      </summary>
+
+      <div className="border-t border-[#F4F4F5] bg-[#FAFAFA] px-4 sm:px-5 py-4 space-y-3">
+        {/* Native select for quick pick (accessible, keyboard, mobile) */}
+        <label className="block">
+          <span className="block text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#71717A] mb-1.5">
+            Status
+          </span>
+          <div className="relative">
+            <select
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+              className="w-full appearance-none bg-white border border-[#E4E4E7] rounded-xl pl-9 pr-9 py-2.5 text-[13.5px] text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#18181B]/15 focus:border-[#18181B]"
+              data-testid={`${testId}-select`}
+            >
+              {items.map((it) => (
+                <option key={it.code} value={it.code}>
+                  {it.label} · {it.code}
+                </option>
+              ))}
+            </select>
+            <span
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 inline-block w-2.5 h-2.5 rounded-full"
+              style={{ background: current.dot }}
+            />
+            <CaretDown
+              size={13}
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#71717A]"
+            />
+          </div>
+        </label>
+
+        {/* Compact list with all codes (informational) */}
+        <ul className="divide-y divide-[#E4E4E7] rounded-xl border border-[#E4E4E7] bg-white overflow-hidden">
+          {items.map((it) => (
+            <li
+              key={it.code}
+              className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-[12.5px]"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className="inline-block w-2 h-2 rounded-full shrink-0"
+                  style={{ background: it.dot }}
+                />
+                <span className="font-semibold text-[#18181B] truncate">
+                  {it.label}
+                </span>
+              </span>
+              <span className="text-[11.5px] text-[#71717A] tabular-nums whitespace-nowrap">
+                {it.code}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
-      {children}
-    </div>
+    </details>
   );
 }
 
-// ────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────
 // Security — 2FA (Google Authenticator / TOTP)
-// ────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────
 function SecurityTab() {
   const { t } = useLang();
   const [status, setStatus] = useState(null);
@@ -208,91 +288,103 @@ function SecurityTab() {
   }
 
   return (
-    <div className="space-y-5">
-      <Block
-        title={t('adm3_1c25c4c013')}
-        description={t('adm_protect_access_to_the_admin_panel_with_onetime_tot')}
-      >
-        {status?.enabled ? (
-          <div>
-            <div className="flex items-center gap-2 text-emerald-600 mb-4">
-              <CheckCircle size={22} weight="fill" /> <span className="font-medium">{t('adm_2fa_enabled_2')}</span>
-            </div>
-            <button
-              onClick={disable}
-              className="px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-sm"
-            >
-              {t('adm_disable_2fa')}
-            </button>
-          </div>
-        ) : setup ? (
-          <div className="space-y-4">
-            <p className="text-sm text-[#71717A]">
-              {t('adm_1_scan_the_qr_code_in_google_authenticator_or_auth')}
-            </p>
-            <div className="flex gap-5 items-start flex-wrap">
-              {setup.qrCode && (
-                <img
-                  src={setup.qrCode}
-                  alt={t('adm_2fa_qr')}
-                  className="w-44 h-44 border border-[#E4E4E7] rounded-xl bg-white"
-                />
-              )}
-              <div className="flex-1 min-w-[280px]">
-                <p className="text-xs text-[#71717A] mb-1">{t('orEnterManually')}</p>
-                <div className="flex items-center gap-2 mb-4">
-                  <code className="bg-[#F4F4F5] px-3 py-2 rounded-lg text-sm font-mono flex-1">
-                    {setup.secret}
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(setup.secret);
-                      toast.success(t('copied'));
-                    }}
-                    className="p-2 rounded-lg bg-[#F4F4F5] hover:bg-[#E4E4E7]"
-                  >
-                    <Copy size={16} />
-                  </button>
-                </div>
+    <div className="bg-white border border-[#E4E4E7] rounded-2xl p-4 sm:p-5">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-[#18181B] text-white flex items-center justify-center shrink-0">
+          <ShieldCheck size={17} weight="duotone" />
+        </div>
+        <h2 className="text-[15px] font-semibold text-[#18181B] leading-tight truncate">
+          {t('adm3_1c25c4c013') || 'Two-factor authentication (TOTP)'}
+        </h2>
+      </div>
+      <p className="mt-2 mb-4 text-[12.5px] text-[#71717A] leading-relaxed">
+        {t('adm_protect_access_to_the_admin_panel_with_onetime_tot')}
+      </p>
 
-                <p className="text-sm text-[#71717A] mb-2">{t('adm_2_enter_the_code_from_the_app')}</p>
-                <div className="flex gap-2">
-                  <input
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="000000"
-                    inputMode="numeric"
-                    maxLength={6}
-                    className="flex-1 px-3 py-2.5 rounded-lg border border-[#E4E4E7] text-center font-mono text-lg tracking-widest"
-                    data-testid="2fa-code-input"
-                  />
-                  <button
-                    onClick={verify}
-                    disabled={verifying || code.length !== 6}
-                    className="px-5 py-2.5 rounded-lg bg-[#18181B] text-white disabled:opacity-40 text-sm font-semibold"
-                    data-testid="2fa-verify-btn"
-                  >
-                    {verifying ? '…' : t('adm3_d15a1ace8d')}
-                  </button>
-                </div>
+      {status?.enabled ? (
+        <div>
+          <div className="flex items-center gap-2 text-emerald-600 mb-4">
+            <CheckCircle size={20} weight="fill" />
+            <span className="font-medium text-[14px]">{t('adm_2fa_enabled_2')}</span>
+          </div>
+          <button
+            onClick={disable}
+            className="px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-[13px] font-medium"
+          >
+            {t('adm_disable_2fa')}
+          </button>
+        </div>
+      ) : setup ? (
+        <div className="space-y-4">
+          <p className="text-[13px] text-[#52525B]">
+            {t('adm_1_scan_the_qr_code_in_google_authenticator_or_auth')}
+          </p>
+          <div className="flex gap-5 items-start flex-wrap">
+            {setup.qrCode && (
+              <img
+                src={setup.qrCode}
+                alt={t('adm_2fa_qr')}
+                className="w-40 h-40 border border-[#E4E4E7] rounded-xl bg-white"
+              />
+            )}
+            <div className="flex-1 min-w-[260px]">
+              <p className="text-[11.5px] text-[#71717A] mb-1">{t('orEnterManually')}</p>
+              <div className="flex items-center gap-2 mb-4">
+                <code className="bg-[#F4F4F5] px-3 py-2 rounded-lg text-[13px] tracking-wide flex-1 break-all">
+                  {setup.secret}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(setup.secret);
+                    toast.success(t('copied'));
+                  }}
+                  className="p-2 rounded-lg bg-[#F4F4F5] hover:bg-[#E4E4E7]"
+                >
+                  <Copy size={15} />
+                </button>
+              </div>
+
+              <p className="text-[13px] text-[#52525B] mb-2">
+                {t('adm_2_enter_the_code_from_the_app')}
+              </p>
+              <div className="flex gap-2">
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  inputMode="numeric"
+                  maxLength={6}
+                  className="flex-1 px-3 py-2.5 rounded-lg border border-[#E4E4E7] text-center text-lg tracking-[0.3em] font-semibold"
+                  data-testid="2fa-code-input"
+                />
+                <button
+                  onClick={verify}
+                  disabled={verifying || code.length !== 6}
+                  className="px-5 py-2.5 rounded-lg bg-[#18181B] text-white disabled:opacity-40 text-[13px] font-semibold"
+                  data-testid="2fa-verify-btn"
+                >
+                  {verifying ? '…' : t('adm3_d15a1ace8d')}
+                </button>
               </div>
             </div>
-            <button
-              onClick={() => setSetup(null)}
-              className="text-sm text-[#71717A] hover:underline flex items-center gap-1"
-            >
-              <X size={14} />{t('cancelAction')}</button>
           </div>
-        ) : (
           <button
-            onClick={startSetup}
-            className="px-5 py-2.5 rounded-lg bg-[#18181B] text-white text-sm font-semibold hover:bg-[#27272A]"
-            data-testid="2fa-enable-btn"
+            onClick={() => setSetup(null)}
+            className="text-[12.5px] text-[#71717A] hover:underline flex items-center gap-1"
           >
-            {t('adm_enable_2fa')}
+            <X size={13} />
+            {t('cancelAction')}
           </button>
-        )}
-      </Block>
+        </div>
+      ) : (
+        <button
+          onClick={startSetup}
+          className="px-5 py-2.5 rounded-lg bg-[#18181B] text-white text-[13px] font-semibold hover:bg-[#27272A]"
+          data-testid="2fa-enable-btn"
+        >
+          {t('adm_enable_2fa')}
+        </button>
+      )}
     </div>
   );
 }

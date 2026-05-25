@@ -28,6 +28,9 @@ import {
   Robot,
   Lightning,
 } from '@phosphor-icons/react';
+// AdminPageHeader replaced with custom inline header (June 2026) — refresh
+// pinned top-right invariant. Keep this comment so future edits don't
+// reintroduce the import without revisiting the layout contract.
 
 const API_URL =
   process.env.REACT_APP_BACKEND_URL ||
@@ -177,33 +180,56 @@ export default function ExceptionsDashboardPage() {
   const itemsToShow = activeBucket === 'all' ? allItems : buckets[activeBucket] || [];
 
   return (
-    <div className="space-y-5 bg-slate-50 min-h-screen" data-testid="exceptions-dashboard">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-xl bg-amber-100">
-          <Warning size={20} weight="fill" className="text-amber-700" />
+    <div className="space-y-4 sm:space-y-5" data-testid="exceptions-dashboard">
+      {/*
+        Header — Refresh always pinned top-RIGHT. The "computedAt" timestamp
+        sits inline next to refresh (right side) on both viewports so the
+        date never falls under the title block on mobile.
+      */}
+      <header
+        className="bg-white border border-[#E4E4E7] rounded-2xl p-4 sm:p-5"
+        data-testid="exceptions-header"
+      >
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Warning size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-[17px] sm:text-[19px] font-semibold tracking-tight text-[#18181B] leading-tight break-words">
+              {t('exceptionsDashboardTitle')}
+            </h1>
+            <p className="mt-1 text-[12.5px] sm:text-[13px] text-[#71717A] leading-relaxed break-words">
+              {t('adm_shipments_requiring_manual_intervention')}
+            </p>
+            {/* Timestamp moved INTO the title block on mobile (tiny, muted)
+                so it stays near the title yet not blocking refresh placement. */}
+            {data?.computedAt && (
+              <p className="mt-1 sm:hidden text-[11px] text-[#A1A1AA] tabular-nums">
+                {new Date(data.computedAt).toLocaleTimeString(getLocale())}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {data?.computedAt && (
+              <span className="hidden sm:inline text-[11px] text-[#A1A1AA] tabular-nums whitespace-nowrap">
+                {new Date(data.computedAt).toLocaleTimeString(getLocale())}
+              </span>
+            )}
+            <button
+              onClick={reload}
+              disabled={loading}
+              data-testid="exceptions-refresh-btn"
+              aria-label={t('adm_refresh_3')}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#18181B] hover:bg-[#27272A] active:bg-black text-white disabled:opacity-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15 shrink-0 transition-colors"
+            >
+              <ArrowClockwise size={16} weight="bold" className={loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900">{t('exceptionsDashboardTitle')}</h1>
-          <p className="text-xs text-slate-500">{t('adm_shipments_requiring_manual_intervention')}</p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {data?.computedAt && (
-            <span className="text-xs text-slate-400 font-mono">
-              {new Date(data.computedAt).toLocaleTimeString(getLocale())}
-            </span>
-          )}
-          <button
-            onClick={reload}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            <ArrowClockwise size={14} className={loading ? 'animate-spin' : ''} /> {t('adm_refresh_3')}
-          </button>
-        </div>
-      </div>
+      </header>
 
-      {/* Bucket selector chips */}
-      <div className="flex flex-wrap gap-2">
+      {/* Bucket selector chips — 2 cols mobile, wrap row on sm+ */}
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
         <BucketChip
           label={t('adm_all')}
           Icon={Broom}
@@ -231,7 +257,7 @@ export default function ExceptionsDashboardPage() {
 
       {/* Error */}
       {err && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <div className="rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-3 py-2.5 text-sm text-[#7F1D1D]">
           {err}
         </div>
       )}
@@ -501,21 +527,35 @@ export default function ExceptionsDashboardPage() {
 }
 
 function BucketChip({ label, description, Icon, count, active, color, onClick }) {
-  const { t } = useLang();
+  // Map semantic colors to dot accent (no dynamic tailwind classes — those break JIT)
+  const dotByColor = {
+    slate: '#71717A',
+    rose: '#DC2626',
+    amber: '#F59E0B',
+    indigo: '#6366F1',
+    violet: '#8B5CF6',
+    emerald: '#16A34A',
+    blue: '#3B82F6',
+    sky: '#0EA5E9',
+  };
+  const dot = dotByColor[color] || '#71717A';
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${
+      className={`inline-flex items-center gap-2 h-10 px-3 rounded-xl border text-left transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10 w-full sm:w-auto ${
         active
-          ? `bg-${color}-50 border-${color}-300 text-${color}-900 shadow-sm`
-          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+          ? 'bg-[#18181B] border-[#18181B] text-white'
+          : 'bg-white border-[#E4E4E7] text-[#18181B] hover:bg-zinc-50'
       }`}
       data-testid={`exceptions-bucket-${label.toLowerCase()}`}
+      title={description || label}
     >
-      <Icon size={16} weight={active ? 'fill' : 'regular'} className={`text-${color}-600`} />
-      <span className="font-semibold text-xs">{label}</span>
-      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-        count > 0 ? `bg-${color}-100 text-${color}-800` : 'bg-slate-100 text-slate-500'
+      <Icon size={14} weight={active ? 'fill' : 'duotone'} className={active ? 'text-white' : ''} style={!active ? { color: dot } : undefined} />
+      <span className="font-semibold text-[12.5px] truncate">{label}</span>
+      <span className={`ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10.5px] font-semibold ${
+        active
+          ? 'bg-white/15 text-white'
+          : 'bg-[#F4F4F5] text-[#71717A]'
       }`}>
         {count}
       </span>

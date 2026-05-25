@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLang } from "../../i18n";
 import BUTTON1 from "./b-u-t-t-o-n1";
 import AnimatedHeading from "../../components/AnimatedHeading";
@@ -69,6 +70,7 @@ const FrameComponent25 = ({
 })=> {
   const { lang } = useLang();
   const t = lang === "bg" ? T.bg : T.en;
+  const navigate = useNavigate();
   const rootRef = useRef(null);
   // Viewport observer: triggers the stagger reveal on the 8 service cards.
   const [cardsObsRef, cardsInView] = useInView();
@@ -418,6 +420,10 @@ const FrameComponent25 = ({
               bUTTONAlignSelf="unset"
               cONTACTUSColor="#feae00"
               cONTACTUSTextTransform="uppercase"
+              /* "Find a car" navigates straight into the public catalog so
+                 users land on the live inventory after exploring the
+                 services lineup — the most natural conversion path. */
+              onClick={() => navigate("/catalog")}
             />
           </div>
         </div>

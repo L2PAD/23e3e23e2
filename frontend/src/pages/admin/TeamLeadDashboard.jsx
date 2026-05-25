@@ -142,51 +142,51 @@ const TeamLeadDashboard = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+      {/* Header — single row, role badge top-right */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
             {t('teamLeadPanel')}
           </h1>
-          <p className="text-sm text-[#71717A] mt-1">
+          <p className="text-[12.5px] sm:text-sm text-[#71717A] mt-1 break-words">
             {t('adm_team_management_and_activity_monitoring')}
           </p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#EEF2FF] rounded-xl">
-          <Shield size={20} className="text-[#4F46E5]" weight="duotone" />
-          <span className="text-sm font-medium text-[#4F46E5]">{t('roleTeamLead')}</span>
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-4 sm:py-2 bg-[#EEF2FF] rounded-xl shrink-0 whitespace-nowrap">
+          <Shield size={16} className="text-[#4F46E5] shrink-0" weight="duotone" />
+          <span className="text-[12px] sm:text-sm font-medium text-[#4F46E5]">{t('roleTeamLead')}</span>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards — 2-column grid on mobile (like the master admin dashboard), 4-col on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 md:gap-4">
         {kpiCards.map((card, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="bg-white rounded-2xl p-5 border border-[#E4E4E7] hover:shadow-md transition-shadow"
+            className="bg-white rounded-2xl p-3 sm:p-4 md:p-5 border border-[#E4E4E7] hover:shadow-md transition-shadow flex flex-col"
           >
-            <div className="flex items-start justify-between mb-3">
-              <div className="p-2.5 rounded-xl" style={{ backgroundColor: card.bgColor }}>
-                <card.icon size={22} weight="duotone" style={{ color: card.color }} />
+            <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+              <div className="p-2 sm:p-2.5 rounded-xl shrink-0" style={{ backgroundColor: card.bgColor }}>
+                <card.icon size={20} weight="duotone" style={{ color: card.color }} />
               </div>
               {card.change && (
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                <span className={`text-[10px] sm:text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full shrink-0 ${
                   card.change.startsWith('+') ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'
                 }`}>
                   {card.change}
                 </span>
               )}
             </div>
-            <div className="text-2xl font-bold text-[#18181B]">
+            <div className="text-xl sm:text-2xl font-bold text-[#18181B] tabular-nums leading-none">
               {card.value}
-              {card.total && <span className="text-sm font-normal text-[#71717A]"> / {card.total}</span>}
+              {card.total && <span className="text-xs sm:text-sm font-normal text-[#71717A]"> / {card.total}</span>}
             </div>
-            <div className="text-sm text-[#71717A] mt-1">{card.title}</div>
+            <div className="text-[12px] sm:text-sm text-[#71717A] mt-1 break-words">{card.title}</div>
             {card.subtitle && (
-              <div className="text-xs text-[#A1A1AA] mt-1">{card.subtitle}</div>
+              <div className="text-[10.5px] sm:text-xs text-[#A1A1AA] mt-0.5 sm:mt-1 break-words">{card.subtitle}</div>
             )}
           </motion.div>
         ))}

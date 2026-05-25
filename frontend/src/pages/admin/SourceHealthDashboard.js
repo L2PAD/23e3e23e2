@@ -15,8 +15,10 @@ import {
   TrendUp,
   Database,
   ArrowClockwise,
-  Lightning
+  Lightning,
+  Database as DatabaseIcon,
 } from '@phosphor-icons/react';
+import { AdminPageHeader } from '../../components/ui/AdminPagePrimitives';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
@@ -95,51 +97,46 @@ const SourceHealthDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      {/* Header */}
-      <div className="bg-white border-b border-zinc-200">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-zinc-900">{t('sourceHealthDashboard')}</h1>
-              <p className="text-sm text-zinc-500 mt-1">
-                {t('teamLoadControl')}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
+    <div className="min-h-screen bg-[#FAFAFA] p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-5">
+        <AdminPageHeader
+          icon={Database}
+          title={t('sourceHealthDashboard')}
+          subtitle={t('teamLoadControl')}
+          testId="source-health-header"
+          actions={(
+            <>
+              <label className="inline-flex items-center gap-1.5 text-[12.5px] text-[#3F3F46] font-medium">
                 <input
                   type="checkbox"
                   checked={autoRefresh}
                   onChange={(e) => setAutoRefresh(e.target.checked)}
-                  className="rounded"
+                  className="rounded accent-[#18181B]"
                 />
                 {t('realtime')}
               </label>
               <button
                 onClick={fetchData}
-                className="p-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 transition-colors"
+                className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] text-white text-[12.5px] font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
               >
-                <ArrowClockwise size={20} />
+                <ArrowClockwise size={14} />
+                <span className="hidden sm:inline">Refresh</span>
               </button>
-            </div>
-          </div>
-        </div>
-      </div>
+            </>
+          )}
+        />
 
-      {/* Error */}
-      {error && (
-        <div className="container mx-auto px-4 py-4">
-          <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+        {/* Error */}
+        {error && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl p-4 text-[13px]">
             {error}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Summary Cards */}
-      {data && (
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* Summary Cards */}
+        {data && (
+          <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
             <SummaryCard
               icon={<CheckCircle weight="fill" className="text-emerald-500" />}
               label={t('activeStatusGeneric')}
@@ -267,26 +264,27 @@ const SourceHealthDashboard = () => {
           </div>
 
           {/* Last Updated */}
-          <div className="mt-4 text-sm text-zinc-500 text-right">
+          <div className="text-[11.5px] text-[#A1A1AA] text-right">
             Last updated: {new Date(data.lastUpdated).toLocaleString()}
           </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 };
 
 const SummaryCard = ({ icon, label, value, total, color }) => {
   return (
-    <div className="bg-white rounded-xl border border-zinc-200 p-4">
-      <div className="flex items-center gap-3 mb-2">
+    <div className="bg-white rounded-2xl border border-[#E4E4E7] p-3 sm:p-4">
+      <div className="flex items-center gap-2 mb-1.5">
         {icon}
-        <span className="text-sm text-zinc-500">{label}</span>
+        <span className="text-[10.5px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] text-[#71717A]">{label}</span>
       </div>
-      <div className="text-2xl font-bold text-zinc-900">
+      <div className="text-[22px] sm:text-[26px] font-semibold text-[#18181B] tabular-nums leading-tight">
         {value}
         {total !== undefined && (
-          <span className="text-sm font-normal text-zinc-400">/{total}</span>
+          <span className="text-[12px] font-normal text-[#A1A1AA]">/{total}</span>
         )}
       </div>
     </div>

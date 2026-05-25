@@ -31,6 +31,8 @@ import {
 import { toast } from 'sonner';
 
 import { useLang, getLocale } from '../../i18n';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 const ManagerCallsPage = () => {
@@ -144,6 +146,11 @@ const ManagerCallsPage = () => {
 
   return (
     <div className="space-y-6" data-testid="manager-calls-page">
+      <Breadcrumb items={[
+        { label: 'My Workspace', to: '/manager' },
+        { label: 'My Calls' },
+      ]} />
+
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight" data-testid="page-title">{t('myCallsPage')}</h1>

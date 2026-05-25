@@ -414,6 +414,56 @@ DEFAULT_SITE_INFO: Dict[str, Any] = {
                 "before_image_url": "/figma/DT-Klausen-LS-135-1@2x.webp",
                 "after_image_url": "/figma/DT-Klausen-LS-135-3@2x.webp",
             },
+            {
+                "id": "ba-4",
+                "enabled": True,
+                "model": "Audi Q5",
+                "order_date": "03.03.2026",
+                "finished_date": "11.06.2026",
+                "price": "12,900 EURO",
+                "before_image_url": "/figma/DT-Klausen-LS-135-12@2x.webp",
+                "after_image_url": "/figma/DT-Klausen-LS-135-22@2x.webp",
+            },
+            {
+                "id": "ba-5",
+                "enabled": True,
+                "model": "Mercedes-Benz GLC",
+                "order_date": "18.01.2026",
+                "finished_date": "22.05.2026",
+                "price": "18,400 EURO",
+                "before_image_url": "/figma/DT-Klausen-LS-135-11@2x.webp",
+                "after_image_url": "/figma/DT-Klausen-LS-135-32@2x.webp",
+            },
+            {
+                "id": "ba-6",
+                "enabled": True,
+                "model": "Toyota Camry",
+                "order_date": "07.02.2026",
+                "finished_date": "30.05.2026",
+                "price": "9,200 EURO",
+                "before_image_url": "/figma/DT-Klausen-LS-135-1@2x.webp",
+                "after_image_url": "/figma/DT-Klausen-LS-135-3@2x.webp",
+            },
+            {
+                "id": "ba-7",
+                "enabled": True,
+                "model": "Jeep Grand Cherokee",
+                "order_date": "25.10.2025",
+                "finished_date": "08.03.2026",
+                "price": "15,750 EURO",
+                "before_image_url": "/figma/DT-Klausen-LS-135-12@2x.webp",
+                "after_image_url": "/figma/DT-Klausen-LS-135-22@2x.webp",
+            },
+            {
+                "id": "ba-8",
+                "enabled": True,
+                "model": "Volkswagen Tiguan",
+                "order_date": "02.11.2025",
+                "finished_date": "19.02.2026",
+                "price": "11,200 EURO",
+                "before_image_url": "/figma/DT-Klausen-LS-135-11@2x.webp",
+                "after_image_url": "/figma/DT-Klausen-LS-135-32@2x.webp",
+            },
         ],
     },
     "updated_at": None,
@@ -468,6 +518,21 @@ async def _get_site_info_doc():
             merged["reviews"]["items"] = patched
     except Exception as e:
         logger.warning(f"[site_info] reviews deep-merge failed: {e}")
+    # Deep-merge `before_after.items`: keep admin-edited items but APPEND
+    # any default items whose `id` is missing from the persisted document.
+    # This is how new default cards (ba-4 … ba-8) reach already-seeded DBs
+    # without overwriting customer-tweaked entries.
+    try:
+        default_ba_items = (DEFAULT_SITE_INFO.get("before_after") or {}).get("items") or []
+        existing_ba_items = (merged.get("before_after") or {}).get("items") or []
+        existing_ids = {it.get("id") for it in existing_ba_items if it.get("id")}
+        appended = list(existing_ba_items)
+        for d in default_ba_items:
+            if d.get("id") and d["id"] not in existing_ids:
+                appended.append(d)
+        merged["before_after"]["items"] = appended
+    except Exception as e:
+        logger.warning(f"[site_info] before_after deep-merge failed: {e}")
     # Backward-compat: socials may be stored as flat strings { ig: "url" } —
     # normalize to { ig: {enabled, url} } so the frontend has a single shape.
     try:

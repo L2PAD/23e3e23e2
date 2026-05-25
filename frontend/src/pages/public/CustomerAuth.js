@@ -580,17 +580,9 @@ export const CustomerLoginPage = () => {
         }}
       />
 
-      {/* Top bar — logo + back link */}
+      {/* Top bar — logo only (the bottom "Back to site" link is the canonical one) */}
       <div className="relative z-10 flex items-center justify-between px-6 xl:px-12 pt-6 lg:pt-8">
         <BibiLogo height={40} />
-        <Link
-          to="/"
-          className="hidden sm:inline-flex items-center gap-1.5 text-[12px] uppercase tracking-[0.14em] text-white/65 hover:text-[#FEAE00] transition-colors"
-          data-testid="back-to-site-link-top"
-        >
-          <ArrowLeft size={14} />
-          {t.backToSite}
-        </Link>
       </div>
 
       {/* Centred auth card */}
@@ -610,8 +602,8 @@ export const CustomerLoginPage = () => {
             </p>
           </div>
 
-          {/* Auth card */}
-          <div className="rounded-2xl border border-[#FEAE00]/25 bg-[#1D1D1B] shadow-[0_20px_60px_rgba(0,0,0,0.55),0_0_0_1px_rgba(254,174,0,0.08),inset_0_1px_0_rgba(255,255,255,0.04)] p-6 sm:p-8">
+          {/* Auth card — no border / no yellow glow ring, just a clean dark surface with soft shadow. */}
+          <div className="rounded-2xl bg-[#1D1D1B] shadow-[0_20px_60px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] p-6 sm:p-8">
 
             {/* ── Mode switcher (Sign In / Sign Up) — visible at the top, not hidden ── */}
             <div
@@ -730,7 +722,7 @@ export const CustomerLoginPage = () => {
             <form onSubmit={handleEmailSubmit} className="space-y-4" data-testid="email-auth-form">
               {!isLogin && (
                 <div>
-                  <label className="block text-[12px] font-bold text-[#FEAE00] mb-2 uppercase tracking-[0.12em]">
+                  <label className="block text-[12px] font-bold text-[#FEAE00] mb-4 uppercase tracking-[0.12em]">
                     {t.yourName}
                   </label>
                   <div className="relative">
@@ -750,7 +742,7 @@ export const CustomerLoginPage = () => {
               )}
 
               <div>
-                <label className="block text-[12px] font-bold text-[#FEAE00] mb-2 uppercase tracking-[0.12em]">
+                <label className="block text-[12px] font-bold text-[#FEAE00] mb-4 uppercase tracking-[0.12em]">
                   {t.emailLabel}
                 </label>
                 <div className="relative">
@@ -769,7 +761,7 @@ export const CustomerLoginPage = () => {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-4">
                   <label className="block text-[12px] font-bold text-[#FEAE00] uppercase tracking-[0.12em]">
                     {t.password}
                   </label>
@@ -843,7 +835,7 @@ export const CustomerLoginPage = () => {
               {/* Confirm password — only on register */}
               {!isLogin && (
                 <div>
-                  <label className="block text-[12px] font-bold text-[#FEAE00] mb-2 uppercase tracking-[0.12em]">
+                  <label className="block text-[12px] font-bold text-[#FEAE00] mb-4 uppercase tracking-[0.12em]">
                     {t.confirmPassword}
                   </label>
                   <div className="relative">

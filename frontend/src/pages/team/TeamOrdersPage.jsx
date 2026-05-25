@@ -5,8 +5,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Briefcase, RefreshCw, Filter, Users } from 'lucide-react';
+import { RefreshCw, Filter } from 'lucide-react';
+import { Briefcase } from '@phosphor-icons/react';
 import { useLang } from '../../i18n';
+import BackButton from '../../components/ui/BackButton';
+import RefreshButton from '../../components/ui/RefreshButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import WhiteSelect from '../../components/ui/WhiteSelect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -56,16 +61,25 @@ export default function TeamOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="w-7 h-7 text-[#635BFF]" /> {t('teamOrders')}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">{t('teamOrdersDesc') || t('adm3_eea47d4d37')}</p>
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Team Orders' },
+      ]} />
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4 mb-6">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Briefcase size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('teamOrders')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">{t('teamOrdersDesc') || t('adm3_eea47d4d37')}</p>
+          </div>
         </div>
-        <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-sm">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> {t('refreshAction')}
-        </button>
+        <div className="shrink-0 self-start">
+          <RefreshButton onClick={load} loading={loading} ariaLabel={t('refreshAction')} testId="team-orders-refresh-btn" />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -84,17 +98,17 @@ export default function TeamOrdersPage() {
 
       <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-4 flex flex-wrap items-center gap-2">
         <Filter className="w-4 h-4 text-gray-400" />
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+        <WhiteSelect value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
           <option value="">{t('allStatuses') || t('adm3_13f8904e31')}</option>
           <option value="pending">{t('pending') || t('adm3_8c90679504')}</option>
           <option value="in_progress">{t('inWork') || t('adm3_5e747bfe62')}</option>
           <option value="completed">{t('completedStatus')}</option>
           <option value="cancelled">{t('cancelledStatus')}</option>
-        </select>
-        <select value={filterManager} onChange={(e) => setFilterManager(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+        </WhiteSelect>
+        <WhiteSelect value={filterManager} onChange={(e) => setFilterManager(e.target.value)}>
           <option value="">{t('allManagers') || t('adm3_72299915d3')}</option>
           {managers.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
+        </WhiteSelect>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">

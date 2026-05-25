@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import RefreshButton from '../../components/ui/RefreshButton';
 import {
   Bell,
   Warning,
@@ -109,19 +112,32 @@ const TeamAlertsPage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Alerts Feed' },
+      ]} />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('teamAlertsFeed')}
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('teamAlertsLiveFeed')}
-          </p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Bell size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('teamAlertsFeed')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('teamAlertsLiveFeed')}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#FEF2F2] text-[#DC2626] rounded-xl">
-          <Bell size={18} weight="fill" />
-          <span className="font-medium">{alerts.filter(a => !a.isRead).length} {t('unread')}</span>
+        <div className="flex items-center gap-2 shrink-0 self-start">
+          <RefreshButton onClick={fetchAlerts} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="team-alerts-refresh-btn" />
+          <div className="flex items-center gap-2 px-3 py-2 bg-[#FEF2F2] text-[#DC2626] rounded-xl text-sm">
+            <Bell size={16} weight="fill" />
+            <span className="font-medium whitespace-nowrap">{alerts.filter(a => !a.isRead).length} {t('unread')}</span>
+          </div>
         </div>
       </div>
 

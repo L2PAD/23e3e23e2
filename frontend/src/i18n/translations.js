@@ -36,6 +36,8 @@ export const translations = {
     marketingControl: 'Маркетинг-контроль',
     intentDashboard: 'Intent Dashboard',
     userEngagement: 'User Engagement',
+    topDealsBuilder: 'Тиждень-Топ Wish List',
+    topDealsApprovals: 'Wish List Апрув',
     logout: 'Вийти',
     paymentAnalytics: 'Платіжна аналітика',
     invoiceReminders: 'Нагадування',
@@ -1642,6 +1644,7 @@ export const translations = {
     mobileMenuSocialMedia: 'Соціальні мережі:',
     mobileMenuOurAddress: 'Наша адреса:',
     mobileMenuLogIn: 'УВІЙТИ',
+    mobileMenuMyCabinet: 'МІЙ КАБІНЕТ',
     mobileFooterPhone: 'Номер телефону:',
     mobileFooterGetInTouch: 'Зв\\\'язатися',
     mobileFooterAddress: 'Адреса:',
@@ -1678,6 +1681,11 @@ export const translations = {
     catalogResetAll: 'Скинути все',
     loadingVehicles: 'Завантаження автомобілів…',
     noVehiclesMatch: 'Немає автомобілів, що відповідають фільтрам. Спробуйте скинути фільтри.',
+    // Honest meta for price-filter UX (Phase B2.1).
+    catalogHiddenByPriceFilter: 'автомобілів відповідають іншим фільтрам, але ще не мають даних про ціну.',
+    catalogClearPriceFilter: 'Зніміть фільтр ціни, щоб їх побачити →',
+    catalogPriceHintExtra: 'додаткових автомобілів відповідають іншим фільтрам, але ще не мають даних про ціну.',
+    catalogClearPrice: 'Зняти фільтр ціни',
     errorLoadingVehicles: 'Не вдалося завантажити автомобілі',
     sortLabel: 'СОРТУВАТИ',
     sortPopular: 'Популярні',
@@ -1778,6 +1786,13 @@ export const translations = {
     toastAddedFav: 'Додано в улюблені',
     toastRemovedFav: 'Прибрано з улюблених',
     toastAddedCompare: 'Додано до порівняння',
+    toastCompareNeedMoreDesc: 'Додайте ще принаймні 1 авто, щоб почати порівнювати',
+    toastCompareReady: 'Готово до порівняння!',
+    toastCompareReadyDesc: 'Вибрано 2 авто — відкрийте порівняння',
+    toastCompareFull: 'Список порівняння заповнено (3/3)',
+    toastCompareFullDesc: 'Відкрийте порівняння або видаліть авто, щоб додати інше',
+    toastOpenCompare: 'Відкрити порівняння',
+    toastSignInToCompare: 'Увійдіть, щоб додати до порівняння',
     toastRemovedCompare: 'Прибрано з порівняння',
     toastFavError: 'Не вдалося оновити улюблені',
     toastCompareError: 'Не вдалося оновити список порівняння',
@@ -5727,6 +5742,24 @@ export const translations = {
     cab_step_obtaining: 'Отримання',
     cab_theme: 'Тема',
     cab_language: 'Мова',
+
+    // Analytics funnel steps
+    funnel_step_visits: 'Відвідування',
+    funnel_step_vehicle_views: 'Перегляд авто',
+    funnel_step_calculator: 'Калькулятор',
+    funnel_step_lead: 'Заявка',
+    funnel_step_deal: 'Угода',
+
+    // Intent Dashboard stats
+    warmUsers: 'WARM',
+    coldUsers: 'COLD',
+    autoLeads: 'Авто-ліди',
+    totalUsersWithIntent: 'Усього з намірами',
+    averageScore: 'Середній скор',
+
+    // Control hub section heading
+    adm_control_hub_title: 'Центр керування',
+    adm_control_hub_subtitle: 'Бізнес-метрики, навантаження на провайдерів, маршрутизація, каденси та скоринг — все в одному місці.',
   },
   
   en: {
@@ -5760,6 +5793,8 @@ export const translations = {
     marketingControl: 'Marketing Control',
     intentDashboard: 'Intent Dashboard',
     userEngagement: 'User Engagement',
+    topDealsBuilder: 'Top Deals Builder',
+    topDealsApprovals: 'Top Deals Approvals',
     autoCall: 'Auto-Call',
     logout: 'Logout',
     paymentAnalytics: 'Payment Analytics',
@@ -7373,6 +7408,7 @@ export const translations = {
     mobileMenuSocialMedia: 'Social Media:',
     mobileMenuOurAddress: 'Our Address:',
     mobileMenuLogIn: 'LOG IN',
+    mobileMenuMyCabinet: 'MY CABINET',
     mobileFooterPhone: 'Phone number:',
     mobileFooterGetInTouch: 'Get in touch',
     mobileFooterAddress: 'Address:',
@@ -7409,6 +7445,11 @@ export const translations = {
     catalogResetAll: 'Reset all',
     loadingVehicles: 'Loading vehicles…',
     noVehiclesMatch: 'No vehicles match the current filters. Try resetting the filters.',
+    // Honest meta for price-filter UX (Phase B2.1).
+    catalogHiddenByPriceFilter: "vehicles match your other filters but don't have price data yet.",
+    catalogClearPriceFilter: 'Clear price filter to see them →',
+    catalogPriceHintExtra: "more vehicles match your other filters but don't have price data yet.",
+    catalogClearPrice: 'Clear price filter',
     errorLoadingVehicles: 'Could not load vehicles',
     sortLabel: 'SORT',
     sortPopular: 'Popular',
@@ -7509,6 +7550,13 @@ export const translations = {
     toastAddedFav: 'Added to favourites',
     toastRemovedFav: 'Removed from favourites',
     toastAddedCompare: 'Added to comparison',
+    toastCompareNeedMoreDesc: 'Add at least 1 more car to start comparing',
+    toastCompareReady: 'Ready to compare!',
+    toastCompareReadyDesc: '2 cars selected — open the comparison view',
+    toastCompareFull: 'Compare list is full (3/3)',
+    toastCompareFullDesc: 'Open the comparison view or remove a car to add another',
+    toastOpenCompare: 'Open compare',
+    toastSignInToCompare: 'Sign in to add cars to comparison',
     toastRemovedCompare: 'Removed from comparison',
     toastFavError: 'Could not update favourites',
     toastCompareError: 'Could not update compare list',
@@ -11430,6 +11478,24 @@ export const translations = {
     cab_step_obtaining: 'Obtaining',
     cab_theme: 'Theme',
     cab_language: 'Language',
+
+    // Analytics funnel steps
+    funnel_step_visits: 'Visits',
+    funnel_step_vehicle_views: 'Vehicle Views',
+    funnel_step_calculator: 'Calculator',
+    funnel_step_lead: 'Lead',
+    funnel_step_deal: 'Deal',
+
+    // Intent Dashboard stats
+    warmUsers: 'WARM',
+    coldUsers: 'COLD',
+    autoLeads: 'Auto-leads',
+    totalUsersWithIntent: 'Users with intent',
+    averageScore: 'Average score',
+
+    // Control hub section heading
+    adm_control_hub_title: 'Control Hub',
+    adm_control_hub_subtitle: 'Business metrics, provider pressure, routing, cadences and scoring — all in one place.',
   },
 
   bg: {
@@ -11463,6 +11529,8 @@ export const translations = {
     marketingControl: 'Маркетинг контрол',
     intentDashboard: 'Intent Dashboard',
     userEngagement: 'User Engagement',
+    topDealsBuilder: 'Седмични Топ Оферти',
+    topDealsApprovals: 'Одобрения на Топ Оферти',
     autoCall: 'Auto-Call',
     logout: 'Изход',
     paymentAnalytics: 'Платежна аналитика',
@@ -13075,6 +13143,7 @@ export const translations = {
     mobileMenuSocialMedia: 'Социални мрежи:',
     mobileMenuOurAddress: 'Нашият адрес:',
     mobileMenuLogIn: 'ВХОД',
+    mobileMenuMyCabinet: 'МОЯТ КАБИНЕТ',
     mobileFooterPhone: 'Телефонен номер:',
     mobileFooterGetInTouch: 'Свържете се с нас',
     mobileFooterAddress: 'Адрес:',
@@ -13111,6 +13180,11 @@ export const translations = {
     catalogResetAll: 'Изчисти всички',
     loadingVehicles: 'Зареждане на автомобили…',
     noVehiclesMatch: 'Няма автомобили, отговарящи на филтрите. Опитайте да ги нулирате.',
+    // Honest meta for price-filter UX (Phase B2.1).
+    catalogHiddenByPriceFilter: 'автомобила отговарят на другите ви филтри, но все още нямат данни за цена.',
+    catalogClearPriceFilter: 'Премахни филтъра за цена, за да ги видиш →',
+    catalogPriceHintExtra: 'допълнителни автомобила отговарят на другите ви филтри, но все още нямат данни за цена.',
+    catalogClearPrice: 'Премахни филтъра за цена',
     errorLoadingVehicles: 'Грешка при зареждане на автомобили',
     sortLabel: 'СОРТИРАЙ',
     sortPopular: 'Популярни',
@@ -13211,6 +13285,13 @@ export const translations = {
     toastAddedFav: 'Добавено в любими',
     toastRemovedFav: 'Премахнато от любими',
     toastAddedCompare: 'Добавено за сравнение',
+    toastCompareNeedMoreDesc: 'Добавете още поне 1 автомобил, за да започнете сравнението',
+    toastCompareReady: 'Готово за сравнение!',
+    toastCompareReadyDesc: 'Избрани са 2 автомобила — отворете изгледа за сравнение',
+    toastCompareFull: 'Списъкът за сравнение е пълен (3/3)',
+    toastCompareFullDesc: 'Отворете сравнението или премахнете автомобил, за да добавите друг',
+    toastOpenCompare: 'Отвори сравнението',
+    toastSignInToCompare: 'Влезте, за да добавяте към сравнение',
     toastRemovedCompare: 'Прибрано от сравнение',
     toastFavError: 'Грешка при обновяване на любими',
     toastCompareError: 'Грешка при списъка за сравнение',
@@ -17146,6 +17227,24 @@ export const translations = {
     cab_step_obtaining: 'Получаване',
     cab_theme: 'Тема',
     cab_language: 'Език',
+
+    // Analytics funnel steps
+    funnel_step_visits: 'Посещения',
+    funnel_step_vehicle_views: 'Преглед на автомобил',
+    funnel_step_calculator: 'Калкулатор',
+    funnel_step_lead: 'Заявка',
+    funnel_step_deal: 'Сделка',
+
+    // Intent Dashboard stats
+    warmUsers: 'WARM',
+    coldUsers: 'COLD',
+    autoLeads: 'Авто-лийдове',
+    totalUsersWithIntent: 'Потребители с намерения',
+    averageScore: 'Средна оценка',
+
+    // Control hub section heading
+    adm_control_hub_title: 'Контролен център',
+    adm_control_hub_subtitle: 'Бизнес метрики, натоварване на доставчици, маршрутизиране, каданси и скоринг — всичко на едно място.',
   },
 };
 

@@ -78,7 +78,53 @@
   transition: transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-/* Soft amber radial glow that lights up under the logo on hover */
+/* ── Per-logo cascade reveal (left → right) ──
+   Same ease-out-quint physics as the hero "FROM AUCTION TO KEYS"
+   headline, so the two reveals feel like one continuous motion.
+   The animation is paused until the section gets the global
+   `.is-visible` class (flipped by IntersectionObserver via
+   useInView), then each logo plays in turn thanks to the
+   per-index inline `animation-delay` set in the JSX. */
+.brandReveal {
+  opacity: 0;
+  transform: translate3d(-44px, 18px, 0);
+  will-change: opacity, transform;
+  animation-name: brandLogoReveal;
+  animation-duration: 900ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+  animation-play-state: paused;
+}
+
+:global(.is-visible) .brandReveal {
+  animation-play-state: running;
+}
+
+@keyframes brandLogoReveal {
+  0% {
+    opacity: 0;
+    transform: translate3d(-44px, 18px, 0);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brandReveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Soft amber radial glow that lights up under the logo on hover.
+   June 2026 — toned down from a hot 0.22 alpha to a subtle 0.10 so the
+   yellow tint doesn't dominate the hovered card. */
 .brandItem::before {
   content: "";
   position: absolute;
@@ -86,8 +132,8 @@
   border-radius: 14px;
   background: radial-gradient(
     closest-side,
-    rgba(254, 174, 0, 0.22),
-    rgba(254, 174, 0, 0.06) 60%,
+    rgba(254, 174, 0, 0.10),
+    rgba(254, 174, 0, 0.03) 60%,
     transparent 75%
   );
   opacity: 0;
@@ -118,15 +164,17 @@
   transform: scale(1);
 }
 .brandItem:hover .brandLogo {
-  transform: scale(1.08);
-  filter: brightness(1.08) saturate(1.18)
-          drop-shadow(0 6px 14px rgba(254, 174, 0, 0.35));
+  transform: scale(1.06);
+  filter: brightness(1.04) saturate(1.08)
+          drop-shadow(0 4px 10px rgba(254, 174, 0, 0.18));
 }
-/* Hide the divider on the hovered item AND its left neighbour so the
-   glow looks unbroken */
-.brandItem:hover:not(:nth-child(6n))::after,
-.brandItem:hover + .brandItem:not(:first-child)::after {
-  opacity: 0;
+/* Dividers stay visible at all times — including on hover.
+   (Previously hovering hid the current item's right divider AND the
+   next item's right divider, which made 2 separators disappear at once
+   and broke the visual rhythm of the 6-cell row.) */
+.brandItem:hover::after,
+.brandItem:hover + .brandItem::after {
+  opacity: 0.7;
 }
 
 .brandItem:focus-visible {

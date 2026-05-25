@@ -109,21 +109,32 @@
   margin-left: auto;
   margin-right: 0;             /* right-aligned with grey block right edge */
   width: auto;                  /* let inner text drive width */
-  max-width: 580px;
+  max-width: 720px;
   display: inline-flex;
-  align-items: center;         /* 80 px brackets centred against the text */
-  gap: 16px;
+  /* Phase B3.2.2 — stretch the bracket frame to the natural height of
+     the inner text. Previously fixed at 80 px which left a visible gap
+     when the text was shorter (EN) and clipped when it was longer (BG/UK).
+     Brackets are SVG with preserveAspectRatio="none" so they scale Y
+     freely; vector-effect="non-scaling-stroke" keeps the 3 px stroke
+     crisp at every height. */
+  align-items: stretch;
+  /* Phase B3.2.3 — match the canonical homepage / Before-&-After bracket
+     rhythm: 70 px breathing room on each side instead of the previous
+     tight 16 px. Brackets now sit visibly apart from the text exactly
+     like VehicleDeals1 (`THOUSANDS OF LISTINGS / …`). */
+  gap: 70px;
   align-self: flex-end;
+  padding: 4px 0;
 }
 .bracketL,
 .bracketR {
-  width: 14px;                 /* spec: bracket 14 × 80, gray */
-  height: 80px;
-  flex-shrink: 0;
+  width: 14px;                 /* spec: bracket 14 × variable, gray #949494 */
+  height: auto;
+  align-self: stretch;
+  flex: 0 0 auto;
   display: block;
 }
-.bracketL { border-left:  2px solid #949494; border-top: 2px solid #949494; border-bottom: 2px solid #949494; }
-.bracketR { border-right: 2px solid #949494; border-top: 2px solid #949494; border-bottom: 2px solid #949494; }
+.bracketR { transform: scaleX(-1); }  /* mirror "[" → "]" */
 .subText {
   margin: 0;
   flex: 1;
@@ -142,7 +153,7 @@
    font a notch so the longest BG line ("НА ВАШИЯ АВТОМОБИЛ И ИЗПРАТЕТЕ
    ЗАЯВКА") still fits on a single line without overflowing. */
 :global(html[lang="bg"]) .subBox {
-  max-width: 680px;
+  max-width: 820px;
 }
 :global(html[lang="bg"]) .subText {
   font-size: 22px;

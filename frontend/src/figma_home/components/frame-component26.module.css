@@ -190,11 +190,12 @@
   max-width: 100%;
 }
 .image79Icon {
-  flex: 1;
+  flex: 0 1 391px;
+  width: 391px;
+  height: 391px;
   position: relative;
   max-width: 100%;
   overflow: hidden;
-  max-height: 100%;
   object-fit: cover;
   min-width: 254px;
   flex-shrink: 0;
@@ -278,12 +279,15 @@
   margin: 0;
   align-self: stretch;
   position: relative;
-  font-size: inherit;
+  /* Now nested inside .titleAdvantage → inherit would give 32 px from
+     .infoContainer. Lock to 24 px H Regular per Figma so the "VIN checks
+     (Carfax, AutoCheck)" body styles identically to "Even taking into
+     account…" under the Much cheaper title. */
+  font-size: var(--fs-24);
   line-height: var(--lh-27_5);
   font-weight: 400;
   font-family: inherit;
   display: inline-block;
-  min-height: 56px;
   z-index: 1;
 }
 @media screen and (max-width: 1850px) {

@@ -36,11 +36,13 @@ import {
   ArrowRight,
   CircleNotch,
   ShareNetwork,
-  ArrowsLeftRight,
+  Scales,
+  List as MenuIcon,
+  X as CloseIcon,
 } from '@phosphor-icons/react';
 import { useCustomerAuth } from './public/CustomerAuth';
 import { useCabinetTheme } from '../context/CabinetThemeContext';
-import CabinetThemeToggle from '../components/cabinet/CabinetThemeToggle';
+import CabinetLangPicker from '../components/cabinet/CabinetLangPicker';
 
 /**
  * Customer Cabinet - BIBI Cars Customer Journey UI
@@ -53,7 +55,7 @@ import CabinetThemeToggle from '../components/cabinet/CabinetThemeToggle';
 const NAV_ITEMS = [
   { path: '', labelKey: 'cab_nav_home', icon: House },
   { path: 'favorites', labelKey: 'cab_nav_favorites', icon: Heart },
-  { path: 'compare', labelKey: 'cab_nav_comparison', icon: ArrowsLeftRight },
+  { path: 'compare', labelKey: 'cab_nav_comparison', icon: Scales },
   { path: 'shared', labelKey: 'cab_nav_shared', icon: ShareNetwork },
   { path: 'orders', labelKey: 'cab_nav_my_orders', icon: Car },
   { path: 'watchlist', labelKey: 'cab_nav_vin_tracking', icon: Bell },
@@ -99,7 +101,7 @@ export const CabinetLayout = () => {
 };
 
 const CabinetLayoutInner = () => {
-  const { t, lang, changeLang, customerLanguages } = useLang();
+  const { t, lang, changeLang } = useLang();
   const { customerId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -109,6 +111,24 @@ const CabinetLayoutInner = () => {
 
   // Header-level customer state (fetched from cabinet endpoint, stays in sync)
   const [customer, setCustomer] = useState(authCustomer || null);
+
+  // ── Phase B3.1+ — mobile drawer state ─────────────────────────────────
+  // The sidebar used to stack ABOVE the page content on `<lg` screens, so
+  // a mobile user opened the cabinet and only saw the nav — they had to
+  // scroll past the entire 14-item menu to reach the actual page. We now
+  // hide the sidebar by default on mobile and surface a hamburger that
+  // slides it in as an overlay drawer.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Close the drawer whenever the route changes (selecting an item).
+  useEffect(() => { setMobileNavOpen(false); }, [location.pathname]);
+  // Lock body scroll while the drawer is open so the page underneath
+  // doesn't bounce around when the user swipes.
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [mobileNavOpen]);
 
   const refreshCustomer = useCallback(async () => {
     try {
@@ -147,9 +167,82 @@ const CabinetLayoutInner = () => {
 
   return (
     <div className="cabinet-scope min-h-screen bg-[#F8F8F8]" data-theme={theme} data-testid="cabinet-root">
-      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
-        {/* Sidebar - Compact */}
-        <aside className="bg-white border border-[#E4E4E7] rounded-2xl p-4 h-fit sticky top-6">
+      {/* ── Mobile top bar (only `<lg`) ─────────────────────────────────
+       *  Hamburger + page-aware label + avatar. Keeps the cabinet usable
+       *  on phones — the legacy stack-everything-above-content layout
+       *  buried the actual page below 14 sidebar items. */}
+      <header
+        className="lg:hidden sticky top-0 z-30 flex items-center justify-between gap-3 px-4 h-14 bg-[#0F0F0E] border-b border-[#27272A]"
+        data-testid="cabinet-mobile-topbar"
+      >
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(true)}
+          className="w-10 h-10 -ml-2 rounded-lg flex items-center justify-center text-zinc-100 hover:bg-white/5 active:bg-white/10 transition-colors"
+          aria-label={t('cab_open_menu') || 'Open menu'}
+          data-testid="cabinet-mobile-menu-open"
+        >
+          <MenuIcon size={22} weight="regular" />
+        </button>
+        <div className="flex-1 min-w-0 text-center">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 leading-none">
+            BIBI Cars
+          </div>
+          <div className="text-[13px] font-semibold text-zinc-100 truncate leading-tight mt-0.5">
+            {customer?.firstName || customer?.name || t('adm3_2e8ee1588e')}
+          </div>
+        </div>
+        <div className="w-9 h-9 rounded-lg overflow-hidden bg-[#18181B] text-white flex items-center justify-center font-bold text-sm shrink-0">
+          {avatarUrl
+            ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display='none'; }} />
+            : initial}
+        </div>
+      </header>
+
+      {/* Cabinet body — single column on mobile, 2-col grid on lg+ */}
+      <div className="max-w-7xl mx-auto px-4 py-4 lg:py-6 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 lg:gap-6">
+
+        {/* ── Mobile drawer overlay backdrop ───────────────────────────── */}
+        {/* Phase B3.2.1 — z-index lifted above Leaflet's panes (400) and
+           controls (1000). Without this the shipment map punches through
+           the drawer because Leaflet sets its own stacking context. */}
+        {mobileNavOpen && (
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="lg:hidden fixed inset-0 z-[1050] bg-black/60 backdrop-blur-[2px] animate-[bibi-fade-in_0.18s_ease-out_both]"
+            onClick={() => setMobileNavOpen(false)}
+            data-testid="cabinet-mobile-drawer-backdrop"
+          />
+        )}
+
+        {/* Sidebar — desktop in-flow, mobile slide-in drawer */}
+        <aside
+          className={`
+            bg-white border border-[#E4E4E7] rounded-2xl p-4
+            lg:h-fit lg:sticky lg:top-6 lg:translate-x-0 lg:relative lg:z-auto lg:shadow-none
+            fixed inset-y-0 left-0 z-[1100] w-[86%] max-w-[320px] lg:w-auto lg:max-w-none
+            rounded-none lg:rounded-2xl
+            shadow-[0_24px_48px_rgba(0,0,0,0.5)] lg:shadow-none
+            overflow-y-auto
+            transition-transform duration-250 ease-out
+            ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}
+            lg:transform-none
+          `}
+          data-testid="cabinet-sidebar"
+        >
+          {/* Mobile-only close button inside the drawer */}
+          <div className="lg:hidden flex justify-end -mt-1 -mr-1 mb-2">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-white/5"
+              aria-label="Close menu"
+              data-testid="cabinet-mobile-menu-close"
+            >
+              <CloseIcon size={20} />
+            </button>
+          </div>
           <div className="mb-4 pb-3 border-b border-[#E4E4E7]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden bg-[#18181B] text-white flex items-center justify-center font-bold text-sm shrink-0">
@@ -172,45 +265,15 @@ const CabinetLayoutInner = () => {
               </div>
             </div>
 
-            {/* Theme toggle row */}
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-[11px] uppercase tracking-[0.12em] text-[#71717A] font-semibold">
-                {t('cab_theme')}
-              </span>
-              <CabinetThemeToggle />
-            </div>
-
-            {/* Language switcher row — customer cabinet supports EN + BG only */}
+            {/* Language switcher — Phase B3.1: dropdown matches the public
+             *  header (ENG ▾ style); cabinet auto-inherits the language
+             *  the user picked on the site (shared LanguageProvider).
+             *  Theme is locked to dark — no toggle here anymore. */}
             <div className="mt-3 flex items-center justify-between">
               <span className="text-[11px] uppercase tracking-[0.12em] text-[#71717A] font-semibold">
                 {t('cab_language') || 'Language'}
               </span>
-              <div
-                className="inline-flex items-center rounded-lg border border-[#E4E4E7] bg-[#F4F4F5] p-0.5"
-                role="group"
-                aria-label="Customer cabinet language"
-                data-testid="cabinet-lang-switcher"
-              >
-                {(customerLanguages || []).map((l) => {
-                  const active = lang === l.code;
-                  return (
-                    <button
-                      key={l.code}
-                      type="button"
-                      onClick={() => changeLang(l.code)}
-                      data-testid={`cabinet-lang-${l.code}`}
-                      aria-pressed={active}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
-                        active
-                          ? 'bg-[#18181B] text-white shadow-sm'
-                          : 'text-[#71717A] hover:text-[#18181B]'
-                      }`}
-                    >
-                      {l.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <CabinetLangPicker data-testid="cabinet-lang-switcher" />
             </div>
           </div>
           
@@ -258,10 +321,16 @@ const CabinetLayoutInner = () => {
         </aside>
 
         {/* Main Content — expose setCustomer/refreshCustomer to children via Outlet context */}
-        <main>
+        <main className="min-w-0">
           <Outlet context={{ customer, setCustomer, refreshCustomer }} />
         </main>
       </div>
+
+      {/* Keyframe used by the drawer backdrop (defined here so we keep the
+          cabinet's styles self-contained — no global stylesheet pollution). */}
+      <style>{`
+        @keyframes bibi-fade-in { from { opacity: 0 } to { opacity: 1 } }
+      `}</style>
     </div>
   );
 };

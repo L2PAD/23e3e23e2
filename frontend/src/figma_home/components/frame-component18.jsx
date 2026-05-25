@@ -50,11 +50,23 @@ const Dropdown = ({ label, value, options, onSelect, isOpen, onToggle, searchabl
     }
   }, [isOpen]);
 
+  /* `options` may be:
+     • an array of strings (legacy)                          → no count, always available
+     • an array of `{ name, count, available }` objects     → real DB-backed
+     We normalise to the object shape so the render code stays simple. */
+  const normalisedOptions = useMemo(() => (
+    options.map((o) =>
+      typeof o === "string"
+        ? { name: o, count: null, available: true, isAnyOption: true }
+        : o
+    )
+  ), [options]);
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return options;
+    if (!query.trim()) return normalisedOptions;
     const q = query.trim().toLowerCase();
-    return options.filter((o) => o.toLowerCase().includes(q));
-  }, [query, options]);
+    return normalisedOptions.filter((o) => o.name.toLowerCase().includes(q));
+  }, [query, normalisedOptions]);
 
   // i18n inline for the search placeholder + empty message
   const { lang } = useLang();
@@ -101,16 +113,28 @@ const Dropdown = ({ label, value, options, onSelect, isOpen, onToggle, searchabl
             {filtered.length === 0 ? (
               <div className={styles.dropdownEmpty}>{noMatches}</div>
             ) : (
-              filtered.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  className={`${styles.dropdownItem} ${value === opt ? styles.dropdownItemActive : ""}`}
-                  onClick={() => onSelect(opt)}
-                >
-                  {opt}
-                </button>
-              ))
+              filtered.map((opt) => {
+                // "Any …" option is always treated as available.
+                const isDimmed = !opt.isAnyOption && opt.available === false;
+                return (
+                  <button
+                    key={opt.name}
+                    type="button"
+                    className={[
+                      styles.dropdownItem,
+                      value === opt.name ? styles.dropdownItemActive : "",
+                      isDimmed ? styles.dropdownItemUnavailable : "",
+                    ].filter(Boolean).join(" ")}
+                    onClick={() => onSelect(opt.name)}
+                    title={isDimmed ? (isBg ? "Няма налични автомобили" : "No cars currently available") : undefined}
+                  >
+                    {opt.name}
+                    {opt.count != null && opt.count > 0 && (
+                      <span className={styles.dropdownItemCount}>({opt.count})</span>
+                    )}
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
@@ -130,6 +154,12 @@ const FrameComponent18 = ({ className = "" }) => {
   const [hero, setHero] = useState(ORIGINAL_HERO);
   const filterRef = useRef(null);
 
+  // Real catalog data — distinct brands/models with live availability counts.
+  // Falls back to the static `CAR_BRANDS`/`MODELS_BY_BRAND` lists if the
+  // API is unreachable, so the dropdowns are never empty.
+  const [brandsData, setBrandsData] = useState(null); // [{name,count,available}] | null
+  const [modelsData, setModelsData] = useState(null); // [{name,count,available}] | null
+
   // Pull admin-configured hero copy + image (silently falls back to ORIGINAL_HERO)
   useEffect(() => {
     let cancelled = false;
@@ -147,6 +177,48 @@ const FrameComponent18 = ({ className = "" }) => {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Load real brand availability from the catalog backend (same endpoint
+  // the /catalog Brand filter uses, so the homepage and the catalog see
+  // the exact same data set).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await axios.get(`${API_URL}/api/public/brands`);
+        if (cancelled) return;
+        if (Array.isArray(r?.data?.data)) {
+          setBrandsData(r.data.data);
+        }
+      } catch {
+        /* keep null → fallback to static list */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Load models for the currently picked brand. Empty brand → no models.
+  useEffect(() => {
+    let cancelled = false;
+    if (!brand) {
+      setModelsData(null);
+      return undefined;
+    }
+    (async () => {
+      try {
+        const r = await axios.get(`${API_URL}/api/public/models`, {
+          params: { brand },
+        });
+        if (cancelled) return;
+        if (Array.isArray(r?.data?.data)) {
+          setModelsData(r.data.data);
+        }
+      } catch {
+        setModelsData(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [brand]);
 
   // Pick a field with graceful fallback: current lang → other lang → original
   const pick = (key) => {
@@ -181,20 +253,48 @@ const FrameComponent18 = ({ className = "" }) => {
 
   const toggle = (name) => setOpenMenu((cur) => (cur === name ? null : name));
 
-  const brandOptions = useMemo(() => [isBg ? "Всички марки" : "Any Brand", ...CAR_BRANDS], [isBg]);
-  const modelOptions = useMemo(() => {
-    if (brand && MODELS_BY_BRAND[brand]) {
-      return [isBg ? "Всички модели" : "Any Model", ...MODELS_BY_BRAND[brand]];
+  // ── Brand options: real DB-backed when available, static fallback otherwise.
+  const brandOptions = useMemo(() => {
+    const anyBrand = { name: isBg ? "Всички марки" : "Any Brand", isAnyOption: true, available: true, count: null };
+    if (brandsData && brandsData.length) {
+      return [anyBrand, ...brandsData];
     }
-    return [isBg ? "Всички модели" : "Any Model", ...GENERIC_MODELS];
-  }, [brand, isBg]);
-  const yearOptions = useMemo(() => [isBg ? "Всяка година" : "Any Year", ...YEARS], [isBg]);
+    return [anyBrand, ...CAR_BRANDS.map((n) => ({ name: n, available: true, count: null }))];
+  }, [brandsData, isBg]);
 
+  // ── Model options: real DB-backed when a brand is picked; otherwise show
+  //    the static generic models list, all marked as available.
+  const modelOptions = useMemo(() => {
+    const anyModel = { name: isBg ? "Всички модели" : "Any Model", isAnyOption: true, available: true, count: null };
+    if (modelsData && modelsData.length) {
+      return [anyModel, ...modelsData];
+    }
+    if (brand && MODELS_BY_BRAND[brand]) {
+      return [anyModel, ...MODELS_BY_BRAND[brand].map((n) => ({ name: n, available: true, count: null }))];
+    }
+    return [anyModel, ...GENERIC_MODELS.map((n) => ({ name: n, available: true, count: null }))];
+  }, [modelsData, brand, isBg]);
+
+  // ── Year options: the catalog has no per-year availability endpoint, so
+  //    we keep the static list (last 30 years) and treat all as available.
+  const yearOptions = useMemo(() => {
+    const anyYear = { name: isBg ? "Всяка година" : "Any Year", isAnyOption: true, available: true, count: null };
+    return [anyYear, ...YEARS.map((y) => ({ name: String(y), available: true, count: null }))];
+  }, [isBg]);
+
+  // FIND A CAR — redirect to /catalog with filters applied using the same
+  // URL params the catalog page itself reads: `make` / `model` / `year_min`
+  // + `year_max`.
   const onFind = () => {
     const params = new URLSearchParams();
-    if (brand) params.set("brand", brand);
-    if (model && model !== "Any Model" && model !== "Всички модели") params.set("model", model);
-    if (year && year !== "Any Year" && year !== "Всяка година") params.set("year", year);
+    if (brand) params.set("make", brand);
+    if (model && model !== "Any Model" && model !== "Всички модели") {
+      params.set("model", model);
+    }
+    if (year && year !== "Any Year" && year !== "Всяка година") {
+      params.set("year_min", year);
+      params.set("year_max", year);
+    }
     const qs = params.toString();
     window.location.href = `/catalog${qs ? "?" + qs : ""}`;
   };

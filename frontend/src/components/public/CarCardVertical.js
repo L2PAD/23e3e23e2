@@ -1,10 +1,44 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, GitCompare, Heart } from 'lucide-react';
+import { Scale, Heart } from 'lucide-react';
 import { optimizeImage, ImageSize } from '../../lib/optimizeImage';
 
 const fallbackImage =
   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=70';
+
+/**
+ * Format an auction countdown identical to the catalog row card:
+ *     >= 1 day  →  "1d: 4h: 35m"
+ *     <  1 day  →  "12h: 35m"
+ *     <  1 hour →  "35m"
+ *     past / invalid → null  (caller hides chip)
+ */
+const formatAuctionCountdown = (raw) => {
+  if (!raw) return null;
+  try {
+    let d;
+    if (raw instanceof Date) d = raw;
+    else if (typeof raw === 'string') {
+      const s = raw.trim();
+      const m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+      if (m) {
+        const [, dd, mm, yyyy] = m;
+        d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), 23, 59, 0);
+      } else {
+        d = new Date(s);
+      }
+    } else { return null; }
+    if (Number.isNaN(d.getTime())) return null;
+    const diff = d.getTime() - Date.now();
+    if (diff <= 0) return null;
+    const days    = Math.floor(diff / 86400000);
+    const hours   = Math.floor((diff / 3600000) % 24);
+    const minutes = Math.floor((diff / 60000) % 60);
+    if (days > 0)  return `${days}d: ${hours}h: ${minutes}m`;
+    if (hours > 0) return `${hours}h: ${minutes}m`;
+    return `${minutes}m`;
+  } catch { return null; }
+};
 
 /**
  * CarCardVertical — exactly matches Figma spec (560 × 764 container).
@@ -31,7 +65,22 @@ export const CarCardVertical = ({ v, idx = 0 }) => {
   const turnkey = v?.turnkey_price || v?.price_bulgaria || null;
   const average = v?.average_price || null;
   const tradingDate = v?.sale_date || v?.auction_date || null;
-  const timer = v?.auction_countdown || null;
+
+  /* ── Live auction countdown — recalculates every minute and pulls
+   *    from sale_date / auction_date / auction_countdown so the chip
+   *    always reflects current reality (never shows a fake "1d 4h 35m"). */
+  const auctionDateRaw = v?.sale_date || v?.auction_date || null;
+  const [countdown, setCountdown] = useState(
+    () => v?.auction_countdown || formatAuctionCountdown(auctionDateRaw),
+  );
+  useEffect(() => {
+    setCountdown(v?.auction_countdown || formatAuctionCountdown(auctionDateRaw));
+    if (!auctionDateRaw) return undefined;
+    const tickId = setInterval(() => {
+      setCountdown(formatAuctionCountdown(auctionDateRaw));
+    }, 60000);
+    return () => clearInterval(tickId);
+  }, [auctionDateRaw, v?.auction_countdown]);
 
   return (
     <Link
@@ -60,15 +109,25 @@ export const CarCardVertical = ({ v, idx = 0 }) => {
             {tradingDate}
           </div>
         )}
-        {/* Timer pill — bottom-left, amber.  Hidden when no countdown
-            is available so we never render the mock "1 d: 4h: 35m". */}
-        {timer && (
+        {/* Timer pill — top-left, amber #FEAE00 @ 80%.  Hidden when no
+            live countdown is available so we never render the fake "1 d
+            4h 35m" placeholder. Position and visual treatment match the
+            catalog row card 1-to-1 (iconoir-clock 18×18, gap 8 px,
+            height 32 px, white-space nowrap, vertically centered). */}
+        {countdown && (
           <div
-            className="absolute bottom-4 left-4 px-3 h-8 flex items-center gap-2 bg-[#FEAE00] text-black text-[13px] font-medium rounded-sm"
+            className="absolute top-3 left-3 h-8 flex items-center justify-center gap-2 px-3 bg-[#FEAE00] text-black text-[14px] font-medium leading-none whitespace-nowrap select-none"
+            style={{ backgroundColor: 'rgba(254, 174, 0, 0.8)' }}
             data-testid={`car-card-${idx}-timer`}
           >
-            <Clock size={16} strokeWidth={2} />
-            <span>{timer}</span>
+            <img
+              src="/single-car/iconoir-clock.png"
+              alt=""
+              width={18}
+              height={18}
+              style={{ display: 'block', flex: '0 0 auto' }}
+            />
+            <span style={{ lineHeight: 1 }}>{countdown}</span>
           </div>
         )}
         {/* Compare + favorite icons — bottom-right circular outline */}
@@ -80,7 +139,7 @@ export const CarCardVertical = ({ v, idx = 0 }) => {
             aria-label="Compare"
             data-testid={`car-card-${idx}-compare`}
           >
-            <GitCompare size={14} strokeWidth={2} />
+            <Scale size={14} strokeWidth={2} />
           </button>
           <button
             type="button"

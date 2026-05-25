@@ -11,7 +11,7 @@ import hmac
 import time
 from typing import Dict, Any, Optional
 
-BASE_URL = "https://code-review-env.preview.emergentagent.com"
+BASE_URL = "https://code-complete-49.preview.emergentagent.com"
 
 class BIBICarsAPITester:
     def __init__(self):
@@ -828,6 +828,168 @@ class BIBICarsAPITester:
             self.test("GET /api/admin/integrations/google", False, f"Exception: {e}")
 
     # ═══════════════════════════════════════════════════════════════
+    # PHASE B2 — INSTANT-SHELL PATTERN TESTS
+    # ═══════════════════════════════════════════════════════════════
+    
+    def test_phase_b2_instant_shell(self):
+        """Test Phase B2 instant-shell pattern endpoints"""
+        print("\n" + "="*70)
+        print("⚡ PHASE B2 — INSTANT-SHELL PATTERN")
+        print("="*70)
+        
+        # Test VINs as per review request
+        KNOWN_VIN = "5N1AT2MV8FC838664"  # Real bitmotors lot in vin_data
+        UNKNOWN_VIN = "JN1AZ34D11T123456"  # Should return not found
+        WESTMOTORS_VIN = "2T2BZMCA4HC068423"  # Westmotors-queue-only VIN
+        
+        # Test 1: GET /api/vin/{vin}/shell on KNOWN VIN
+        try:
+            start_time = time.time()
+            resp = requests.get(
+                f"{self.base_url}/api/vin/{KNOWN_VIN}/shell",
+                timeout=5
+            )
+            elapsed_ms = (time.time() - start_time) * 1000
+            
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                
+                # Check response shape
+                has_required_fields = all(k in data for k in ["found", "source", "shell", "freshness", "age_seconds", "missing_fields", "data"])
+                found = data.get("found") == True
+                source = data.get("source") == "DB"
+                shell_marker = data.get("shell") == True
+                has_freshness = data.get("freshness") in ["fresh", "stale", "expired", "unknown"]
+                has_data = data.get("data") is not None and data["data"].get("vin") == KNOWN_VIN
+                response_time_ok = elapsed_ms < 200  # Target <150ms, allow <200ms
+                
+                self.test(
+                    f"GET /api/vin/{KNOWN_VIN}/shell (known VIN)",
+                    has_required_fields and found and source and shell_marker and has_freshness and has_data,
+                    f"Response time: {elapsed_ms:.0f}ms, found={found}, source={data.get('source')}, freshness={data.get('freshness')}, missing_fields={len(data.get('missing_fields', []))}"
+                )
+                
+                self.test(
+                    f"Shell response time <200ms (known VIN)",
+                    response_time_ok,
+                    f"Actual: {elapsed_ms:.0f}ms (target <150ms)"
+                )
+            else:
+                self.test(f"GET /api/vin/{KNOWN_VIN}/shell", False, msg)
+        except Exception as e:
+            self.test(f"GET /api/vin/{KNOWN_VIN}/shell", False, f"Exception: {e}")
+        
+        # Test 2: GET /api/vin/{vin}/shell on UNKNOWN VIN
+        try:
+            start_time = time.time()
+            resp = requests.get(
+                f"{self.base_url}/api/vin/{UNKNOWN_VIN}/shell",
+                timeout=5
+            )
+            elapsed_ms = (time.time() - start_time) * 1000
+            
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                
+                found = data.get("found") == False
+                source = data.get("source") == "NOT_FOUND"
+                response_time_ok = elapsed_ms < 200
+                
+                self.test(
+                    f"GET /api/vin/{UNKNOWN_VIN}/shell (unknown VIN)",
+                    found and source and response_time_ok,
+                    f"Response time: {elapsed_ms:.0f}ms, found={data.get('found')}, source={data.get('source')}"
+                )
+            else:
+                self.test(f"GET /api/vin/{UNKNOWN_VIN}/shell", False, msg)
+        except Exception as e:
+            self.test(f"GET /api/vin/{UNKNOWN_VIN}/shell", False, f"Exception: {e}")
+        
+        # Test 3: GET /api/vin/{vin}/shell on WESTMOTORS-ONLY VIN
+        try:
+            start_time = time.time()
+            resp = requests.get(
+                f"{self.base_url}/api/vin/{WESTMOTORS_VIN}/shell",
+                timeout=5
+            )
+            elapsed_ms = (time.time() - start_time) * 1000
+            
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                
+                found = data.get("found") == True
+                source = data.get("source") == "WESTMOTORS_INDEX"
+                has_pending_enrich = data.get("data", {}).get("_pending_enrich") == True
+                has_missing_fields = len(data.get("missing_fields", [])) > 0
+                response_time_ok = elapsed_ms < 200
+                
+                self.test(
+                    f"GET /api/vin/{WESTMOTORS_VIN}/shell (westmotors-only VIN)",
+                    found and source and has_pending_enrich and response_time_ok,
+                    f"Response time: {elapsed_ms:.0f}ms, found={found}, source={data.get('source')}, missing_fields={len(data.get('missing_fields', []))}, _pending_enrich={has_pending_enrich}"
+                )
+            else:
+                self.test(f"GET /api/vin/{WESTMOTORS_VIN}/shell", False, msg)
+        except Exception as e:
+            self.test(f"GET /api/vin/{WESTMOTORS_VIN}/shell", False, f"Exception: {e}")
+        
+        # Test 4: GET /api/vin/{vin}/enrich (live fallback chain)
+        try:
+            start_time = time.time()
+            resp = requests.get(
+                f"{self.base_url}/api/vin/{KNOWN_VIN}/enrich",
+                timeout=30  # Allow 0.5-3s as per spec, but give more buffer
+            )
+            elapsed_ms = (time.time() - start_time) * 1000
+            
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                
+                shell_marker = data.get("shell") == False
+                freshness = data.get("freshness") == "fresh"
+                has_data = data.get("found") == True
+                
+                self.test(
+                    f"GET /api/vin/{KNOWN_VIN}/enrich (live fallback)",
+                    shell_marker and freshness and has_data,
+                    f"Response time: {elapsed_ms:.0f}ms, shell={data.get('shell')}, freshness={data.get('freshness')}, found={data.get('found')}"
+                )
+            else:
+                self.test(f"GET /api/vin/{KNOWN_VIN}/enrich", False, msg)
+        except Exception as e:
+            self.test(f"GET /api/vin/{KNOWN_VIN}/enrich", False, f"Exception: {e}")
+        
+        # Test 5: Legacy GET /api/vin/{vin} (backwards-compat)
+        try:
+            resp = requests.get(
+                f"{self.base_url}/api/vin/{KNOWN_VIN}",
+                timeout=30
+            )
+            
+            success, msg = self.check_response(resp, 200)
+            if success:
+                data = resp.json()
+                
+                # Legacy endpoint should NOT have 'shell' field
+                no_shell_field = "shell" not in data
+                has_found = "found" in data
+                has_source = "source" in data
+                
+                self.test(
+                    f"GET /api/vin/{KNOWN_VIN} (legacy backwards-compat)",
+                    no_shell_field and has_found and has_source,
+                    f"Legacy shape preserved: shell field absent={no_shell_field}, found={data.get('found')}, source={data.get('source')}"
+                )
+            else:
+                self.test(f"GET /api/vin/{KNOWN_VIN} (legacy)", False, msg)
+        except Exception as e:
+            self.test(f"GET /api/vin/{KNOWN_VIN} (legacy)", False, f"Exception: {e}")
+
+    # ═══════════════════════════════════════════════════════════════
     # PUBLIC CATALOG ENDPOINTS (EXTENDED)
     # ═══════════════════════════════════════════════════════════════
     
@@ -941,6 +1103,7 @@ class BIBICarsAPITester:
         # Run all test suites
         self.test_all_logins()
         self.test_public_endpoints()
+        self.test_phase_b2_instant_shell()  # Phase B2 instant-shell pattern
         self.test_public_catalog_extended()
         self.test_google_reviews()
         self.test_google_signin()

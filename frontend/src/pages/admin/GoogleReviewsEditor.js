@@ -36,6 +36,7 @@ import {
   PushPinSimpleSlash,
   Key,
 } from '@phosphor-icons/react';
+import WhiteSelect from '../../components/ui/WhiteSelect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -356,8 +357,7 @@ export default function GoogleReviewsEditor() {
           </Field>
 
           <Field label="Min rating to display" hint="Reviews with rating below this value are hidden on the public site.">
-            <select
-              className={inputCls()}
+            <WhiteSelect
               value={config?.min_rating_filter || 4}
               onChange={(e) => updateCfg('min_rating_filter', parseInt(e.target.value, 10))}
               data-testid="grev-min-rating"
@@ -365,7 +365,7 @@ export default function GoogleReviewsEditor() {
               {[1, 2, 3, 4, 5].map((n) => (
                 <option key={n} value={n}>{n}+ stars</option>
               ))}
-            </select>
+            </WhiteSelect>
           </Field>
 
           <Field label="Max reviews to show on homepage">
@@ -416,15 +416,14 @@ export default function GoogleReviewsEditor() {
           </Field>
 
           <Field label="Block enabled">
-            <select
-              className={inputCls()}
+            <WhiteSelect
               value={config?.enabled ? 'true' : 'false'}
               onChange={(e) => updateCfg('enabled', e.target.value === 'true')}
               data-testid="grev-enabled"
             >
               <option value="true">Enabled — show on homepage</option>
               <option value="false">Disabled — hide block</option>
-            </select>
+            </WhiteSelect>
           </Field>
         </div>
 
@@ -496,8 +495,7 @@ export default function GoogleReviewsEditor() {
             />
           </Field>
           <Field label="Rating">
-            <select
-              className={inputCls()}
+            <WhiteSelect
               value={manualForm.rating}
               onChange={(e) => setManualForm((f) => ({ ...f, rating: parseInt(e.target.value, 10) }))}
               data-testid="grev-manual-rating"
@@ -505,7 +503,7 @@ export default function GoogleReviewsEditor() {
               {[5, 4, 3, 2, 1].map((n) => (
                 <option key={n} value={n}>{n} stars</option>
               ))}
-            </select>
+            </WhiteSelect>
           </Field>
           <Field label="Review text (English)">
             <textarea

@@ -417,9 +417,28 @@ export default function CalculatorPage() {
       />
       <div className={styles.container}>
 
-        {/* Subtitle "[ CALCULATE THE APPROXIMATE COST … ]" ─ 296 px from header */}
+        {/* Subtitle "[ CALCULATE THE APPROXIMATE COST … ]" ─ 296 px from header.
+            Phase B3.2.2: brackets switched from fixed-height CSS borders
+            (80 px) to the same stretchable SVG used in the home page's
+            VehicleDeals1 block, so the bracket frame grows naturally with
+            the text (works for EN/BG/UA copies of any length). */}
         <div className={styles.subBox} data-testid="calculator-subtitle">
-          <span className={styles.bracketL} aria-hidden="true" />
+          <svg
+            className={styles.bracketL}
+            viewBox="0 0 17 80"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M14.5264 1.5H1.5V77.5264H14.5264"
+              stroke="#949494"
+              strokeWidth="3"
+              strokeLinecap="square"
+              fill="none"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
           <h2 className={styles.subText}>
             <span>{T.subA}</span><br />
             <span className={styles.subWhite}>
@@ -427,7 +446,22 @@ export default function CalculatorPage() {
               {T.subC}
             </span>
           </h2>
-          <span className={styles.bracketR} aria-hidden="true" />
+          <svg
+            className={styles.bracketR}
+            viewBox="0 0 17 80"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M14.5264 1.5H1.5V77.5264H14.5264"
+              stroke="#949494"
+              strokeWidth="3"
+              strokeLinecap="square"
+              fill="none"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
         </div>
 
         {/* THE 1720 × 1133 GRAY BLOCK ─ 480 px from header */}

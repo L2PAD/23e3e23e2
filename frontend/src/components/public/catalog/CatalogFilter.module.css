@@ -105,7 +105,12 @@
 /* Two-column grid (Figma: From — To). */
 .row2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* `minmax(0, 1fr)` instead of bare `1fr` so a column never grows past
+     its allocated slot if its content (e.g. our combo input + chevron)
+     has a min-content larger than the available width — otherwise the
+     right-hand column would visibly overflow the filter sidebar, which
+     is what the regression report showed. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   column-gap: 12px;
 }

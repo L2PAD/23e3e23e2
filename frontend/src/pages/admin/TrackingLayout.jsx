@@ -33,7 +33,6 @@ import {
   Truck,
   CircleNotch,
   CheckCircle,
-  Broadcast,
 } from '@phosphor-icons/react';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
@@ -86,29 +85,35 @@ function buildTabs(t) {
 }
 
 /**
- * KpiItem — inline-row item для единого блока метрик.
- * НЕ имеет своей рамки/фона — рендерится внутри общего outlined контейнера
- * и отделяется от соседей вертикальным divider'ом. Текст НЕ обрезается
- * многоточием — если значение длинное, оно переносится на следующую
- * строку. Минимальная ширина гарантирует читаемость даже на ≥7 элементах.
+ * KpiItem — stat-card в стиле Ringostat overview.
+ * Каждая карточка — независимая outlined card с uppercase-label сверху + цветной точкой
+ * и крупным значением снизу. Никаких truncate / ellipsis — длинные значения переносятся.
+ * Emoji-префиксы из переводов вырезаются автоматически (legacy баги в i18n).
  */
+const stripEmoji = (s) =>
+  String(s ?? '')
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}]/gu, '')
+    .replace(/[⚠️⚠🔒🟢🔴🟡🟠]/g, '')
+    .trim();
+
 function KpiItem({ label, value, dotColor = '#A1A1AA', testid }) {
+  const cleanValue = stripEmoji(value);
   return (
     <div
       data-testid={testid}
-      className="flex flex-col gap-1 px-4 py-3 border-l border-t border-[#E4E4E7] first:border-l-0 [&:nth-child(-n+2)]:sm:border-t-0 [&:nth-child(-n+3)]:md:border-t-0 [&:nth-child(-n+7)]:xl:border-t-0 [&:nth-child(2n+1)]:border-l-0 sm:[&:nth-child(2n+1)]:border-l sm:[&:nth-child(3n+1)]:border-l-0 md:[&:nth-child(3n+1)]:border-l md:[&:nth-child(4n+1)]:border-l-0 xl:[&:nth-child(4n+1)]:border-l xl:[&:nth-child(7n+1)]:border-l-0"
+      className="bg-white border border-[#E4E4E7] rounded-xl sm:rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3.5 flex flex-col gap-1 sm:gap-1.5 min-w-0"
     >
-      <div className="flex items-start gap-1.5">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
         <span
-          className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5"
+          className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
           style={{ background: dotColor }}
         />
-        <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#71717A] leading-snug break-words">
+        <span className="text-[9.5px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-[#71717A] leading-snug truncate">
           {label}
         </span>
       </div>
-      <span className="text-[13.5px] font-semibold text-[#18181B] leading-snug break-words">
-        {value}
+      <span className="text-[13px] sm:text-sm md:text-base font-semibold text-[#18181B] leading-snug break-words [overflow-wrap:anywhere]">
+        {cleanValue || '—'}
       </span>
     </div>
   );
@@ -158,134 +163,135 @@ export default function TrackingLayout() {
   const pendingDot = automationCount > 0 ? DOTS.warn : DOTS.ok;
 
   return (
-    <div className="space-y-6" data-testid="tracking-layout">
-      {/* ── Page header (matches the rest of the admin) ── */}
-      <div className="bg-white border border-[#E4E4E7] rounded-2xl p-5">
-        <div className="flex items-start gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-[#18181B] flex items-center justify-center text-white flex-shrink-0">
-            <Broadcast size={20} weight="duotone" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1
-              data-testid="tracking-title"
-              className="text-[20px] font-semibold text-[#18181B] tracking-tight"
-              style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}
-            >
-              {t('trackingHubTitle')}
-            </h1>
-            <p className="text-[13px] text-[#71717A] mt-0.5">
-              {t('trackingHubSubtitle')}
-            </p>
-          </div>
-        </div>
-
-        {/* Health KPI strip — single outlined container, items wrap freely.
-            No truncation, no per-item borders. Just one outline + grid of
-            metrics inside. Per user feedback: "просто их обвести и все". */}
-        <div
-          data-testid="tracking-health-strip"
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] overflow-hidden"
+    <div className="space-y-4 sm:space-y-6" data-testid="tracking-layout">
+      {/* ── Page header — flat heading, не обёрнут в outer card ── */}
+      <div className="min-w-0">
+        <h1
+          data-testid="tracking-title"
+          className="text-xl sm:text-2xl md:text-3xl font-bold text-[#18181B] leading-tight"
+          style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}
         >
-          {loading && (
-            <div className="w-full flex items-center gap-2 text-[12.5px] text-[#71717A] px-4 py-3">
-              <CircleNotch size={14} className="animate-spin" />
-              {t('trackingHubLoadingHealth')}
-            </div>
-          )}
-          {!loading && status && (
-            <>
-              <KpiItem
-                label={t('trackingLabel')}
-                dotColor={trackingDot}
-                testid="pill-tracking"
-                value={status.trackingEnabled ? t('trackingHubKillSwitchOn') : t('trackingHubKillSwitchOff')}
-              />
-              <KpiItem
-                label="ENFORCE_NONCE"
-                dotColor={nonceDot}
-                testid="pill-nonce"
-                value={status.enforceNonce ? t('trackingHubNonceStrict') : t('trackingHubNonceSoft')}
-              />
-              <KpiItem
-                label={t('hmacWindow')}
-                dotColor={DOTS.info}
-                testid="pill-hmac-window"
-                value={`±${status.hmacWindowSec}s`}
-              />
-              <KpiItem
-                label={t('extHeartbeat')}
-                dotColor={hbDot}
-                testid="pill-heartbeat"
-                value={
-                  hbAge == null
-                    ? t('trackingHubNoSignal')
-                    : hbAge < 180
-                    ? `${hbAge} ${t('trackingHubSecondsAgo')}`
-                    : hbAge < 600
-                    ? `${Math.round(hbAge / 60)} ${t('trackingHubMinAbbr')}`
-                    : `${Math.round(hbAge / 60)} ${t('trackingHubMinAbbr')} ${t('trackingHubStaleSuffix')}`
-                }
-              />
-              <KpiItem
-                label={t('resolverTick')}
-                dotColor={DOTS.info}
-                testid="pill-resolver"
-                value={`${status.resolverIntervalSec}s`}
-              />
-              <KpiItem
-                label={t('transferTick')}
-                dotColor={DOTS.info}
-                testid="pill-transfer"
-                value={`${status.transferDetectIntervalSec}s`}
-              />
-              <KpiItem
-                label={t('pendingExceptions')}
-                dotColor={pendingDot}
-                testid="pill-pending-exceptions"
-                value={automationCount === 0 ? `0 ${t('trackingHubClean')}` : `${automationCount} ${t('trackingHubWaiting')}`}
-              />
-            </>
-          )}
-        </div>
+          {t('trackingHubTitle')}
+        </h1>
+        <p className="text-[13px] sm:text-sm text-[#71717A] mt-1 max-w-2xl leading-relaxed">
+          {t('trackingHubSubtitle')}
+        </p>
       </div>
 
-      {/* ── Sub-nav tabs — flat secondary nav consistent with admin UI ── */}
-      <div className="bg-white border border-[#E4E4E7] rounded-2xl">
-        <nav
-          data-testid="tracking-tabs"
-          className="flex items-stretch gap-0 px-2 overflow-x-auto"
-        >
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const showBadge = tab.badgeKey === 'automationExceptions' && automationCount > 0;
-            return (
-              <NavLink
-                key={tab.to}
-                to={tab.to}
-                data-testid={tab.testid}
-                title={tab.sub}
-                className={({ isActive }) => `
-                  flex items-center gap-2 px-4 py-3 whitespace-nowrap text-[13px]
-                  border-b-2 transition-colors
-                  ${isActive
-                    ? 'border-[#18181B] text-[#18181B] font-semibold'
-                    : 'border-transparent text-[#71717A] hover:text-[#18181B] font-medium'}
-                `}
-              >
-                <Icon size={16} weight="duotone" />
-                <span>{tab.label}</span>
-                {showBadge && (
-                  <span
-                    data-testid={`${tab.testid}-badge`}
-                    className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#F59E0B] text-white text-[10.5px] font-bold leading-none"
-                  >
-                    {automationCount}
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
-        </nav>
+      {/* ── Health KPI strip — 2 cols on mobile, expand on bigger screens ── */}
+      <div
+        data-testid="tracking-health-strip"
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-3"
+      >
+        {loading && (
+          <div className="col-span-full bg-white border border-[#E4E4E7] rounded-2xl px-4 py-3.5 flex items-center gap-2 text-sm text-[#71717A]">
+            <CircleNotch size={14} className="animate-spin" />
+            {t('trackingHubLoadingHealth')}
+          </div>
+        )}
+        {!loading && status && (
+          <>
+            <KpiItem
+              label={t('trackingLabel')}
+              dotColor={trackingDot}
+              testid="pill-tracking"
+              value={status.trackingEnabled ? t('trackingHubKillSwitchOn') : t('trackingHubKillSwitchOff')}
+            />
+            <KpiItem
+              label="Enforce nonce"
+              dotColor={nonceDot}
+              testid="pill-nonce"
+              value={status.enforceNonce ? t('trackingHubNonceStrict') : t('trackingHubNonceSoft')}
+            />
+            <KpiItem
+              label={t('hmacWindow')}
+              dotColor={DOTS.info}
+              testid="pill-hmac-window"
+              value={`±${status.hmacWindowSec}s`}
+            />
+            <KpiItem
+              label={t('extHeartbeat')}
+              dotColor={hbDot}
+              testid="pill-heartbeat"
+              value={
+                hbAge == null
+                  ? t('trackingHubNoSignal')
+                  : hbAge < 180
+                  ? `${hbAge} ${t('trackingHubSecondsAgo')}`
+                  : hbAge < 600
+                  ? `${Math.round(hbAge / 60)} ${t('trackingHubMinAbbr')}`
+                  : `${Math.round(hbAge / 60)} ${t('trackingHubMinAbbr')} ${t('trackingHubStaleSuffix')}`
+              }
+            />
+            <KpiItem
+              label={t('resolverTick')}
+              dotColor={DOTS.info}
+              testid="pill-resolver"
+              value={`${status.resolverIntervalSec}s`}
+            />
+            <KpiItem
+              label={t('transferTick')}
+              dotColor={DOTS.info}
+              testid="pill-transfer"
+              value={`${status.transferDetectIntervalSec}s`}
+            />
+            <KpiItem
+              label={t('pendingExceptions')}
+              dotColor={pendingDot}
+              testid="pill-pending-exceptions"
+              value={automationCount === 0 ? `0 ${t('trackingHubClean')}` : `${automationCount} ${t('trackingHubWaiting')}`}
+            />
+          </>
+        )}
+      </div>
+
+      {/* ── Sub-nav tabs — unified black-outline standard ── */}
+      <div
+        className="inline-flex p-1 bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl gap-1 max-w-full overflow-x-auto"
+        style={{ scrollbarWidth: 'none' }}
+        role="tablist"
+        aria-label="Tracking sections"
+        data-testid="tracking-tabs"
+      >
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const showBadge = tab.badgeKey === 'automationExceptions' && automationCount > 0;
+          return (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              data-testid={tab.testid}
+              title={tab.sub}
+              role="tab"
+              className={({ isActive }) =>
+                [
+                  'inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-[12.5px] sm:text-[13px] whitespace-nowrap shrink-0 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10',
+                  isActive
+                    ? 'bg-white text-[#18181B] font-semibold shadow-[0_0_0_1.5px_#18181B]'
+                    : 'bg-transparent text-[#52525B] hover:text-[#18181B] font-medium',
+                ].join(' ')
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon size={14} weight={isActive ? 'fill' : 'regular'} />
+                  <span>{tab.label}</span>
+                  {showBadge && (
+                    <span
+                      data-testid={`${tab.testid}-badge`}
+                      className={[
+                        'ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[10px] font-semibold',
+                        isActive ? 'bg-[#18181B] text-white' : 'bg-[#F59E0B] text-white',
+                      ].join(' ')}
+                    >
+                      {automationCount}
+                    </span>
+                  )}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
       </div>
 
       {/* ── Active tab content ── */}

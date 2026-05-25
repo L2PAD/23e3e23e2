@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { Package, Plus, Pencil, Trash2, Save, X, RefreshCw, ListChecks, DollarSign, Power, ArrowUp, ArrowDown, Sparkles } from 'lucide-react';
 
 import { useLang } from '../../i18n';
+import WhiteSelect from '../../components/ui/WhiteSelect';
+import RefreshButton from '../../components/ui/RefreshButton';
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 const CATEGORIES = ['import', 'logistics', 'docs', 'custom'];
@@ -136,19 +138,67 @@ export default function AdminServicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Package className="w-7 h-7 text-[#635BFF]" />
-            {t('adm_services_catalog')}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">{t('adm_services_that_managers_can_add_to_invoices_workflo')}</p>
+      {/*
+        ── Services Catalog header ───────────────────────────────────────
+        June 2026 — refresh ALWAYS pinned to the top-RIGHT corner.
+
+        Mobile (< md):
+          ┌───────────────────────────────────────────────────────┐
+          │ [icon]  Services Catalog              [Refresh]       │  ← Row 1
+          │         Services that managers can…                   │
+          ├───────────────────────────────────────────────────────┤
+          │ [ + New service ]                                     │  ← Row 2
+          └───────────────────────────────────────────────────────┘
+
+        Desktop (≥ md):
+          ┌───────────────────────────────────────────────────────┐
+          │ [icon]  Services Catalog       [+ New service][Refr]  │
+          │         subtitle…                                     │
+          └───────────────────────────────────────────────────────┘
+      */}
+      <div className="mb-6">
+        {/* Row 1: icon + title (left) ←——→ refresh (right). Always. */}
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Package className="w-[18px] h-[18px]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-[17px] sm:text-[19px] font-semibold tracking-tight text-[#18181B] leading-tight break-words">
+              {t('adm_services_catalog')}
+            </h1>
+            <p className="mt-1 text-[12.5px] sm:text-[13px] text-[#71717A] leading-relaxed break-words">
+              {t('adm_services_that_managers_can_add_to_invoices_workflo')}
+            </p>
+          </div>
+          {/* Refresh pinned top-RIGHT on every viewport. On desktop we also
+              show the "+ New service" button to the LEFT of refresh in the
+              same row (hidden on mobile — moves to its own row below). */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setEditor(emptyService())}
+              data-testid="new-service-btn-desktop"
+              className="hidden md:inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] active:bg-black text-white text-[12.5px] font-semibold whitespace-nowrap focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15 transition-colors"
+            >
+              <Plus className="w-4 h-4" /> {t('adm_new_service')}
+            </button>
+            <RefreshButton
+              onClick={load}
+              loading={loading}
+              ariaLabel={t('adm_refresh_3')}
+              testId="services-refresh-btn"
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-sm">
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> {t('adm_refresh_3')}
-          </button>
-          <button onClick={() => setEditor(emptyService())} className="flex items-center gap-2 px-4 py-2 bg-[#635BFF] text-white rounded-lg hover:bg-[#5147d4] text-sm font-medium">
+
+        {/* Row 2 (mobile only): + New service on its own line, full button
+            but left-aligned. On desktop this row is hidden (button moved
+            into the header row above). */}
+        <div className="mt-4 md:hidden">
+          <button
+            onClick={() => setEditor(emptyService())}
+            data-testid="new-service-btn"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-[#18181B] hover:bg-[#27272A] active:bg-black text-white text-[13px] font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15 transition-colors"
+          >
             <Plus className="w-4 h-4" /> {t('adm_new_service')}
           </button>
         </div>
@@ -203,124 +253,339 @@ export default function AdminServicesPage() {
         })}
         {items.length === 0 && !loading && (
           <div className="col-span-full text-center py-12 bg-white border border-dashed border-gray-300 rounded-2xl">
-            <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-[#F4F4F5] text-[#71717A] flex items-center justify-center">
+              <Package className="w-6 h-6" />
+            </div>
             <p className="text-gray-500 text-sm">{t('catalogEmpty')}</p>
-            <button onClick={() => setEditor(emptyService())} className="mt-3 px-4 py-2 bg-[#635BFF] text-white rounded-lg text-sm">{t('createFirstService')}</button>
+            <button onClick={() => setEditor(emptyService())} className="mt-3 inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] text-white text-[12.5px] font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15 transition-colors">
+              <Plus className="w-4 h-4" /> {t('createFirstService')}
+            </button>
           </div>
         )}
       </div>
 
       {editor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setEditor(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">{editor.id ? t('adm2_edd431fa5c') : t('adm2_aa9cb4097c')}</h2>
-              <button onClick={() => setEditor(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <Input label={`${t('adm2_ua_505ab38de4').replace(/[()*]/g,'').trim()} (UA)`} value={editor.name} onChange={(v) => setEditor({ ...editor, name: v })} required />
-                <Input label={`${t('adm2_en_f3cef333c8').replace(/[()*]/g,'').trim()} (EN)`} value={editor.name_en} onChange={(v) => setEditor({ ...editor, name_en: v })} />
-                <Input label={`${t('serviceName')} (BG)`} value={editor.name_bg || ''} onChange={(v) => setEditor({ ...editor, name_bg: v })} placeholder={t('adm3_7db9f31f05')} />
-              </div>
-              <Input label={t('adm2_id_9444e12405')} value={editor.code} onChange={(v) => setEditor({ ...editor, code: v.toLowerCase().replace(/[^a-z0-9_]/g, '_') })} placeholder={t('adm_eg_transit_insurance')} />
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('description')} (UA)</label>
-                  <textarea rows={3} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" value={editor.description || ''} onChange={(e) => setEditor({ ...editor, description: e.target.value })} placeholder={t('adm3_83e1640fc0')} />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50"
+          onClick={() => setEditor(null)}
+          data-testid="service-editor-overlay"
+        >
+          <div
+            className="bg-white rounded-2xl border border-[#E4E4E7] shadow-[0_24px_80px_rgba(0,0,0,0.22)] w-[calc(100vw-24px)] sm:w-full max-w-3xl max-h-[90vh] grid grid-rows-[auto_minmax(0,1fr)_auto] relative"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="service-editor-panel"
+          >
+            {/* Sticky header */}
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-[#E4E4E7] rounded-t-2xl">
+              <div className="px-5 sm:px-6 py-4 flex items-start gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-semibold text-[#18181B] leading-6" data-testid="service-editor-title">
+                    {editor.id ? t('adm2_edd431fa5c') : t('adm2_aa9cb4097c')}
+                  </h2>
+                  <p className="mt-0.5 text-sm text-zinc-500 leading-5">
+                    {t('adm_services_that_managers_can_add_to_invoices_workflo')}
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('description')} (EN)</label>
-                  <textarea rows={3} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" value={editor.description_en || ''} onChange={(e) => setEditor({ ...editor, description_en: e.target.value })} placeholder="Description in English" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('description')} (BG)</label>
-                  <textarea rows={3} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" value={editor.description_bg || ''} onChange={(e) => setEditor({ ...editor, description_bg: e.target.value })} placeholder={t('adm3_bf96886f72')} />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('category')}</label>
-                  <select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" value={editor.category} onChange={(e) => setEditor({ ...editor, category: e.target.value })}>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <Input label={t('basePrice')} type="number" value={editor.default_price} onChange={(v) => setEditor({ ...editor, default_price: Number(v) })} />
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('currency')}</label>
-                  <select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" value={editor.currency} onChange={(e) => setEditor({ ...editor, currency: e.target.value })}>
-                    {['USD','EUR','UAH','BGN','GBP'].map((c) => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-medium text-gray-600">{t('adm2_workflow_861fd50d5f')}</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowTemplatePicker(true)}
-                    className="flex items-center gap-1 px-2 py-1 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-lg text-xs font-medium"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" /> {t('adm_apply_template')}
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {(editor.workflow || []).map((w, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded bg-gray-100 text-gray-500 text-xs flex items-center justify-center flex-shrink-0">{idx + 1}</span>
-                      <input className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm" placeholder="key (latin)" value={w.key} onChange={(e) => { const wf = [...editor.workflow]; wf[idx] = { ...wf[idx], key: e.target.value }; setEditor({ ...editor, workflow: wf }); }} />
-                      <input className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm" placeholder={t('stageName')} value={w.label} onChange={(e) => { const wf = [...editor.workflow]; wf[idx] = { ...wf[idx], label: e.target.value }; setEditor({ ...editor, workflow: wf }); }} />
-                      <div className="flex items-center">
-                        <button type="button" disabled={idx === 0} onClick={() => moveStep(idx, -1)} className="p-1.5 hover:bg-gray-100 text-gray-500 rounded disabled:opacity-30" title={t('moveUp')}><ArrowUp className="w-3.5 h-3.5" /></button>
-                        <button type="button" disabled={idx === (editor.workflow || []).length - 1} onClick={() => moveStep(idx, +1)} className="p-1.5 hover:bg-gray-100 text-gray-500 rounded disabled:opacity-30" title={t('moveDown')}><ArrowDown className="w-3.5 h-3.5" /></button>
-                      </div>
-                      <button type="button" onClick={() => setEditor({ ...editor, workflow: editor.workflow.filter((_, i) => i !== idx) })} className="p-1.5 hover:bg-rose-50 text-rose-500 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" onClick={() => setEditor({ ...editor, workflow: [...(editor.workflow || []), { key: 'new_step', label: t('newStage') }] })} className="mt-2 text-xs text-[#635BFF] hover:underline flex items-center gap-1">
-                  <Plus className="w-3 h-3" /> {t('adm_add_stage')}
+                <button
+                  type="button"
+                  onClick={() => setEditor(null)}
+                  aria-label="Close"
+                  className="ml-auto shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#E4E4E7] bg-white text-[#18181B] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+                  data-testid="service-editor-close-button"
+                >
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" checked={!!editor.is_active} onChange={(e) => setEditor({ ...editor, is_active: e.target.checked })} className="rounded border-gray-300" />
-                {t('adm_active_2')}
-              </label>
-            </div>
-            <div className="sticky bottom-0 bg-white px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-2">
-              <button onClick={() => setEditor(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">{t('cancelAction')}</button>
-              <button onClick={saveService} className="flex items-center gap-2 px-4 py-2 bg-[#635BFF] text-white rounded-lg hover:bg-[#5147d4] text-sm font-medium">
-                <Save className="w-4 h-4" />{t('saveAction')}</button>
             </div>
 
-            {/* Template picker overlay */}
+            {/* Scroll body */}
+            <div className="min-h-0 overflow-y-auto px-5 sm:px-6 py-5">
+              <div className="space-y-7">
+
+                {/* Code (full width) */}
+                <Input
+                  label={t('adm2_id_9444e12405')}
+                  value={editor.code}
+                  onChange={(v) => setEditor({ ...editor, code: v.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
+                  placeholder={t('adm_eg_transit_insurance')}
+                  testId="service-editor-code-input"
+                />
+
+                {/* Names section — UA/EN/BG triplet, auto-fit, never 3-col below lg */}
+                <section>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-[#18181B]">Names</h3>
+                    <span className="text-xs text-zinc-500">UA · EN · BG</span>
+                  </div>
+                  <div className="mt-3 border-t border-[#E4E4E7]" />
+                  <div className="mt-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))] lg:[grid-template-columns:repeat(3,minmax(240px,1fr))]">
+                    <Input
+                      label={`${t('adm2_ua_505ab38de4').replace(/[()*]/g, '').trim()} (UA)`}
+                      value={editor.name}
+                      onChange={(v) => setEditor({ ...editor, name: v })}
+                      required
+                      testId="service-editor-name-ua-input"
+                    />
+                    <Input
+                      label={`${t('adm2_en_f3cef333c8').replace(/[()*]/g, '').trim()} (EN)`}
+                      value={editor.name_en}
+                      onChange={(v) => setEditor({ ...editor, name_en: v })}
+                      testId="service-editor-name-en-input"
+                    />
+                    <Input
+                      label={`${t('serviceName')} (BG)`}
+                      value={editor.name_bg || ''}
+                      onChange={(v) => setEditor({ ...editor, name_bg: v })}
+                      placeholder={t('adm3_7db9f31f05')}
+                      testId="service-editor-name-bg-input"
+                    />
+                  </div>
+                </section>
+
+                {/* Descriptions section — UA/EN/BG triplet */}
+                <section>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-[#18181B]">{t('description')}</h3>
+                    <span className="text-xs text-zinc-500">UA · EN · BG</span>
+                  </div>
+                  <div className="mt-3 border-t border-[#E4E4E7]" />
+                  <div className="mt-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))] lg:[grid-template-columns:repeat(3,minmax(240px,1fr))]">
+                    {[
+                      { lng: 'UA', val: editor.description, setter: (v) => setEditor({ ...editor, description: v }), ph: t('adm3_83e1640fc0'), testId: 'service-editor-description-ua' },
+                      { lng: 'EN', val: editor.description_en, setter: (v) => setEditor({ ...editor, description_en: v }), ph: 'Description in English', testId: 'service-editor-description-en' },
+                      { lng: 'BG', val: editor.description_bg, setter: (v) => setEditor({ ...editor, description_bg: v }), ph: t('adm3_bf96886f72'), testId: 'service-editor-description-bg' },
+                    ].map(({ lng, val, setter, ph, testId }) => (
+                      <div key={lng} className="min-w-0">
+                        <label className="block text-sm font-medium text-[#18181B] mb-2">
+                          {t('description')} ({lng})
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={val || ''}
+                          onChange={(e) => setter(e.target.value)}
+                          placeholder={ph}
+                          data-testid={testId}
+                          className="w-full min-w-0 min-h-[120px] resize-y px-3.5 py-2.5 border border-[#E4E4E7] rounded-xl text-sm text-[#18181B] bg-white focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF] transition-colors leading-relaxed"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Pricing section — Category / Base price / Currency, auto-fit */}
+                <section>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-[#18181B]">{t('basePrice')}</h3>
+                    <span className="text-xs text-zinc-500">{t('category')} · {t('currency')}</span>
+                  </div>
+                  <div className="mt-3 border-t border-[#E4E4E7]" />
+                  <div className="mt-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
+                    <div className="min-w-0">
+                      <label className="block text-sm font-medium text-[#18181B] mb-2">{t('category')}</label>
+                      <WhiteSelect
+                        value={editor.category}
+                        onChange={(e) => setEditor({ ...editor, category: e.target.value })}
+                        data-testid="service-editor-category-select"
+                      >
+                        {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </WhiteSelect>
+                    </div>
+                    <Input
+                      label={t('basePrice')}
+                      type="number"
+                      value={editor.default_price}
+                      onChange={(v) => setEditor({ ...editor, default_price: Number(v) })}
+                      testId="service-editor-base-price-input"
+                    />
+                    <div className="min-w-0">
+                      <label className="block text-sm font-medium text-[#18181B] mb-2">{t('currency')}</label>
+                      <WhiteSelect
+                        value={editor.currency}
+                        onChange={(e) => setEditor({ ...editor, currency: e.target.value })}
+                        data-testid="service-editor-currency-select"
+                      >
+                        {['USD', 'EUR', 'UAH', 'BGN', 'GBP'].map((c) => <option key={c} value={c}>{c}</option>)}
+                      </WhiteSelect>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Workflow section */}
+                <section>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <h3 className="text-sm font-semibold text-[#18181B]">{t('adm2_workflow_861fd50d5f')}</h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowTemplatePicker(true)}
+                      className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-[#E4E4E7] bg-white text-sm font-medium text-[#18181B] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+                      data-testid="service-editor-apply-template-button"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+                      {t('adm_apply_template')}
+                    </button>
+                  </div>
+                  <div className="mt-3 border-t border-[#E4E4E7]" />
+                  <div className="mt-4 rounded-2xl border border-[#E4E4E7] bg-white" data-testid="service-editor-workflow-steps-list">
+                    {(editor.workflow || []).length === 0 ? (
+                      <p className="p-6 text-sm text-zinc-500 text-center">No steps yet — add one or apply a template.</p>
+                    ) : (
+                      <div className="p-3 space-y-2">
+                        {(editor.workflow || []).map((w, idx) => (
+                          <div
+                            key={idx}
+                            className="rounded-xl border border-[#E4E4E7] bg-white px-3 py-3 space-y-2"
+                            data-testid="service-editor-workflow-step-item"
+                          >
+                            {/* Top row: number + action buttons */}
+                            <div className="flex items-center gap-2">
+                              <span className="shrink-0 h-8 min-w-[2rem] px-2 rounded-lg bg-zinc-100 text-zinc-600 text-xs font-semibold inline-flex items-center justify-center">
+                                {idx + 1}
+                              </span>
+                              <div className="ml-auto shrink-0 flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => moveStep(idx, -1)}
+                                  className="h-9 w-9 rounded-lg border border-[#E4E4E7] bg-white hover:bg-zinc-50 text-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed inline-flex items-center justify-center transition-colors"
+                                  title={t('moveUp')}
+                                  aria-label="Move up"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === (editor.workflow || []).length - 1}
+                                  onClick={() => moveStep(idx, +1)}
+                                  className="h-9 w-9 rounded-lg border border-[#E4E4E7] bg-white hover:bg-zinc-50 text-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed inline-flex items-center justify-center transition-colors"
+                                  title={t('moveDown')}
+                                  aria-label="Move down"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditor({ ...editor, workflow: editor.workflow.filter((_, i) => i !== idx) })}
+                                  className="h-9 w-9 rounded-lg border border-rose-100 bg-rose-50 hover:bg-rose-100 text-rose-600 inline-flex items-center justify-center transition-colors"
+                                  title={t('deleteAction')}
+                                  aria-label="Delete step"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            {/* Bottom row: key + label inputs (auto-fit, never collapses below 180px) */}
+                            <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
+                              <input
+                                className="w-full min-w-0 px-3 py-2 min-h-[2.5rem] border border-[#E4E4E7] rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]"
+                                placeholder="key (latin)"
+                                value={w.key}
+                                onChange={(e) => {
+                                  const wf = [...editor.workflow];
+                                  wf[idx] = { ...wf[idx], key: e.target.value };
+                                  setEditor({ ...editor, workflow: wf });
+                                }}
+                                data-testid={`service-editor-step-key-input-${idx}`}
+                              />
+                              <input
+                                className="w-full min-w-0 px-3 py-2 min-h-[2.5rem] border border-[#E4E4E7] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]"
+                                placeholder={t('stageName')}
+                                value={w.label}
+                                onChange={(e) => {
+                                  const wf = [...editor.workflow];
+                                  wf[idx] = { ...wf[idx], label: e.target.value };
+                                  setEditor({ ...editor, workflow: wf });
+                                }}
+                                data-testid={`service-editor-step-label-input-${idx}`}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditor({ ...editor, workflow: [...(editor.workflow || []), { key: 'new_step', label: t('newStage') }] })}
+                    className="mt-3 inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-[#E4E4E7] bg-white text-sm font-medium text-[#635BFF] hover:bg-violet-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+                    data-testid="service-editor-add-workflow-step-button"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {t('adm_add_stage')}
+                  </button>
+                </section>
+
+                {/* Active toggle */}
+                <div className="flex items-center gap-3 rounded-xl border border-[#E4E4E7] bg-white px-4 py-3">
+                  <input
+                    type="checkbox"
+                    id="service-editor-active-checkbox"
+                    checked={!!editor.is_active}
+                    onChange={(e) => setEditor({ ...editor, is_active: e.target.checked })}
+                    className="w-4 h-4 rounded border-zinc-300 text-[#635BFF] focus:ring-[#635BFF]/30"
+                    data-testid="service-editor-active-checkbox"
+                  />
+                  <label htmlFor="service-editor-active-checkbox" className="text-sm font-medium text-[#18181B] select-none cursor-pointer">
+                    {t('adm_active_2')}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Sticky footer */}
+            <div className="sticky bottom-0 z-10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t border-[#E4E4E7] rounded-b-2xl">
+              <div className="px-5 sm:px-6 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditor(null)}
+                    className="h-11 w-full rounded-xl border border-[#E4E4E7] bg-white text-[#18181B] font-medium hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+                    data-testid="service-editor-cancel-button"
+                  >
+                    {t('cancelAction')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveService}
+                    className="h-11 w-full rounded-xl bg-[#18181B] text-white font-medium hover:bg-[#27272A] active:bg-black transition-colors inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
+                    data-testid="service-editor-save-button"
+                  >
+                    <Save className="w-4 h-4" />
+                    {t('saveAction')}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Template picker overlay (inside the modal panel) */}
             {showTemplatePicker && (
-              <div className="absolute inset-0 bg-zinc-900/50 flex items-center justify-center p-6" onClick={() => setShowTemplatePicker(false)}>
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-                  <div className="px-4 py-3 border-b border-zinc-200 flex items-center justify-between">
+              <div className="absolute inset-0 bg-zinc-900/50 flex items-center justify-center p-4 sm:p-6 rounded-2xl" onClick={() => setShowTemplatePicker(false)}>
+                <div className="bg-white rounded-2xl shadow-2xl w-[calc(100%-24px)] sm:w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col border border-[#E4E4E7]" onClick={(e) => e.stopPropagation()}>
+                  <div className="px-4 py-3 border-b border-[#E4E4E7] flex items-center justify-between">
                     <h3 className="font-semibold text-zinc-900 flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-violet-600" /> {t('adm_workflow_template')}
                     </h3>
-                    <button onClick={() => setShowTemplatePicker(false)} className="p-1.5 hover:bg-zinc-100 rounded-lg"><X className="w-4 h-4" /></button>
+                    <button onClick={() => setShowTemplatePicker(false)} className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-[#E4E4E7] bg-white hover:bg-zinc-50 transition-colors" aria-label="Close">
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-3">
                     {templates.length === 0 ? (
                       <p className="text-sm text-zinc-500 text-center py-6">{t('noTemplatesYet')}</p>
-                    ) : templates.map((t) => (
+                    ) : templates.map((tpl) => (
                       <button
-                        key={t.id}
-                        onClick={() => applyTemplate(t)}
-                        className="w-full text-left p-3 rounded-xl hover:bg-zinc-50 border border-zinc-100 mb-2"
+                        key={tpl.id}
+                        onClick={() => applyTemplate(tpl)}
+                        className="w-full text-left p-3 rounded-xl hover:bg-zinc-50 border border-[#E4E4E7] mb-2 transition-colors"
                       >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-zinc-900">{t.name}</p>
-                            {t.description && <p className="text-xs text-zinc-500 mt-0.5">{t.description}</p>}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-zinc-900 truncate">{tpl.name}</p>
+                            {tpl.description && <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">{tpl.description}</p>}
                           </div>
-                          <span className="text-xs px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full">{(t.steps || []).length} {t('adm3_a05981dbfb')}</span>
+                          <span className="text-xs px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full shrink-0">{(tpl.steps || []).length} {t('adm3_a05981dbfb')}</span>
                         </div>
                         <div className="mt-2 flex items-center gap-1 flex-wrap">
-                          {(t.steps || []).map((s, i) => (
+                          {(tpl.steps || []).map((s, i) => (
                             <span key={i} className="text-[10px] px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded">{s.label}</span>
                           ))}
                         </div>
@@ -337,12 +602,21 @@ export default function AdminServicesPage() {
   );
 }
 
-function Input({ label, value, onChange, type = 'text', required, placeholder }) {
-  const { t } = useLang();
+function Input({ label, value, onChange, type = 'text', required, placeholder, testId }) {
   return (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">{label}{required && <span className="text-rose-500">*</span>}</label>
-      <input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20" />
+    <div className="min-w-0">
+      <label className="block text-sm font-medium text-[#18181B] mb-2">
+        {label}
+        {required && <span className="ml-0.5 text-rose-500">*</span>}
+      </label>
+      <input
+        type={type}
+        value={value === null || value === undefined ? '' : value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        data-testid={testId}
+        className="w-full min-w-0 px-3.5 py-2.5 min-h-[2.75rem] border border-[#E4E4E7] rounded-xl text-sm text-[#18181B] bg-white focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF] transition-colors"
+      />
     </div>
   );
 }

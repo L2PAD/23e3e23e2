@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Heart,
-  GitCompare,
+  Scale,
   Search,
   Loader2,
   AlertTriangle,
@@ -247,12 +247,23 @@ export default function VinResultPage() {
         /* silent */
       }
 
-      // Compare — check local list for now
+      // Compare — backend is the source of truth (no more localStorage).
+      // Guests get a "not comparing" state; clicking will prompt sign-in.
       try {
-        const list = JSON.parse(localStorage.getItem('bibi_compare') || '[]');
-        if (!cancelled) setInCompare(list.includes(favoriteKey));
+        if (!getCustomerToken()) {
+          if (!cancelled) setInCompare(false);
+        } else {
+          const list = await userEngagementApi.compare.getMine();
+          const arr = Array.isArray(list) ? list : [];
+          const upper = String(favoriteKey).toUpperCase();
+          if (!cancelled) {
+            setInCompare(
+              arr.some((x) => String(x?.vin || x?.vehicleId || '').toUpperCase() === upper),
+            );
+          }
+        }
       } catch (_) {
-        /* silent */
+        if (!cancelled) setInCompare(false);
       }
     })();
     return () => {
@@ -326,45 +337,87 @@ export default function VinResultPage() {
       toast.error('Wait for vehicle to load first');
       return;
     }
+    // Compare is auth-gated platform-wide (same as Favorites).
+    if (!getCustomerToken()) {
+      toast.info('Увійдіть, щоб додати до Порівняння', {
+        description: 'Перенаправляємо на сторінку входу…',
+        action: {
+          label: 'Sign in',
+          onClick: () => navigate(
+            `/cabinet/login?redirect=${encodeURIComponent(window.location.pathname)}`,
+          ),
+        },
+      });
+      return;
+    }
+
     setCmpBusy(true);
     try {
-      let list = [];
-      try {
-        list = JSON.parse(localStorage.getItem('bibi_compare') || '[]');
-        if (!Array.isArray(list)) list = [];
-      } catch (_) {
-        list = [];
-      }
-      const already = list.includes(favoriteKey);
-      if (already) {
-        const next = list.filter((v) => v !== favoriteKey);
-        localStorage.setItem('bibi_compare', JSON.stringify(next));
+      if (inCompare) {
+        await userEngagementApi.compare.remove(favoriteKey);
         setInCompare(false);
         toast.success('Removed from compare');
-        try {
-          await axios.post(
-            `${API}/api/compare/remove/${encodeURIComponent(favoriteKey)}`
-          );
-        } catch (_) {
-          /* non-blocking */
-        }
       } else {
-        if (list.length >= 4) {
-          toast.error('Compare is limited to 4 vehicles — remove one first');
-          return;
-        }
-        const next = [...list, favoriteKey];
-        localStorage.setItem('bibi_compare', JSON.stringify(next));
+        const res = await userEngagementApi.compare.add({
+          vin: favoriteKey,
+          vehicleId: data.vin || data.lot_number || favoriteKey,
+          snapshot: {
+            title: data.title,
+            year: data.year,
+            make: data.make,
+            model: data.model,
+            trim: data.trim,
+            price: data.price,
+            currency: data.currency || 'USD',
+            image: data.image_urls?.[0] || data.image || null,
+            lot_number: data.lot_number,
+            auction_name: data.auction_name,
+            odometer: data.odometer,
+            odometer_unit: data.odometer_unit,
+            sourcePage: window.location.pathname,
+          },
+        });
         setInCompare(true);
-        toast.success('Added to compare');
-        try {
-          await axios.post(`${API}/api/compare/add`, {
-            customerId: customer?.customerId || 'guest',
-            vin: favoriteKey,
+        const count = typeof res?.count === 'number' ? res.count : null;
+        const openCompare = () => {
+          const cid = customer?.customerId
+            || (() => { try { return JSON.parse(localStorage.getItem('customer_session') || 'null')?.customerId; } catch { return null; } })();
+          navigate(cid ? `/cabinet/${cid}/compare` : '/cabinet/compare');
+        };
+        if (count === 1 || res?.needsMore === true) {
+          toast.success('Added to compare', {
+            duration: 5500,
+            description: 'Add at least 1 more car to start comparing',
           });
-        } catch (_) {
-          /* non-blocking */
+        } else if (count === 2) {
+          toast.success('Ready to compare!', {
+            duration: 6500,
+            description: '2 cars selected — open the comparison view',
+            action: { label: 'Open compare', onClick: openCompare },
+          });
+        } else {
+          toast.success('Compare list is full (3/3)', {
+            duration: 5500,
+            description: 'Open the comparison view or remove a car to add another',
+            action: { label: 'Open compare', onClick: openCompare },
+          });
         }
+      }
+    } catch (err) {
+      // 409 → backend cap reached (max 3)
+      if (err?.status === 409) {
+        toast.error(err?.message || 'Compare is limited to 3 vehicles — remove one first');
+      } else if (err?.status === 401 || err?.status === 403) {
+        toast.info('Увійдіть, щоб додати до Порівняння', {
+          action: {
+            label: 'Sign in',
+            onClick: () => navigate(
+              `/cabinet/login?redirect=${encodeURIComponent(window.location.pathname)}`,
+            ),
+          },
+        });
+      } else {
+        toast.error(err?.message || 'Could not update compare');
       }
     } finally {
       setCmpBusy(false);
@@ -590,7 +643,7 @@ export default function VinResultPage() {
                 disabled={cmpBusy || !data}
                 data-testid="vin-result-compare"
               >
-                <GitCompare size={16} />
+                <Scale size={16} />
               </button>
               <button
                 type="button"

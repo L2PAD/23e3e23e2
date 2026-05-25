@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
 import {
   Truck,
   Warning,
@@ -81,6 +83,11 @@ const ManagerShipmentsPage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      <Breadcrumb items={[
+        { label: 'My Workspace', to: '/manager' },
+        { label: 'My Shipments' },
+      ]} />
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
@@ -116,7 +123,7 @@ const ManagerShipmentsPage = () => {
                     </h3>
                     <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
                       ship.status === 'delivered' ? 'bg-[#ECFDF5] text-[#059669]' :
-                      ship.status === 'in_transit' ? 'bg-[#EEF2FF] text-[#4F46E5]' :
+                      ship.status === 'in_transit' ? 'bg-[#F4F4F5] text-[#18181B]' :
                       ship.status === 'customs' ? 'bg-[#FEF3C7] text-[#D97706]' :
                       'bg-[#F4F4F5] text-[#71717A]'
                     }`}>
@@ -190,7 +197,7 @@ const ManagerShipmentsPage = () => {
                   ) : (
                     <button
                       onClick={() => setShowAddTracking(ship._id)}
-                      className="flex items-center gap-2 px-4 py-2 border border-[#E4E4E7] text-[#4F46E5] rounded-xl hover:bg-[#EEF2FF] transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 border border-[#E4E4E7] text-[#18181B] rounded-xl hover:bg-[#F4F4F5] transition-colors"
                     >
                       <Plus size={16} /> {t('adm_add_tracking_number')}
                     </button>

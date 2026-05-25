@@ -15,6 +15,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useLang, getLocale } from '../../i18n';
+import RefreshButton from '../../components/ui/RefreshButton';
 import { 
   FileText, 
   Clock, 
@@ -391,13 +392,11 @@ export default function HistoryReportsPage() {
             <p className="text-zinc-500">{t('adm3_vin_4e712c23cb')}</p>
           </div>
         </div>
-        <button
+        <RefreshButton
           onClick={loadReports}
-          className="p-2 rounded-xl hover:bg-zinc-100 transition-colors"
-          data-testid="refresh-reports"
-        >
-          <ArrowClockwise size={20} className="text-zinc-600" />
-        </button>
+          ariaLabel="Refresh"
+          testId="refresh-reports"
+        />
       </div>
 
       {/* Search & Filters */}

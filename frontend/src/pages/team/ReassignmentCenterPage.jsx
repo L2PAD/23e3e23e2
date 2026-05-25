@@ -21,6 +21,10 @@ import {
   Queue,
   Lightning
 } from '@phosphor-icons/react';
+import WhiteSelect from '../../components/ui/WhiteSelect';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const ReassignmentCenterPage = () => {
   const { t } = useLang();
@@ -97,19 +101,32 @@ const ReassignmentCenterPage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Reassignment Center' },
+      ]} />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('reassignmentCenter')}
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('leadsNeedReassignment')}
-          </p>
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <ArrowsClockwise size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('reassignmentCenter')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('leadsNeedReassignment')}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#FEF3C7] text-[#D97706] rounded-xl">
-          <ArrowsClockwise size={18} weight="duotone" />
-          <span className="font-medium">{reassignments.length} {t('pending')}</span>
+        <div className="flex items-center gap-2 shrink-0 self-start">
+          <RefreshButton onClick={fetchData} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="reassignment-refresh-btn" />
+          <div className="flex items-center gap-2 px-3 py-2 bg-[#FEF3C7] text-[#D97706] rounded-xl text-sm">
+            <ArrowsClockwise size={16} weight="duotone" />
+            <span className="font-medium whitespace-nowrap">{reassignments.length} {t('pending')}</span>
+          </div>
         </div>
       </div>
 
@@ -175,17 +192,14 @@ const ReassignmentCenterPage = () => {
 
               {/* Actions */}
               <div className="flex items-center gap-3">
-                <select
-                  className="flex-1 px-3 py-2 border border-[#E4E4E7] rounded-xl text-sm"
-                  defaultValue={item.suggestedManagerId || ''}
-                >
+                <WhiteSelect className="flex-1" defaultValue={item.suggestedManagerId || ''}>
                   <option value="">{t('selectNewManager')}</option>
                   {managers.map(m => (
                     <option key={m._id} value={m._id}>
                       {m.name} ({m.activeLeads || 0} {t('leadsTab').toLowerCase()})
                     </option>
                   ))}
-                </select>
+                </WhiteSelect>
                 <button
                   onClick={() => handleAccept(item._id, item.suggestedManagerId)}
                   className="px-4 py-2 bg-[#059669] text-white rounded-xl text-sm font-medium hover:bg-[#047857] transition-colors flex items-center gap-2"
@@ -194,7 +208,7 @@ const ReassignmentCenterPage = () => {
                 </button>
                 <button
                   onClick={() => handleSendToQueue(item._id)}
-                  className="px-4 py-2 bg-[#EEF2FF] text-[#4F46E5] rounded-xl text-sm font-medium hover:bg-[#E0E7FF] transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-[#F4F4F5] text-[#18181B] rounded-xl text-sm font-medium hover:bg-[#E4E4E7] transition-colors flex items-center gap-2"
                 >
                   <Queue size={16} /> {t('toQueue') || 'To Queue'}
                 </button>

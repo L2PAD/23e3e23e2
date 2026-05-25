@@ -27,8 +27,10 @@ import {
   Target,
   Hourglass,
   CheckCircle,
-  XCircle
+  XCircle,
+  Sparkle
 } from '@phosphor-icons/react';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const TeamDashboardPage = () => {
   const { t } = useLang();
@@ -46,6 +48,10 @@ const TeamDashboardPage = () => {
   const [alerts, setAlerts] = useState([]);
   const [overdueInvoices, setOverdueInvoices] = useState([]);
   const [shipmentIssues, setShipmentIssues] = useState([]);
+  // Top Deals approval queue — pending count is shown as a KPI card and a
+  // dedicated alert widget so the team lead immediately sees there is
+  // outstanding curation work waiting for them.
+  const [topDealsPending, setTopDealsPending] = useState(0);
 
   useEffect(() => {
     fetchDashboardData();
@@ -53,12 +59,14 @@ const TeamDashboardPage = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [kpiRes, managersRes, alertsRes, invoicesRes, shipmentsRes] = await Promise.all([
+      const [kpiRes, managersRes, alertsRes, invoicesRes, shipmentsRes, wishlistRes] = await Promise.all([
         axios.get(`${API_URL}/api/team/dashboard`).catch(() => ({ data: { kpi: {} } })),
         axios.get(`${API_URL}/api/team/managers`).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/team/alerts`).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/team/payments/overdue`).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/team/shipping/stalled`).catch(() => ({ data: [] })),
+        axios.get(`${API_URL}/api/team-lead/wishlist-deals`, { params: { status: 'pending' } })
+          .catch(() => ({ data: { counts: { pending: 0 } } })),
       ]);
 
       setKpi(kpiRes.data?.kpi || kpiRes.data || {});
@@ -70,6 +78,7 @@ const TeamDashboardPage = () => {
       setOverdueInvoices(Array.isArray(invoicesData) ? invoicesData : []);
       const shipmentsData = shipmentsRes.data?.data || shipmentsRes.data || [];
       setShipmentIssues(Array.isArray(shipmentsData) ? shipmentsData : []);
+      setTopDealsPending(Number(wishlistRes?.data?.counts?.pending) || 0);
     } catch (err) {
       console.error('Dashboard error:', err);
     } finally {
@@ -92,44 +101,119 @@ const TeamDashboardPage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            {t('teamDashboard')}
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            {t('teamDashboardDesc')}
-          </p>
+      {/* Header — Refresh docked top-right; secondary nav links (Managers / Reassignments)
+          drop to their own bottom-left row, vertically centered with equal heights. */}
+      <div className="space-y-3">
+        <div className="flex flex-row items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+              <ChartLineUp size={18} weight="duotone" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+                {t('teamDashboard')}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#71717A] mt-0.5 break-words">
+                {t('teamDashboardDesc')}
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0">
+            <RefreshButton onClick={fetchDashboardData} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="team-dashboard-refresh-btn" />
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Link to="/team/managers" className="px-4 py-2 bg-[#18181B] text-white rounded-xl text-sm font-medium hover:bg-[#27272A] transition-colors">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            to="/team/managers"
+            className="inline-flex items-center justify-center h-9 px-4 bg-[#18181B] text-white rounded-xl text-sm font-medium hover:bg-[#27272A] active:bg-black transition-colors whitespace-nowrap leading-none focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
+            data-testid="dash-managers-link"
+          >
             {t('managers')}
           </Link>
-          <Link to="/team/reassignments" className="px-4 py-2 border border-[#E4E4E7] text-[#18181B] rounded-xl text-sm font-medium hover:bg-[#F4F4F5] transition-colors">
+          <Link
+            to="/team/reassignments"
+            className="inline-flex items-center justify-center h-9 px-4 bg-white border border-[#E4E4E7] text-[#18181B] rounded-xl text-sm font-medium hover:bg-[#F4F4F5] transition-colors whitespace-nowrap leading-none focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+            data-testid="dash-reassignments-link"
+          >
             {t('reassignments')}
           </Link>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — neutral black icons; semantic red applies only on alert. */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <KPICard icon={Users} label={t('activeLeads')} value={kpi.activeLeads || 0} color="#4F46E5" />
-        <KPICard icon={Fire} label={t('hotLeads')} value={kpi.hotLeads || 0} color="#DC2626" alert={kpi.hotLeads > 0} />
-        <KPICard icon={Hourglass} label={t('staleLeads')} value={kpi.staleLeads || 0} color="#D97706" alert={kpi.staleLeads > 3} />
-        <KPICard icon={Clock} label={t('overdueTasks')} value={kpi.overdueTasks || 0} color="#7C3AED" alert={kpi.overdueTasks > 5} />
-        <KPICard icon={CreditCard} label={t('overdueInvoices')} value={kpi.overdueInvoices || 0} color="#059669" alert={kpi.overdueInvoices > 0} />
-        <KPICard icon={Truck} label={t('stalledShipments')} value={kpi.stalledShipments || 0} color="#0891B2" alert={kpi.stalledShipments > 0} />
+        <KPICard icon={Users} label={t('activeLeads')} value={kpi.activeLeads || 0} color="#18181B" />
+        <KPICard icon={Fire} label={t('hotLeads')} value={kpi.hotLeads || 0} color={kpi.hotLeads > 0 ? '#DC2626' : '#18181B'} alert={kpi.hotLeads > 0} />
+        <KPICard icon={Hourglass} label={t('staleLeads')} value={kpi.staleLeads || 0} color={kpi.staleLeads > 3 ? '#DC2626' : '#18181B'} alert={kpi.staleLeads > 3} />
+        <KPICard icon={Clock} label={t('overdueTasks')} value={kpi.overdueTasks || 0} color={kpi.overdueTasks > 5 ? '#DC2626' : '#18181B'} alert={kpi.overdueTasks > 5} />
+        <KPICard icon={CreditCard} label={t('overdueInvoices')} value={kpi.overdueInvoices || 0} color={kpi.overdueInvoices > 0 ? '#DC2626' : '#18181B'} alert={kpi.overdueInvoices > 0} />
+        <KPICard icon={Truck} label={t('stalledShipments')} value={kpi.stalledShipments || 0} color={kpi.stalledShipments > 0 ? '#DC2626' : '#18181B'} alert={kpi.stalledShipments > 0} />
       </div>
+
+      {/* Top Deals approval queue — outstanding tasks for the team lead.
+          Always shown so the team lead sees both the "empty" healthy state
+          and the "N waiting" alert state at a glance. */}
+      <Link
+        to="/team/wishlist-approvals"
+        data-testid="td-approvals-widget"
+        className={`block rounded-2xl border p-5 transition group ${
+          topDealsPending > 0
+            ? 'bg-gradient-to-r from-amber-50 to-rose-50 border-amber-200 hover:border-amber-300'
+            : 'bg-white border-[#E4E4E7] hover:border-[#A1A1AA]'
+        }`}
+      >
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+            topDealsPending > 0 ? 'bg-amber-100' : 'bg-[#F4F4F5]'
+          }`}>
+            <Sparkle
+              size={28}
+              weight={topDealsPending > 0 ? 'fill' : 'duotone'}
+              className={topDealsPending > 0 ? 'text-amber-600' : 'text-[#71717A]'}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-[#18181B] text-base">
+                Top Deals approval queue
+              </h3>
+              {topDealsPending > 0 && (
+                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-amber-500 text-white">
+                  Action required
+                </span>
+              )}
+            </div>
+            <div className="text-sm text-[#71717A] mt-1">
+              {topDealsPending > 0 ? (
+                <>
+                  <span className="font-semibold text-amber-700">
+                    {topDealsPending} card{topDealsPending === 1 ? '' : 's'}
+                  </span>{' '}
+                  waiting for your approval — go in and bulk-approve to ship the homepage update.
+                </>
+              ) : (
+                'No pending wishlist cards — homepage is up to date.'
+              )}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className={`text-4xl font-bold ${topDealsPending > 0 ? 'text-amber-700' : 'text-[#18181B]'}`}>
+              {topDealsPending}
+            </div>
+            <div className="text-[10px] uppercase tracking-wider text-[#71717A]">pending</div>
+          </div>
+          <ArrowRight size={22} className="text-[#71717A] group-hover:text-[#18181B] group-hover:translate-x-1 transition" />
+        </div>
+      </Link>
 
       {/* Manager Load Board */}
       <div className="bg-white rounded-2xl border border-[#E4E4E7] overflow-hidden">
         <div className="px-5 py-4 border-b border-[#E4E4E7] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users size={20} className="text-[#4F46E5]" weight="duotone" />
+            <Users size={20} className="text-[#18181B]" weight="duotone" />
             <h3 className="font-semibold text-[#18181B]">{t('managerLoadBoard')}</h3>
           </div>
-          <Link to="/team/managers" className="text-sm text-[#4F46E5] hover:underline flex items-center gap-1">
+          <Link to="/team/managers" className="text-sm text-[#18181B] hover:underline flex items-center gap-1">
             {t('allManagers') || t('teamManagers')} <ArrowRight size={14} />
           </Link>
         </div>
@@ -160,7 +244,7 @@ const TeamDashboardPage = () => {
                   <tr key={m.managerId || idx} className="hover:bg-[#FAFAFA] transition-colors">
                     <td className="px-4 py-3">
                       <Link to={`/team/managers/${m.managerId || m._id}`} className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[#EEF2FF] rounded-full flex items-center justify-center text-sm font-medium text-[#4F46E5]">
+                        <div className="w-8 h-8 bg-[#F4F4F5] rounded-full flex items-center justify-center text-sm font-medium text-[#18181B]">
                           {(m.name || 'M')[0]}
                         </div>
                         <span className="font-medium text-[#18181B]">{m.name || t('managerAlerts')}</span>
@@ -170,7 +254,8 @@ const TeamDashboardPage = () => {
                       <span className={`px-2 py-1 text-xs font-bold rounded-full ${
                         (m.band || '').toLowerCase() === 'high' ? 'bg-[#ECFDF5] text-[#059669]' :
                         (m.band || '').toLowerCase() === 'medium' ? 'bg-[#FEF3C7] text-[#D97706]' :
-                        'bg-[#FEF2F2] text-[#DC2626]'
+                        (m.band || '').toLowerCase() === 'low' ? 'bg-[#FEF2F2] text-[#DC2626]' :
+                        'bg-[#F4F4F5] text-[#71717A]'
                       }`}>
                         {m.band?.toUpperCase() || 'N/A'} {m.performanceScore || 0}
                       </span>
@@ -222,7 +307,7 @@ const TeamDashboardPage = () => {
               <CreditCard size={20} className="text-[#DC2626]" weight="duotone" />
               <h3 className="font-semibold text-[#18181B]">{t('unpaidInvoices')}</h3>
             </div>
-            <Link to="/team/payments" className="text-sm text-[#4F46E5] hover:underline">
+            <Link to="/team/payments" className="text-sm text-[#18181B] hover:underline">
               {t('viewAll')}
             </Link>
           </div>
@@ -255,7 +340,7 @@ const TeamDashboardPage = () => {
               <Truck size={20} className="text-[#D97706]" weight="duotone" />
               <h3 className="font-semibold text-[#18181B]">{t('shippingWatch')}</h3>
             </div>
-            <Link to="/team/shipping" className="text-sm text-[#4F46E5] hover:underline">
+            <Link to="/team/shipping" className="text-sm text-[#18181B] hover:underline">
               {t('viewAll')}
             </Link>
           </div>

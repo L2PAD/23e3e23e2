@@ -32,6 +32,8 @@ import {
   Star
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
+import { AdminPageHeader } from '../../components/ui/AdminPagePrimitives';
+import SectionTabs from '../../components/ui/SectionTabs';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
@@ -249,33 +251,27 @@ export default function KPIDashboard() {
   }
 
   return (
-    <div className="space-y-6" data-testid="kpi-dashboard">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{t('kpiDashboard')}</h1>
-          <p className="text-zinc-500">{t('teamPerformanceTitle')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {['overview', 'team', 'alerts'].map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                ${view === v 
-                  ? 'bg-zinc-900 text-white' 
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
-            >
-              {v === 'overview' ? t('adm2_b32ea18d30') : v === 'team' ? t('adm2_85bd6ff189') : t('adm2_4eb7b87ef0')}
-              {v === 'alerts' && alerts.length > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-xs">
-                  {alerts.length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="space-y-4 sm:space-y-5" data-testid="kpi-dashboard">
+      <AdminPageHeader
+        icon={ChartLine}
+        title={t('kpiDashboard')}
+        subtitle={t('teamPerformanceTitle')}
+        testId="kpi-header"
+        actions={(
+          <SectionTabs
+            tabs={[
+              { id: 'overview', label: t('adm2_b32ea18d30') || 'Overview' },
+              { id: 'team',     label: t('adm2_85bd6ff189') || 'Team' },
+              { id: 'alerts',   label: t('adm2_4eb7b87ef0') || 'Alerts', badge: alerts.length || undefined },
+            ]}
+            activeId={view}
+            onChange={setView}
+            testIdPrefix="kpi-view"
+            ariaLabel="KPI view"
+            className="-mx-1 sm:mx-0"
+          />
+        )}
+      />
 
       {/* Overview Stats */}
       {view === 'overview' && dashboard && (

@@ -276,6 +276,17 @@ export default function VehicleCardRow({ vehicle, onClick }) {
   const handleCompare = useCallback(async (e) => {
     e.stopPropagation();
     if (!vin || busy || isSold) return;
+    // Auth-gate (same UX as Favorites) — guests get a clear sign-in prompt
+    // instead of a silent 401 from the backend.
+    if (!getCustomerToken()) {
+      toast.info(t('toastSignInToCompare') || 'Sign in to add cars to comparison', {
+        action: {
+          label: t('toastSignIn') || 'Sign in',
+          onClick: () => { if (typeof window !== 'undefined') window.location.href = '/customer/login'; },
+        },
+      });
+      return;
+    }
     setBusy(true);
     try {
       if (isComparing) {
@@ -283,12 +294,47 @@ export default function VehicleCardRow({ vehicle, onClick }) {
         setIsComparing(false);
         toast.success(t('toastRemovedCompare') || 'Removed from comparison');
       } else {
-        await userEngagementApi.compare.add(buildPayload());
+        const res = await userEngagementApi.compare.add(buildPayload());
         setIsComparing(true);
-        toast.success(t('toastAddedCompare') || 'Added to comparison');
+        const count = typeof res?.count === 'number' ? res.count : null;
+        const openCompare = () => {
+          let cid = null;
+          try { cid = JSON.parse(localStorage.getItem('customer_session') || 'null')?.customerId; }
+          catch { cid = null; }
+          window.location.href = cid ? `/cabinet/${cid}/compare` : '/cabinet/compare';
+        };
+        if (count === 1 || res?.needsMore === true) {
+          toast.success(t('toastAddedCompare') || 'Added to comparison', {
+            duration: 5500,
+            description: t('toastCompareNeedMoreDesc') || 'Add at least 1 more car to start comparing',
+          });
+        } else if (count === 2) {
+          toast.success(t('toastCompareReady') || 'Ready to compare!', {
+            duration: 6500,
+            description: t('toastCompareReadyDesc') || '2 cars selected — open the comparison view',
+            action: { label: t('toastOpenCompare') || 'Open compare', onClick: openCompare },
+          });
+        } else {
+          toast.success(t('toastCompareFull') || 'Compare list is full (3/3)', {
+            duration: 5500,
+            description: t('toastCompareFullDesc') || 'Open the comparison view or remove a car to add another',
+            action: { label: t('toastOpenCompare') || 'Open compare', onClick: openCompare },
+          });
+        }
       }
     } catch (err) {
-      toast.error(err?.response?.data?.detail || err?.message || t('toastCompareError') || 'Could not update compare list');
+      // Surface 401/403 explicitly (in case the token was revoked between
+      // the auth check above and the API call).
+      if (err?.status === 401 || err?.status === 403 || err?.response?.status === 401 || err?.response?.status === 403) {
+        toast.info(t('toastSignInToCompare') || 'Sign in to add cars to comparison', {
+          action: {
+            label: t('toastSignIn') || 'Sign in',
+            onClick: () => { if (typeof window !== 'undefined') window.location.href = '/customer/login'; },
+          },
+        });
+      } else {
+        toast.error(err?.response?.data?.detail || err?.message || t('toastCompareError') || 'Could not update compare list');
+      }
     } finally { setBusy(false); }
   }, [vin, busy, isComparing, isSold, buildPayload, t]);
 
@@ -442,7 +488,7 @@ export default function VehicleCardRow({ vehicle, onClick }) {
          *  via CSS only.  On desktop `.specItem { display:contents }` keeps
          *  the existing 2-col label/value grid intact. */}
         <div className={styles.dataRow}>
-          <div className={styles.specBlock}>
+          <div className={`${styles.specBlock} ${isSold ? styles.specBlockMuted : ''}`}>
             <div className={styles.specItem}>
               <span className={styles.specLabel}>{t('cardMileage') || 'Mileage'}</span>
               <span className={styles.specValue}>{mileage}</span>

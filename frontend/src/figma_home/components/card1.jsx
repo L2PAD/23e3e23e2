@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useLang } from "../../i18n";
 import { userEngagementApi, getCustomerToken } from "../../lib/api";
 import ShareModal from "../../components/public/ShareModal";
+import { optimizeImage, ImageSize } from "../../lib/optimizeImage";
 import styles from "./card1.module.css";
 
 const FALLBACK_IMG = "/figma/image-15@2x.webp";
@@ -46,6 +47,12 @@ const T = {
     addedToFavorites: "Added to favorites",
     removedFromFavorites: "Removed from favorites",
     addedToCompare: "Added to compare",
+    addedToCompareNeedMore: "Add at least 1 more car to start comparing",
+    compareReadyTitle: "Ready to compare!",
+    compareReadyDesc: "2 cars selected — open the comparison view",
+    compareFullTitle: "Compare list is full (3/3)",
+    compareFullDesc: "Open the comparison view or remove a car to add another",
+    openCompareBtn: "Open compare",
     removedFromCompare: "Removed from compare",
     couldNotUpdateFavorites: "Could not update favorites",
     couldNotUpdateCompare: "Could not update compare",
@@ -72,6 +79,12 @@ const T = {
     addedToFavorites: "Добавено в любими",
     removedFromFavorites: "Премахнато от любими",
     addedToCompare: "Добавено за сравнение",
+    addedToCompareNeedMore: "Добавете още поне 1 автомобил, за да започнете сравнението",
+    compareReadyTitle: "Готово за сравнение!",
+    compareReadyDesc: "Избрани са 2 автомобила — отворете изгледа за сравнение",
+    compareFullTitle: "Списъкът за сравнение е пълен (3/3)",
+    compareFullDesc: "Отворете сравнението или премахнете автомобил, за да добавите друг",
+    openCompareBtn: "Отвори сравнение",
     removedFromCompare: "Премахнато от сравнение",
     couldNotUpdateFavorites: "Не успяхме да обновим любими",
     couldNotUpdateCompare: "Не успяхме да обновим сравнението",
@@ -295,6 +308,7 @@ const Card1 = ({
   const handleCmp = async (e) => {
     e.preventDefault(); e.stopPropagation();
     if (!vin || busyCmp) return;
+    if (!requireAuth()) return;  // guest → show sign-in modal, don't call API
     if (cmpFull) {
       toast.info(t.compareFull, { duration: 2200 });
       return;
@@ -309,21 +323,51 @@ const Card1 = ({
     setBusyCmp(true);
     try {
       if (next) {
-        await userEngagementApi.compare.add({
+        const res = await userEngagementApi.compare.add({
           vehicleId: vin, vin, snapshot: {
             title, image, year: data?.year, make: data?.make, model: data?.model,
             lot_number: lotNumber, auction_name: auctionName,
             odometer: data?.odometer, odometer_unit: data?.odometer_unit,
           },
         });
-        toast.success(t.addedToCompare, { description: title, duration: 2000 });
+        const count = typeof res?.count === 'number' ? res.count : null;
+        const openCompare = () => {
+          let cid = null;
+          try { cid = JSON.parse(localStorage.getItem('customer_session') || 'null')?.customerId; }
+          catch { cid = null; }
+          window.location.href = cid ? `/cabinet/${cid}/compare` : '/cabinet/compare';
+        };
+        if (count === 1 || res?.needsMore === true) {
+          toast.success(t.addedToCompare, {
+            description: t.addedToCompareNeedMore,
+            duration: 5500,
+          });
+        } else if (count === 2) {
+          toast.success(t.compareReadyTitle, {
+            description: t.compareReadyDesc,
+            duration: 6500,
+            action: { label: t.openCompareBtn, onClick: openCompare },
+          });
+        } else {
+          toast.success(t.compareFullTitle, {
+            description: t.compareFullDesc,
+            duration: 5500,
+            action: { label: t.openCompareBtn, onClick: openCompare },
+          });
+        }
       } else {
         await userEngagementApi.compare.remove(vin);
         toast(t.removedFromCompare, { description: title, duration: 1600 });
       }
     } catch (err) {
       onToggleCompareLocal?.(vin, !next);
-      toast.error(err?.message || t.couldNotUpdateCompare);
+      if (err?.status === 401 || err?.status === 403) {
+        requireAuth();
+      } else if (err?.status === 409) {
+        toast.info(t.compareFull, { duration: 2500 });
+      } else {
+        toast.error(err?.message || t.couldNotUpdateCompare);
+      }
     } finally {
       setBusyCmp(false);
     }
@@ -331,7 +375,7 @@ const Card1 = ({
 
   const PhotoOverlays = () => (
     <>
-      <img className={styles.image} src={image} alt={title} loading="lazy"
+      <img className={styles.image} src={optimizeImage(image, ImageSize.cardDesktop)} alt={title} loading="lazy"
            onError={(e) => { e.currentTarget.src = FALLBACK_IMG; }} />
       <div className={styles.tradingDate}>{tradingDate}</div>
       <div className={styles.timerChip} title={saleAt ? saleAt.toLocaleString() : ""}>

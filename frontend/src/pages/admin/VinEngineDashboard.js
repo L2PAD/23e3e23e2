@@ -10,6 +10,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { useAuth, API_URL } from '../../App';
 import { useLang } from '../../i18n';
+import RefreshButton from '../../components/ui/RefreshButton';
 import {
   Lightning,
   Database,
@@ -175,26 +176,23 @@ const VinEngineDashboard = () => {
     <div data-testid="vin-engine-dashboard">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold text-[#18181B] break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
               {t('vinEngineTitle')}
             </h1>
-            <p className="text-sm text-[#71717A] mt-1">{t('vinEngineSubtitle')}</p>
+            <p className="text-sm text-[#71717A] mt-1 break-words">{t('vinEngineSubtitle')}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <span className="text-xs text-[#71717A]">
               {t('lastUpdate')}: {lastUpdate?.toLocaleTimeString()}
             </span>
-            <button
+            <RefreshButton
               onClick={fetchData}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#18181B] text-white rounded-xl hover:bg-[#27272A] transition-colors disabled:opacity-50"
-              data-testid="refresh-btn"
-            >
-              <ArrowClockwise size={16} className={refreshing ? 'animate-spin' : ''} />
-              {t('refresh')}
-            </button>
+              loading={refreshing}
+              ariaLabel={t('refresh')}
+              testId="refresh-btn"
+            />
           </div>
         </div>
       </div>
@@ -363,21 +361,21 @@ const VinEngineDashboard = () => {
             )}
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-[#F4F4F5] rounded-xl">
-              <p className="text-xs text-[#71717A] mb-1">{t('cachedItems')}</p>
+          <div className="grid grid-cols-2 divide-x divide-y divide-[#F4F4F5] border-y border-[#F4F4F5] -mx-6">
+            <div className="px-6 py-4">
+              <p className="text-xs uppercase tracking-wider text-[#71717A] mb-1">{t('cachedItems')}</p>
               <p className="text-2xl font-bold text-[#18181B]">{cache?.cached_items || 0}</p>
             </div>
-            <div className="p-4 bg-[#F4F4F5] rounded-xl">
-              <p className="text-xs text-[#71717A] mb-1">TTL</p>
+            <div className="px-6 py-4">
+              <p className="text-xs uppercase tracking-wider text-[#71717A] mb-1">TTL</p>
               <p className="text-2xl font-bold text-[#18181B]">{cache?.ttl_hours || 12}h</p>
             </div>
-            <div className="p-4 bg-[#F4F4F5] rounded-xl">
-              <p className="text-xs text-[#71717A] mb-1">{t('hitsLabel')}</p>
+            <div className="px-6 py-4">
+              <p className="text-xs uppercase tracking-wider text-[#71717A] mb-1">{t('hitsLabel')}</p>
               <p className="text-2xl font-bold text-emerald-600">{cache?.hits || 0}</p>
             </div>
-            <div className="p-4 bg-[#F4F4F5] rounded-xl">
-              <p className="text-xs text-[#71717A] mb-1">{t('missesLabel')}</p>
+            <div className="px-6 py-4">
+              <p className="text-xs uppercase tracking-wider text-[#71717A] mb-1">{t('missesLabel')}</p>
               <p className="text-2xl font-bold text-red-500">{cache?.misses || 0}</p>
             </div>
           </div>

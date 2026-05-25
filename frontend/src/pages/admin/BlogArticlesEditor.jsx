@@ -24,12 +24,15 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import RichTextEditor from '../../components/admin/blog/RichTextEditor';
+import WhiteDatePicker from '../../components/ui/WhiteDatePicker';
 import { useLang } from '../../i18n';
 import {
   Plus, Trash, FloppyDisk, ArrowsClockwise, PencilSimple, UploadSimple,
   Eye, EyeSlash, CheckCircle, MagnifyingGlass, X, Globe, Image as ImageIcon,
   Tag as TagIcon, Calendar,
 } from '@phosphor-icons/react';
+import WhiteSelect from '../../components/ui/WhiteSelect';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -127,22 +130,22 @@ export default function BlogArticlesEditor() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="bg-white border border-[#E4E4E7] rounded-lg p-5">
+      <div className="bg-white border border-[#E4E4E7] rounded-2xl p-5">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-[#18181B]">Blog Articles (CMS)</h2>
-            <p className="text-sm text-[#71717A] mt-1">
+            <p className="text-sm text-[#71717A] mt-1 break-words">
               Create bilingual (EN + BG) articles for the public&nbsp;
-              <code className="text-amber-500">/blog</code> page. Read time is calculated
+              <code className="text-[#18181B] bg-[#FAFAFA] px-1 py-0.5 rounded">/blog</code> page. Read time is calculated
               automatically (200 words&nbsp;/&nbsp;minute).
             </p>
           </div>
           <button
             onClick={openCreate}
             data-testid="blog-new-btn"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 transition"
+            className="inline-flex items-center justify-center gap-2 px-4 h-10 rounded-xl bg-[#18181B] text-white text-sm font-semibold hover:bg-[#27272A] active:bg-black transition focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15 whitespace-nowrap"
           >
             <Plus size={16} weight="bold" />{t('newArticleAction')}</button>
         </div>
@@ -151,17 +154,16 @@ export default function BlogArticlesEditor() {
         <div className="flex flex-wrap items-end gap-3 pt-3 border-t border-[#E4E4E7]">
           <div className="min-w-[160px]">
             <label className={labelCls}>{t('category')}</label>
-            <select
+            <WhiteSelect
               value={filter.category}
               onChange={(e) => setFilter((f) => ({ ...f, category: e.target.value }))}
-              className={inputCls}
               data-testid="blog-filter-category"
             >
               <option value="all">{t('allCategories')}</option>
               {CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
-            </select>
+            </WhiteSelect>
           </div>
           <div className="flex-1 min-w-[200px]">
             <label className={labelCls}>{t('search')}</label>
@@ -176,24 +178,23 @@ export default function BlogArticlesEditor() {
               />
             </div>
           </div>
-          <button
+          <RefreshButton
             onClick={load}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#FAFAFA] hover:bg-[#FAFAFA] text-[#18181B] text-sm border border-[#E4E4E7]"
-            data-testid="blog-reload-btn"
-          >
-            <ArrowsClockwise size={14} />
-            {t('reloadAction')}
-          </button>
+            loading={loading}
+            ariaLabel={t('reloadAction')}
+            testId="blog-reload-btn"
+            title={t('reloadAction')}
+          />
         </div>
       </div>
 
       {/* Articles list */}
-      <div className="bg-white border border-[#E4E4E7] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E4E4E7] rounded-2xl overflow-hidden">
         {loading ? (
           <div className="py-12 text-center text-[#A1A1AA] text-sm">{t('adm_loading')}</div>
         ) : items.length === 0 ? (
           <div className="py-12 text-center text-[#A1A1AA] text-sm">
-            No articles yet. Click&nbsp;<span className="text-amber-500">{t('newArticleAction')}</span>&nbsp;to start.
+            No articles yet. Click&nbsp;<span className="text-[#18181B] font-medium">{t('newArticleAction')}</span>&nbsp;to start.
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -400,16 +401,15 @@ function ArticleEditorModal({ initial, allItems, onClose, onSaved }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className={labelCls}>{t('category')}</label>
-              <select
+              <WhiteSelect
                 value={form.category}
                 onChange={(e) => set('category', e.target.value)}
-                className={inputCls}
                 data-testid="blog-form-category"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
                 ))}
-              </select>
+              </WhiteSelect>
             </div>
             <div>
               <label className={labelCls}>Slug (URL)</label>
@@ -543,11 +543,9 @@ function ArticleEditorModal({ initial, allItems, onClose, onSaved }) {
                 <Calendar size={12} className="inline mr-1" />
                 Publish date (overrides auto)
               </label>
-              <input
-                type="date"
+              <WhiteDatePicker
                 value={(form.published_at || '').slice(0, 10)}
                 onChange={(e) => set('published_at', e.target.value)}
-                className={inputCls}
                 data-testid="blog-form-published-at"
               />
             </div>

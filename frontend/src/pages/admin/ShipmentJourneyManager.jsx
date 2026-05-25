@@ -199,7 +199,7 @@ export default function ShipmentJourneyManager() {
               <div className="flex flex-wrap items-center gap-2 bg-white rounded-2xl border border-zinc-200 p-3" data-testid="sjm-controls">
                 <button
                   onClick={onAdvance}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#18181B] text-white text-sm font-medium hover:bg-[#27272A] active:bg-black"
                   data-testid="sjm-advance"
                 >
                   <SkipForward size={16} /> {t('adm_next_step')}
@@ -320,7 +320,7 @@ function VesselBindCard({ stage, onSubmit }) {
       <div className="flex justify-end mt-3">
         <button
           onClick={() => onSubmit(form)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#18181B] text-white text-sm font-medium hover:bg-[#27272A] active:bg-black"
           data-testid="sjm-vessel-submit"
         >
           <Plus size={14} />{t('saveAction')}</button>

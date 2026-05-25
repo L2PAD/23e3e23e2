@@ -15,6 +15,7 @@ import { API_URL } from '../App';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useLang } from '../i18n';
+import RefreshButton from '../components/ui/RefreshButton';
 import {
   ArrowLeft,
   User,
@@ -129,13 +130,11 @@ const Customer360 = () => {
         <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${statusColors[customer.status] || statusColors.active}`}>
           {customer.status || 'active'}
         </span>
-        <button
+        <RefreshButton
           onClick={handleRefreshStats}
-          className="btn-secondary"
-          data-testid="refresh-stats-btn"
-        >
-          {t('adm_refresh_statistics')}
-        </button>
+          ariaLabel={t('adm_refresh_statistics')}
+          testId="refresh-stats-btn"
+        />
       </div>
 
       {/* Contact Info + KPIs */}

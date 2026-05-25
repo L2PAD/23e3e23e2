@@ -23,6 +23,9 @@ import {
   X
 } from '@phosphor-icons/react';
 import ShipmentTrackingMap from '../../components/shipping/ShipmentTrackingMap';
+import BackButton from '../../components/ui/BackButton';
+import Breadcrumb from '../../components/ui/Breadcrumb';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const TeamShippingPage = () => {
   const { user } = useAuth();
@@ -127,14 +130,31 @@ const TeamShippingPage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-          {t('teamShippingWatch')}
-        </h1>
-        <p className="text-sm text-[#71717A] mt-1">
-          {t('teamShippingWatchDesc')}
-        </p>
+      <Breadcrumb items={[
+        { label: 'Team Dashboard', to: '/team' },
+        { label: 'Shipping Watch' },
+      ]} />
+
+      {/* Header — refresh button stays docked to the top-right on all widths
+          (no `flex-col` fallback), so it never drops to a second row leaving
+          a giant empty column under the title. */}
+      <div className="flex flex-row items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Truck size={18} weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
+              {t('teamShippingWatch')}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#71717A] mt-1 break-words">
+              {t('teamShippingWatchDesc')}
+            </p>
+          </div>
+        </div>
+        <div className="shrink-0 self-start">
+          <RefreshButton onClick={fetchShipments} loading={loading} ariaLabel={t('adm_refresh_3') || 'Refresh'} testId="team-shipping-refresh-btn" />
+        </div>
       </div>
 
       {/* Tabs */}
@@ -158,7 +178,7 @@ const TeamShippingPage = () => {
       <div className="bg-white rounded-2xl border border-[#E4E4E7] overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin w-8 h-8 border-2 border-[#4F46E5] border-t-transparent rounded-full mx-auto"></div>
+            <div className="animate-spin w-8 h-8 border-2 border-[#18181B] border-t-transparent rounded-full mx-auto"></div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -222,7 +242,7 @@ const TeamShippingPage = () => {
                       <td className="px-4 py-3 text-center">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                           ship.status === 'delivered' ? 'bg-[#ECFDF5] text-[#059669]' :
-                          ship.status === 'in_transit' ? 'bg-[#EEF2FF] text-[#4F46E5]' :
+                          ship.status === 'in_transit' ? 'bg-[#F4F4F5] text-[#18181B]' :
                           ship.status === 'customs' ? 'bg-[#FEF3C7] text-[#D97706]' :
                           'bg-[#F4F4F5] text-[#71717A]'
                         }`}>
@@ -254,7 +274,7 @@ const TeamShippingPage = () => {
                           </button>
                           <button
                             onClick={() => handlePingManager(ship._id, ship.managerId)}
-                            className="p-2 text-[#71717A] hover:text-[#4F46E5] hover:bg-[#EEF2FF] rounded-lg transition-colors"
+                            className="p-2 text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] rounded-lg transition-colors"
                             title={t('pingManager')}
                           >
                             <Eye size={16} />

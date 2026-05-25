@@ -91,21 +91,22 @@ export const RingostatLiveBar = () => {
 
   return (
     <div 
-      className="flex items-center gap-3 px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+      className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 transition-colors cursor-pointer flex-shrink-0 whitespace-nowrap"
       onClick={() => navigate('/manager/calls')}
       data-testid="ringostat-live-bar"
+      title={`Ringostat — ${stats.status}`}
     >
       {/* Status Indicator */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} data-testid="status-indicator" />
-        <span className="text-sm font-medium text-gray-700">{t('cmp_ringostat')}</span>
+        <span className="hidden sm:inline text-sm font-medium text-gray-700">{t('cmp_ringostat')}</span>
       </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-4 text-sm">
+      {/* Stats — only show counters; hide "All clear" label on mobile */}
+      <div className="flex items-center gap-2 sm:gap-3 text-sm">
         {/* Active Calls */}
         {stats.active_calls > 0 && (
-          <div className="flex items-center gap-1.5" data-testid="active-calls">
+          <div className="flex items-center gap-1" data-testid="active-calls">
             <Phone className="h-4 w-4 text-blue-600" />
             <span className="font-semibold text-blue-600">{stats.active_calls}</span>
           </div>
@@ -113,7 +114,7 @@ export const RingostatLiveBar = () => {
 
         {/* Missed Calls */}
         {stats.missed_today > 0 && (
-          <div className="flex items-center gap-1.5" data-testid="missed-calls">
+          <div className="flex items-center gap-1" data-testid="missed-calls">
             <PhoneMissed className="h-4 w-4 text-red-600" />
             <span className="font-semibold text-red-600">{stats.missed_today}</span>
           </div>
@@ -121,15 +122,15 @@ export const RingostatLiveBar = () => {
 
         {/* Callbacks */}
         {stats.callbacks_pending > 0 && (
-          <div className="flex items-center gap-1.5" data-testid="callbacks-pending">
+          <div className="flex items-center gap-1" data-testid="callbacks-pending">
             <Calendar className="h-4 w-4 text-amber-600" />
             <span className="font-semibold text-amber-600">{stats.callbacks_pending}</span>
           </div>
         )}
 
-        {/* All Clear */}
+        {/* All Clear — desktop only, mobile shows just status dot */}
         {!hasAlerts && stats.active_calls === 0 && (
-          <span className="text-xs text-gray-500">{t('cmp_all_clear')}</span>
+          <span className="hidden sm:inline text-xs text-gray-500 whitespace-nowrap">{t('cmp_all_clear')}</span>
         )}
       </div>
 

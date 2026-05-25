@@ -28,6 +28,7 @@ import {
   XCircle,
   Warning,
 } from '@phosphor-icons/react';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -572,44 +573,75 @@ export default function VesselFinderSessionPage() {
 
   // ---- render ----
   return (
-    <div className="space-y-6">
-      {/* ================ HEADER ================ */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-bold text-[#18181B] flex items-center gap-2.5" style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}>
-            <Anchor size={22} weight="duotone" className="text-[#18181B]" />
-            {t('vesselFinderTracker')}
-          </h1>
-          <p className="mt-1 text-[13px] text-[#71717A] max-w-2xl">
-            {t('vfSubtitle')}
-          </p>
+    <div className="space-y-4 sm:space-y-6">
+      {/* ================ HEADER — Refresh ALWAYS top-RIGHT (June 2026) ================
+          Mobile: Refresh sits in the title row, top-right. The other 3 actions
+          (Exceptions / Instructions / Install) drop to their own row below.
+          Desktop: single row, all 4 actions inline on the right. */}
+      <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-4">
+        {/* Title row (mobile: includes refresh pinned right; desktop: just the title block) */}
+        <div className="flex items-start gap-3 min-w-0 sm:flex-1">
+          <div className="w-10 h-10 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
+            <Anchor size={18} weight="duotone" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1
+              className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] leading-tight break-words"
+              style={{ fontFamily: 'Mazzard, Mazzard H, Mazzard M, system-ui, sans-serif' }}
+            >
+              {t('vesselFinderTracker')}
+            </h1>
+            <p className="mt-1 text-[12px] sm:text-sm text-[#71717A] max-w-2xl leading-relaxed line-clamp-3 sm:line-clamp-none">
+              {t('vfSubtitle')}
+            </p>
+          </div>
+          {/* MOBILE-ONLY refresh button, pinned top-RIGHT inside the title row.
+              Hidden on sm+ — there it lives in the secondary actions cluster. */}
+          <div className="sm:hidden shrink-0">
+            <RefreshButton
+              onClick={() => { loadStatus(); loadShipments(); }}
+              ariaLabel={t('vfBtnRefreshTitle')}
+              testId="vf-refresh-button-mobile"
+              title={t('vfBtnRefreshTitle')}
+            />
+          </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        {/* Secondary actions (Exceptions / Instructions / Install). On mobile
+            this row sits BELOW the title row. On desktop it's the right-side
+            cluster of the header AND includes the desktop refresh button. */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+          {/* Desktop refresh — hidden on mobile (mobile refresh is in the title row above). */}
+          <div className="hidden sm:block">
+            <RefreshButton
+              onClick={() => { loadStatus(); loadShipments(); }}
+              ariaLabel={t('vfBtnRefreshTitle')}
+              testId="vf-refresh-button"
+              title={t('vfBtnRefreshTitle')}
+            />
+          </div>
           <a
             href="/admin/shipments/exceptions"
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E4E4E7] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#3F3F46] hover:bg-[#FAFAFA]"
+            className="inline-flex items-center justify-center gap-2 h-10 w-10 sm:w-auto sm:px-4 shrink-0 rounded-xl border border-[#E4E4E7] bg-white text-sm font-medium text-[#18181B] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10 whitespace-nowrap"
             title={t('vfBtnExceptionsTitle')}
           >
-            <Warning size={15} weight="duotone" /> {t('vfBtnExceptions')}
+            <Warning size={15} weight="duotone" />
+            <span className="hidden sm:inline">{t('vfBtnExceptions')}</span>
           </a>
           <button
-            onClick={downloadExtension}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#18181B] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#3F3F46]"
-          >
-            <Download size={15} weight="bold" /> {t('vfBtnInstallExtension')}
-          </button>
-          <button
             onClick={() => setShowHelp((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E4E4E7] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#3F3F46] hover:bg-[#FAFAFA]"
+            className="inline-flex items-center justify-center gap-2 h-10 w-10 sm:w-auto sm:px-4 shrink-0 rounded-xl border border-[#E4E4E7] bg-white text-sm font-medium text-[#18181B] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10 whitespace-nowrap"
+            title={t('vfBtnInstructions')}
           >
-            {t('vfBtnInstructions')}
+            <Lightning size={15} weight="duotone" className="sm:hidden" />
+            <span className="hidden sm:inline">{t('vfBtnInstructions')}</span>
           </button>
           <button
-            onClick={() => { loadStatus(); loadShipments(); }}
-            className="inline-flex items-center justify-center rounded-lg border border-[#E4E4E7] bg-white px-3 py-2.5 text-[#3F3F46] hover:bg-[#FAFAFA]"
-            title={t('vfBtnRefreshTitle')}
+            onClick={downloadExtension}
+            className="inline-flex items-center justify-center gap-2 h-10 px-3 sm:px-4 shrink-0 rounded-xl bg-[#18181B] text-[13px] sm:text-sm font-medium text-white hover:bg-[#27272A] transition-colors shadow-sm focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10 whitespace-nowrap"
           >
-            <ArrowClockwise size={15} />
+            <Download size={15} weight="bold" />
+            <span className="hidden sm:inline">{t('vfBtnInstallExtension')}</span>
+            <span className="sm:hidden">Install</span>
           </button>
         </div>
       </div>
@@ -649,11 +681,11 @@ export default function VesselFinderSessionPage() {
               plaintext in localStorage so it survives page reload — the
               server only stores the salted hash).
             • Lets the admin generate / rotate at any time. */}
-      <section className="rounded-2xl border border-[#E4E4E7] bg-white p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-          <div>
-            <h3 className="text-[15px] font-semibold text-[#18181B]">Extension keys</h3>
-            <p className="mt-1 text-[12.5px] text-[#71717A] max-w-2xl">
+      <section className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5 md:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-4 mb-4 sm:mb-5">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[15px] sm:text-base md:text-lg font-semibold text-[#18181B]">Extension keys</h3>
+            <p className="mt-1 text-[12px] sm:text-sm text-[#71717A] max-w-2xl leading-relaxed">
               Vessel Sync uses the <b className="text-[#18181B]">Shared HMAC secret</b> below.
               The BIBI Cars (auction parser) extension uses
               <b className="text-[#18181B]"> per-machine</b> client IDs/secrets — generate them in the second block.
@@ -662,7 +694,7 @@ export default function VesselFinderSessionPage() {
           <button
             onClick={bootstrapExtClient}
             disabled={extLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#18181B] px-3 py-2 text-[12px] font-semibold text-white hover:bg-[#3F3F46] disabled:opacity-40"
+            className="inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 shrink-0 w-full sm:w-auto rounded-xl bg-[#18181B] text-[13px] sm:text-sm font-medium text-white hover:bg-[#27272A] transition-colors shadow-sm disabled:opacity-40 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
             data-testid="vf-ext-bootstrap"
           >
             + Generate new client
@@ -670,48 +702,50 @@ export default function VesselFinderSessionPage() {
         </div>
 
         {/* ── Shared HMAC secret ── (always visible, never lost) ── */}
-        <div className="mb-4 rounded-xl border border-[#0EA5E9] bg-[#F0F9FF] p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <div>
-              <h4 className="text-[13px] font-semibold text-[#0C4A6E]">
-                Shared HMAC secret  &nbsp;<span className="text-[10.5px] font-normal text-[#0369A1]">(Vessel Sync · always available)</span>
+        <div className="mb-4 rounded-2xl border border-[#E4E4E7] bg-white p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+            <div className="min-w-0">
+              <h4 className="text-[13px] font-semibold text-[#18181B] flex items-center gap-2 flex-wrap">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#16A34A] shrink-0" />
+                Shared HMAC secret
+                <span className="text-[11px] font-normal text-[#71717A]">(Vessel Sync · always available)</span>
               </h4>
-              <div className="text-[11.5px] text-[#0369A1] mt-0.5">
+              <div className="text-[11.5px] text-[#71717A] mt-1.5 leading-relaxed break-words">
                 {sharedSecret?.configured
-                  ? <>Source: <code className="bg-white border border-[#BAE6FD] rounded px-1">{sharedSecret.source}</code>  •  Fingerprint: <code className="bg-white border border-[#BAE6FD] rounded px-1">{sharedSecret.fingerprint}…</code>  •  Length: {sharedSecret.length}</>
+                  ? <>Source: <code className="bg-zinc-50 border border-[#E4E4E7] rounded px-1.5 py-0.5 text-[11px] text-[#18181B]">{sharedSecret.source}</code>  ·  Fingerprint: <code className="bg-zinc-50 border border-[#E4E4E7] rounded px-1.5 py-0.5 text-[11px] text-[#18181B]">{sharedSecret.fingerprint}…</code>  ·  Length: {sharedSecret.length}</>
                   : 'EXT_SHARED_SECRET is NOT set in backend .env — Vessel Sync extension cannot HMAC-sign requests until you set it.'}
               </div>
             </div>
             {sharedSecret?.configured && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setSharedSecretVisible(v => !v)}
-                  className="text-[11px] px-2 py-1 rounded border border-[#7DD3FC] bg-white text-[#0C4A6E] hover:bg-[#F0F9FF] font-semibold"
+                  className="inline-flex items-center h-9 px-3 rounded-xl border border-[#E4E4E7] bg-white text-xs font-medium text-[#18181B] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
                 >
                   {sharedSecretVisible ? 'Hide' : 'Show'}
                 </button>
                 <button
                   type="button"
                   onClick={() => copyToClipboard(sharedSecret.secret, 'shared-secret')}
-                  className="text-[11px] px-2 py-1 rounded bg-[#0284C7] text-white hover:bg-[#0369A1] font-semibold"
+                  className="inline-flex items-center h-9 px-3 rounded-xl bg-[#18181B] text-xs font-medium text-white hover:bg-[#27272A] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
                   data-testid="vf-shared-secret-copy"
                 >
-                  {copiedField === 'shared-secret' ? '✓ Copied!' : '📋 Copy'}
+                  {copiedField === 'shared-secret' ? '✓ Copied' : 'Copy'}
                 </button>
               </div>
             )}
           </div>
           {sharedSecret?.configured && (
             <code
-              className="block bg-white border border-[#BAE6FD] rounded px-2 py-1.5 text-[12px] text-[#0C4A6E] break-all font-mono"
+              className="block bg-zinc-50 border border-[#E4E4E7] rounded-xl px-3 py-2.5 text-[12px] text-[#18181B] break-all font-mono"
               data-testid="vf-shared-secret-value"
             >
               {sharedSecretVisible ? sharedSecret.secret : '•'.repeat(Math.min(48, sharedSecret.length || 48))}
             </code>
           )}
           {sharedSecret?.usage && (
-            <div className="mt-2 text-[11.5px] text-[#075985] leading-relaxed">{sharedSecret.usage}</div>
+            <div className="mt-2 text-[11.5px] text-[#71717A] leading-relaxed">{sharedSecret.usage}</div>
           )}
         </div>
 
@@ -724,42 +758,45 @@ export default function VesselFinderSessionPage() {
         {/* "One-time" reveal banner — secret is shown ONLY right after
             bootstrap/rotate; copying is the only way to keep it. */}
         {newSecret && (
-          <div className="mb-3 rounded-xl border border-[#FBBF24] bg-[#FFFBEB] p-4 text-[13px] text-[#78350F]">
-            <div className="flex items-center justify-between mb-2">
-              <b>✅ New keys for: {newSecret.name || newSecret.clientId}</b>
+          <div className="mb-3 rounded-2xl border border-[#E4E4E7] bg-white p-4">
+            <div className="flex items-center justify-between mb-2 gap-3">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-[#18181B] min-w-0">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#F59E0B] shrink-0" />
+                <span className="truncate">New keys for: {newSecret.name || newSecret.clientId}</span>
+              </div>
               <button
                 onClick={() => setNewSecret(null)}
-                className="text-[#78350F] hover:text-[#451A03] text-[12px] underline"
+                className="text-[12px] text-[#71717A] hover:text-[#18181B] underline shrink-0"
               >
                 Dismiss
               </button>
             </div>
-            <div className="text-[11.5px] mb-3">
-              ⚠️  <b>Copy the secret NOW.</b> It is hashed on the server and cannot be shown again.
+            <div className="text-[11.5px] text-[#71717A] mb-3 leading-relaxed">
+              <b className="text-[#18181B]">Copy the secret now.</b> It is hashed on the server and cannot be shown again.
               Rotate to issue a new one.
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <div className="text-[10.5px] uppercase tracking-wider text-[#92400E] font-semibold mb-1">Client ID</div>
-                <div className="flex items-center gap-2 bg-white rounded border border-[#FBBF24] px-2 py-1.5">
+                <div className="text-[10.5px] uppercase tracking-wider text-[#71717A] font-semibold mb-1.5">Client ID</div>
+                <div className="flex items-center gap-2 bg-zinc-50 rounded-xl border border-[#E4E4E7] px-3 py-2">
                   <code className="text-[12px] text-[#18181B] flex-1 break-all" data-testid="vf-ext-new-client-id">{newSecret.clientId}</code>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(newSecret.clientId, `new-${newSecret.clientId}-id`)}
-                    className="text-[11px] text-[#18181B] underline hover:no-underline"
+                    className="text-[11px] text-[#18181B] underline hover:no-underline whitespace-nowrap"
                   >
                     {copiedField === `new-${newSecret.clientId}-id` ? 'copied' : 'copy'}
                   </button>
                 </div>
               </div>
               <div>
-                <div className="text-[10.5px] uppercase tracking-wider text-[#92400E] font-semibold mb-1">Client Secret (shown ONCE)</div>
-                <div className="flex items-center gap-2 bg-white rounded border border-[#FBBF24] px-2 py-1.5">
+                <div className="text-[10.5px] uppercase tracking-wider text-[#71717A] font-semibold mb-1.5">Client Secret (shown once)</div>
+                <div className="flex items-center gap-2 bg-zinc-50 rounded-xl border border-[#E4E4E7] px-3 py-2">
                   <code className="text-[12px] text-[#18181B] flex-1 break-all" data-testid="vf-ext-new-client-secret">{newSecret.secret}</code>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(newSecret.secret, `new-${newSecret.clientId}-secret`)}
-                    className="text-[11px] text-[#18181B] underline hover:no-underline"
+                    className="text-[11px] text-[#18181B] underline hover:no-underline whitespace-nowrap"
                   >
                     {copiedField === `new-${newSecret.clientId}-secret` ? 'copied' : 'copy'}
                   </button>
@@ -810,7 +847,7 @@ export default function VesselFinderSessionPage() {
                       {cached ? (
                         <div className="flex items-center gap-2">
                           <code
-                            className="text-[11.5px] text-[#166534] bg-[#F0FDF4] border border-[#86EFAC] rounded px-1.5 py-0.5 break-all"
+                            className="text-[11.5px] text-[#18181B] bg-zinc-50 border border-[#E4E4E7] rounded px-1.5 py-0.5 break-all"
                             style={{
                               filter: copiedField === revealKey ? 'none' : 'blur(4px)',
                               transition: 'filter 0.15s ease',
@@ -827,14 +864,14 @@ export default function VesselFinderSessionPage() {
                             <button
                               type="button"
                               onClick={() => copyToClipboard(cached.secret, `cached-${c.clientId}`)}
-                              className="text-[10.5px] text-[#166534] underline hover:no-underline whitespace-nowrap"
+                              className="text-[10.5px] text-[#18181B] underline hover:no-underline whitespace-nowrap"
                             >
                               {copiedField === `cached-${c.clientId}` ? '✓ copied' : 'copy'}
                             </button>
                             <button
                               type="button"
                               onClick={() => { if (window.confirm('Forget this secret from local cache?')) forgetCachedSecret(c.clientId); }}
-                              className="text-[10.5px] text-[#B91C1C] underline hover:no-underline whitespace-nowrap"
+                              className="text-[10.5px] text-[#DC2626] underline hover:no-underline whitespace-nowrap"
                               title="Remove from local cache. The client itself stays active on the server."
                             >
                               forget
@@ -847,9 +884,9 @@ export default function VesselFinderSessionPage() {
                     </td>
                     <td className="py-2 pr-3">
                       {c.active ? (
-                        <span className="inline-block px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#166534] text-[10.5px] font-semibold">active</span>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-[#E4E4E7] bg-white text-[10.5px] font-semibold text-[#18181B]"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[#16A34A]" />active</span>
                       ) : (
-                        <span className="inline-block px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#7F1D1D] text-[10.5px] font-semibold">revoked</span>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-[#E4E4E7] bg-white text-[10.5px] font-semibold text-[#71717A]"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[#DC2626]" />revoked</span>
                       )}
                     </td>
                     <td className="py-2 pr-3 text-[#71717A] text-[11.5px]">
@@ -875,8 +912,8 @@ export default function VesselFinderSessionPage() {
       </section>
 
       {/* ================ STATUS STRIP ================ */}
-      <section className="rounded-2xl border border-[#E4E4E7] bg-white p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <section className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5">
+        <div className="space-y-3 mb-4">
           <div className="flex items-center gap-2 flex-wrap">
             <StatusPill kind={extensionOk ? 'healthy' : 'expired'}>
               {t('vfPillStep1Prefix')} {extensionOk ? t('vfPillStep1Working') : t('vfPillStep1Offline')}
@@ -891,39 +928,43 @@ export default function VesselFinderSessionPage() {
               <span className="text-[11.5px] text-[#71717A] ml-1">ext v{status.extensionVersion}</span>
             )}
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-nowrap items-center gap-2 -mx-1 px-1 overflow-x-auto sm:flex-wrap sm:overflow-visible sm:mx-0 sm:px-0 no-scrollbar">
             <button
               onClick={pingSession}
               disabled={busy || !status?.connected}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#18181B] px-3 py-2 text-[12px] font-semibold text-white hover:bg-[#3F3F46] disabled:opacity-40"
+              className="inline-flex items-center gap-2 h-10 px-3.5 sm:px-4 shrink-0 rounded-xl bg-[#18181B] text-[13px] sm:text-sm font-medium text-white hover:bg-[#27272A] transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+              data-testid="vf-check-session-button"
             >
-              <Lightning size={13} weight="fill" /> {t('vfBtnPingSession')}
+              <Lightning size={14} weight="fill" /> <span>{t('vfBtnPingSession')}</span>
             </button>
             <button
               onClick={tickAllActive}
               disabled={!activeCount}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E4E4E7] bg-white px-3 py-2 text-[12px] font-semibold text-[#3F3F46] hover:bg-[#FAFAFA] disabled:opacity-40"
+              className="inline-flex items-center gap-2 h-10 px-3.5 sm:px-4 shrink-0 rounded-xl border border-[#E4E4E7] bg-white text-[13px] sm:text-sm font-medium text-[#18181B] hover:bg-zinc-50 transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+              data-testid="vf-tick-all-button"
             >
-              <Target size={13} weight="duotone" /> {t('vfBtnTickAll')} ({activeCount})
+              <Target size={14} weight="duotone" /> <span className="whitespace-nowrap">{t('vfBtnTickAll')} ({activeCount})</span>
             </button>
             <button
               onClick={resetCounters}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E4E4E7] bg-white px-3 py-2 text-[12px] font-semibold text-[#3F3F46] hover:bg-[#FAFAFA]"
+              className="inline-flex items-center gap-2 h-10 px-3.5 sm:px-4 shrink-0 rounded-xl border border-[#E4E4E7] bg-white text-[13px] sm:text-sm font-medium text-[#18181B] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
               title={t('vfBtnResetCountersTitle')}
+              data-testid="vf-reset-counters-button"
             >
-              <ArrowClockwise size={13} /> {t('vfBtnResetCounters')}
+              <ArrowClockwise size={14} /> <span>{t('vfBtnResetCounters')}</span>
             </button>
             <button
               onClick={clearSession}
               disabled={!status?.connected}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E4E4E7] bg-white px-3 py-2 text-[12px] font-semibold text-[#DC2626] hover:bg-[#FEF2F2] disabled:opacity-40"
+              className="inline-flex items-center gap-2 h-10 px-3.5 sm:px-4 shrink-0 rounded-xl border border-[#FCA5A5] bg-white text-[13px] sm:text-sm font-medium text-[#DC2626] hover:bg-[#FEF2F2] transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-200"
+              data-testid="vf-disconnect-session-button"
             >
-              <Power size={13} /> {t('vfBtnDisconnectSession')}
+              <Power size={14} /> <span>{t('vfBtnDisconnectSession')}</span>
             </button>
           </div>
         </div>
         {status?.sessionMessage && (
-          <div className="mb-4 text-[13px] rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] px-3 py-2 text-[#3F3F46] flex items-center gap-2">
+          <div className="mb-4 text-[13px] rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] px-3 py-2 text-[#3F3F46] flex items-center gap-2">
             <span
               className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
               style={{ background:
@@ -935,7 +976,7 @@ export default function VesselFinderSessionPage() {
             {status.sessionMessage}
           </div>
         )}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
           <Stat label={t('cookiesLabel')} value={status?.cookiesCount ?? 0} icon={CheckCircle} tone={status?.cookiesCount ? 'emerald' : 'slate'} />
           <Stat label={t('heartbeatLabel')} value={status?.heartbeatAgeSec != null ? fmtAgo(status.lastHeartbeatAt) : '—'} sub={extensionOk ? t('vfStatExtAlive') : t('vfStatExtNoSignal')} tone={extensionOk ? 'emerald' : 'rose'} />
           <Stat label={t('vfStatVfResponds')} value={status?.vfFetchOkCount != null ? (status.vfFetchOkCount + (status?.successCount || 0)) : '—'} sub={status?.lastVfFetchOkAt ? fmtAgo(status.lastVfFetchOkAt) : (status?.lastSuccessAt ? fmtAgo(status.lastSuccessAt) : t('vfStatVfNoSuccess'))} tone={vfFetchOkOrMatch ? 'emerald' : 'slate'} />
@@ -945,26 +986,28 @@ export default function VesselFinderSessionPage() {
       </section>
 
       {/* ================ UNIFIED SEARCH ================ */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <MagnifyingGlass size={18} className="text-slate-700" weight="bold" />
-          <h2 className="text-base font-semibold text-slate-900">{t('vfSearchTitle')}</h2>
-          <span className="text-xs text-slate-500">
+      <section className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5 md:p-6">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <MagnifyingGlass size={18} className="text-[#18181B]" weight="bold" />
+          <h2 className="text-base font-semibold text-[#18181B]">{t('vfSearchTitle')}</h2>
+          <span className="text-xs text-[#71717A] basis-full sm:basis-auto">
             {t('vfSearchHint')}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && runSearch()}
             placeholder={t('adm_msc_oscar_wbaja7c52kww12345_227280290_mscu1234567')}
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
+            className="flex-1 h-11 px-3 py-2.5 rounded-xl border border-[#E4E4E7] bg-white text-sm text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
+            data-testid="vf-search-input"
           />
           <button
             onClick={runSearch}
             disabled={searching || !query.trim()}
-            className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-40"
+            className="h-11 px-5 sm:w-auto self-stretch sm:self-auto rounded-xl bg-[#18181B] text-sm font-medium text-white hover:bg-[#27272A] transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+            data-testid="vf-search-find-button"
           >
             {searching ? t('vfSearchSearching') : t('vfSearchFind')}
           </button>
@@ -972,10 +1015,10 @@ export default function VesselFinderSessionPage() {
 
         {searchData && (
           <div className="mt-4 space-y-3">
-            <div className="text-xs text-slate-600 flex items-center gap-3">
-              <span>{t('adm_found')} <b>{totalFound}</b></span>
+            <div className="text-xs text-[#71717A] flex items-center gap-3">
+              <span>{t('adm_found')} <b className="text-[#18181B]">{totalFound}</b></span>
               {classification && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[10px]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#E4E4E7] bg-zinc-50 px-2 py-0.5 font-mono text-[10px] text-[#18181B]">
                   type: {classification}
                 </span>
               )}
@@ -984,35 +1027,35 @@ export default function VesselFinderSessionPage() {
             {/* Live vessels */}
             {liveVessels.length > 0 && (
               <div>
-                <div className="text-xs font-semibold text-sky-700 mb-1.5 flex items-center gap-1">
-                  <Boat size={14} weight="fill" /> {t('r9_live_vessels')} (VesselFinder) — {liveVessels.length}
+                <div className="text-xs font-semibold text-[#18181B] mb-2 flex items-center gap-1.5">
+                  <Boat size={14} weight="fill" className="text-[#71717A]" /> {t('r9_live_vessels')} (VesselFinder) — {liveVessels.length}
                 </div>
-                <div className="overflow-x-auto rounded-md border border-slate-200">
+                <div className="overflow-x-auto rounded-xl border border-[#E4E4E7]">
                   <table className="w-full text-xs">
-                    <thead className="bg-slate-50 text-slate-700">
+                    <thead className="bg-zinc-50 text-[#71717A]">
                       <tr>
-                        <th className="p-2 text-left">{t('name')}</th>
-                        <th className="p-2 text-left">MMSI</th>
-                        <th className="p-2 text-left">IMO</th>
-                        <th className="p-2 text-left">{t('positionLabel')}</th>
-                        <th className="p-2 text-left">{t('speedLabel')}</th>
-                        <th className="p-2"></th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('name')}</th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">MMSI</th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">IMO</th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('positionLabel')}</th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('speedLabel')}</th>
+                        <th className="p-2.5"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {liveVessels.map((v, i) => (
-                        <tr key={i} className="border-t border-slate-100 hover:bg-sky-50">
-                          <td className="p-2 font-medium">{v.name || '—'}</td>
-                          <td className="p-2 font-mono text-[10px]">{v.mmsi || '—'}</td>
-                          <td className="p-2 font-mono text-[10px]">{v.imo || '—'}</td>
-                          <td className="p-2 font-mono text-[10px]">
+                        <tr key={i} className="border-t border-[#F4F4F5] hover:bg-zinc-50/60">
+                          <td className="p-2.5 font-medium text-[#18181B]">{v.name || '—'}</td>
+                          <td className="p-2.5 font-mono text-[10px] text-[#18181B]">{v.mmsi || '—'}</td>
+                          <td className="p-2.5 font-mono text-[10px] text-[#18181B]">{v.imo || '—'}</td>
+                          <td className="p-2.5 font-mono text-[10px] text-[#18181B]">
                             {v.lat != null ? `${v.lat.toFixed(3)}, ${v.lng?.toFixed(3)}` : '—'}
                           </td>
-                          <td className="p-2">{v.speed ?? '—'} kn</td>
-                          <td className="p-2">
+                          <td className="p-2.5 text-[#18181B]">{v.speed ?? '—'} kn</td>
+                          <td className="p-2.5">
                             <button
                               onClick={() => prefillBind(v)}
-                              className="rounded bg-emerald-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-emerald-700"
+                              className="inline-flex items-center h-8 px-3 rounded-xl bg-[#18181B] text-[11px] font-medium text-white hover:bg-[#27272A] transition-colors"
                             >
                               {t('adm_bind_2')}
                             </button>
@@ -1028,82 +1071,83 @@ export default function VesselFinderSessionPage() {
             {/* Rich shipment results (VIN / container / vessel name / MMSI / IMO) */}
             {richShipments.length > 0 && (
               <div>
-                <div className="text-xs font-semibold text-emerald-700 mb-1.5 flex items-center gap-1">
-                  <Target size={14} weight="fill" /> Shipments (VIN / container / vessel) — {richShipments.length}
+                <div className="text-xs font-semibold text-[#18181B] mb-2 flex items-center gap-1.5">
+                  <Target size={14} weight="fill" className="text-[#71717A]" /> Shipments (VIN / container / vessel) — {richShipments.length}
                 </div>
-                <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+                <div className="overflow-x-auto rounded-xl border border-[#E4E4E7] bg-white">
                   <table className="w-full text-xs">
-                    <thead className="bg-slate-50 text-slate-700">
+                    <thead className="bg-zinc-50 text-[#71717A]">
                       <tr>
-                        <th className="p-2 text-left">{t('adm_vin_car')}</th>
-                        <th className="p-2 text-left">{t('adm_container_vessel')}</th>
-                        <th className="p-2 text-left">{t('adm_route')}</th>
-                        <th className="p-2 text-left">{t('progress')}</th>
-                        <th className="p-2 text-left">{t('sourceHealth')}</th>
-                        <th className="p-2"></th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('adm_vin_car')}</th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('adm_container_vessel')}</th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('adm_route')}</th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('progress')}</th>
+                        <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('sourceHealth')}</th>
+                        <th className="p-2.5"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {richShipments.map((s) => {
-                        const healthCls = s.trackingHealth === 'ok' ? 'bg-emerald-100 text-emerald-700'
-                          : s.trackingHealth === 'stale' ? 'bg-rose-100 text-rose-700'
-                          : s.trackingHealth === 'estimated' ? 'bg-amber-100 text-amber-700'
-                          : 'bg-slate-100 text-slate-600';
-                        const healthLabel = s.trackingHealth === 'ok' ? '🟢 Live'
-                          : s.trackingHealth === 'stale' ? '🔴 Stale'
-                          : s.trackingHealth === 'estimated' ? '🟡 Estimated'
-                          : '⚪ —';
+                        const healthDot = s.trackingHealth === 'ok' ? '#16A34A'
+                          : s.trackingHealth === 'stale' ? '#DC2626'
+                          : s.trackingHealth === 'estimated' ? '#F59E0B'
+                          : '#A1A1AA';
+                        const healthLabel = s.trackingHealth === 'ok' ? 'Live'
+                          : s.trackingHealth === 'stale' ? 'Stale'
+                          : s.trackingHealth === 'estimated' ? 'Estimated'
+                          : '—';
                         return (
-                          <tr key={s.id} className="border-t border-slate-100 hover:bg-emerald-50/40" data-testid={`rich-shipment-${s.id}`}>
-                            <td className="p-2">
-                              <div className="font-mono text-[11px] text-slate-900">{s.vin || '—'}</div>
-                              <div className="font-mono text-[10px] text-slate-400">{s.id}</div>
-                              {s.vehicleTitle && <div className="text-[11px] text-slate-700 mt-0.5">{s.vehicleTitle}</div>}
+                          <tr key={s.id} className="border-t border-[#F4F4F5] hover:bg-zinc-50/60" data-testid={`rich-shipment-${s.id}`}>
+                            <td className="p-2.5">
+                              <div className="font-mono text-[11px] text-[#18181B]">{s.vin || '—'}</div>
+                              <div className="font-mono text-[10px] text-[#A1A1AA]">{s.id}</div>
+                              {s.vehicleTitle && <div className="text-[11px] text-[#71717A] mt-0.5">{s.vehicleTitle}</div>}
                             </td>
-                            <td className="p-2">
+                            <td className="p-2.5">
                               {s.currentContainer?.number && (
-                                <div className="text-[11px] font-mono text-indigo-700 flex items-center gap-1">
-                                  📦 {s.currentContainer.number}
+                                <div className="text-[11px] font-mono text-[#18181B]">
+                                  {s.currentContainer.number}
                                 </div>
                               )}
                               {s.currentVessel?.name && (
-                                <div className="text-[11px] text-sky-700 flex items-center gap-1 mt-0.5">
-                                  ⚓ {s.currentVessel.name}
-                                  {s.currentVessel.mmsi && <span className="text-[9px] text-slate-400 font-mono">· {s.currentVessel.mmsi}</span>}
+                                <div className="text-[11px] text-[#18181B] flex items-center gap-1 mt-0.5">
+                                  <Anchor size={10} className="text-[#71717A]" /> {s.currentVessel.name}
+                                  {s.currentVessel.mmsi && <span className="text-[9px] text-[#A1A1AA] font-mono">· {s.currentVessel.mmsi}</span>}
                                 </div>
                               )}
                               {!s.currentContainer?.number && !s.currentVessel?.name && (
-                                <div className="text-[11px] text-slate-400 italic">{t('adm_not_assigned')}</div>
+                                <div className="text-[11px] text-[#A1A1AA] italic">{t('adm_not_assigned')}</div>
                               )}
                             </td>
-                            <td className="p-2 text-[11px] text-slate-600">
-                              {s.origin?.name || '—'} <span className="text-slate-400">→</span> {s.destination?.name || '—'}
-                              {s.location && <div className="text-[10px] text-slate-500 mt-0.5">📍 {s.location}</div>}
+                            <td className="p-2.5 text-[11px] text-[#71717A]">
+                              {s.origin?.name || '—'} <span className="text-[#A1A1AA]">→</span> {s.destination?.name || '—'}
+                              {s.location && <div className="text-[10px] text-[#A1A1AA] mt-0.5">{s.location}</div>}
                             </td>
-                            <td className="p-2 w-28">
+                            <td className="p-2.5 w-28">
                               <div className="flex items-center gap-1.5">
-                                <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
-                                  <div className="h-full bg-blue-500" style={{ width: `${Math.round((s.progress || 0) * 100)}%` }} />
+                                <div className="flex-1 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-[#18181B]" style={{ width: `${Math.round((s.progress || 0) * 100)}%` }} />
                                 </div>
-                                <span className="text-[10px] font-semibold text-slate-700 w-7 text-right">{Math.round((s.progress || 0) * 100)}%</span>
+                                <span className="text-[10px] font-semibold text-[#18181B] w-7 text-right">{Math.round((s.progress || 0) * 100)}%</span>
                               </div>
                             </td>
-                            <td className="p-2">
-                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${healthCls}`}>
+                            <td className="p-2.5">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-[#E4E4E7] bg-white text-[10px] font-semibold text-[#18181B]">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: healthDot }} />
                                 {healthLabel}
                               </span>
                             </td>
-                            <td className="p-2 text-right whitespace-nowrap">
+                            <td className="p-2.5 text-right whitespace-nowrap">
                               <button
                                 onClick={() => { setBindShipmentId(s.id); document.getElementById('bind-card')?.scrollIntoView({ behavior: 'smooth' }); }}
-                                className="rounded bg-sky-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-sky-700"
+                                className="inline-flex items-center h-8 px-3 rounded-xl border border-[#E4E4E7] bg-white text-[10px] font-medium text-[#18181B] hover:bg-zinc-50 transition-colors"
                               >
                                 {t('adm_bind')}
                               </button>
                               <button
                                 onClick={() => tickShipment(s.id)}
                                 disabled={tickingId === s.id}
-                                className="ml-1 rounded bg-indigo-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-indigo-700 disabled:opacity-40"
+                                className="ml-1 inline-flex items-center h-8 px-3 rounded-xl bg-[#18181B] text-[10px] font-medium text-white hover:bg-[#27272A] transition-colors disabled:opacity-40"
                               >
                                 {tickingId === s.id ? '…' : 'Tick'}
                               </button>
@@ -1120,30 +1164,30 @@ export default function VesselFinderSessionPage() {
             {/* DB shipments */}
             {dbShipments.length > 0 && (
               <div>
-                <div className="text-xs font-semibold text-indigo-700 mb-1.5 flex items-center gap-1">
-                  <Target size={14} weight="fill" /> {t('r9_shipments_in_db')} — {dbShipments.length}
+                <div className="text-xs font-semibold text-[#18181B] mb-2 flex items-center gap-1.5">
+                  <Target size={14} weight="fill" className="text-[#71717A]" /> {t('r9_shipments_in_db')} — {dbShipments.length}
                 </div>
                 <div className="space-y-1.5">
                   {dbShipments.map((s) => (
-                    <div key={s.id} className="rounded-md border border-slate-200 p-2.5 text-xs flex items-center gap-3 hover:bg-slate-50">
+                    <div key={s.id} className="rounded-xl border border-[#E4E4E7] p-3 text-xs flex items-center gap-3 hover:bg-zinc-50/60">
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-900 truncate">{s.vehicleTitle || s.id}</div>
-                        <div className="text-slate-500 flex gap-2 font-mono text-[10px] mt-0.5">
+                        <div className="font-semibold text-[#18181B] truncate">{s.vehicleTitle || s.id}</div>
+                        <div className="text-[#71717A] flex gap-2 font-mono text-[10px] mt-0.5">
                           <span>#{s.id}</span>
                           {s.vin && <span>VIN:{s.vin}</span>}
-                          {s.vessel?.name && <span>⛴ {s.vessel.name}</span>}
+                          {s.vessel?.name && <span>· {s.vessel.name}</span>}
                         </div>
                       </div>
                       <button
                         onClick={() => { setBindShipmentId(s.id); document.getElementById('bind-card')?.scrollIntoView({ behavior: 'smooth' }); }}
-                        className="text-sky-600 text-[10px] font-semibold hover:text-sky-800"
+                        className="text-[10px] font-medium text-[#18181B] underline hover:no-underline"
                       >
                         {t('adm_use_id')}
                       </button>
                       <button
                         onClick={() => tickShipment(s.id)}
                         disabled={tickingId === s.id}
-                        className="rounded bg-indigo-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-indigo-700 disabled:opacity-40"
+                        className="inline-flex items-center h-8 px-3 rounded-xl bg-[#18181B] text-[10px] font-medium text-white hover:bg-[#27272A] transition-colors disabled:opacity-40"
                       >
                         {tickingId === s.id ? '…' : 'Tick'}
                       </button>
@@ -1155,8 +1199,8 @@ export default function VesselFinderSessionPage() {
 
             {/* No results */}
             {totalFound === 0 && !searching && (
-              <div className="rounded-md border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">
-                {t('r9_nothing_found')}. {searchData?.live?.error ? <span className="text-rose-600">Live: {String(searchData.live.error).slice(0, 120)}</span> : null}
+              <div className="rounded-xl border border-dashed border-[#E4E4E7] p-6 text-center text-xs text-[#71717A]">
+                {t('r9_nothing_found')}. {searchData?.live?.error ? <span className="text-[#DC2626]">Live: {String(searchData.live.error).slice(0, 120)}</span> : null}
               </div>
             )}
           </div>
@@ -1164,73 +1208,73 @@ export default function VesselFinderSessionPage() {
       </section>
 
       {/* ================ SHIPMENTS WITH TICK ================ */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
-            <Boat size={18} weight="duotone" className="text-sky-600" />
-            {t('vfActiveShipments')}
-            <span className="text-xs text-slate-500 font-normal">({shipments.length})</span>
+      <section className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5 md:p-6">
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <h2 className="text-base font-semibold text-[#18181B] flex items-center gap-2 min-w-0">
+            <Boat size={18} weight="duotone" className="text-[#18181B] shrink-0" />
+            <span className="truncate">{t('vfActiveShipments')}</span>
+            <span className="text-xs text-[#71717A] font-normal shrink-0">({shipments.length})</span>
           </h2>
-          <button onClick={loadShipments} className="text-xs text-sky-600 hover:text-sky-800 inline-flex items-center gap-1">
-            <ArrowClockwise size={12} /> {t('vfBtnRefreshTitle')}
+          <button onClick={loadShipments} className="inline-flex items-center justify-center h-9 w-9 shrink-0 rounded-xl bg-[#18181B] text-white hover:bg-[#27272A] active:bg-black transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15" aria-label={t('vfBtnRefreshTitle')} title={t('vfBtnRefreshTitle')}>
+            <ArrowClockwise size={14} weight="bold" />
           </button>
         </div>
         {shipments.length === 0 ? (
-          <div className="text-center py-8 text-sm text-slate-500">{t('vfShipmentsEmpty')}</div>
+          <div className="text-center py-10 text-sm text-[#71717A]">{t('vfShipmentsEmpty')}</div>
         ) : (
-          <div className="overflow-x-auto rounded-md border border-slate-200">
+          <div className="overflow-x-auto rounded-xl border border-[#E4E4E7]">
             <table className="w-full text-xs">
-              <thead className="bg-slate-50 text-slate-700">
+              <thead className="bg-zinc-50 text-[#71717A]">
                 <tr>
-                  <th className="p-2 text-left">{t('shipmentAlerts')}</th>
-                  <th className="p-2 text-left">{t('vessel')}</th>
-                  <th className="p-2 text-left">VIN</th>
-                  <th className="p-2 text-left">{t('trackingLabel')}</th>
-                  <th className="p-2 text-left">{t('adm_last_result')}</th>
-                  <th className="p-2"></th>
+                  <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('shipmentAlerts')}</th>
+                  <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('vessel')}</th>
+                  <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">VIN</th>
+                  <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('trackingLabel')}</th>
+                  <th className="p-2.5 text-left font-semibold uppercase tracking-wider text-[10.5px]">{t('adm_last_result')}</th>
+                  <th className="p-2.5"></th>
                 </tr>
               </thead>
               <tbody>
                 {shipments.map((s) => {
                   const r = tickResults[s.id];
                   return (
-                    <tr key={s.id} className="border-t border-slate-100 hover:bg-sky-50/40">
-                      <td className="p-2">
-                        <div className="font-semibold text-slate-900">{s.vehicleTitle || '—'}</div>
-                        <div className="font-mono text-[10px] text-slate-500">{s.id}</div>
+                    <tr key={s.id} className="border-t border-[#F4F4F5] hover:bg-zinc-50/60">
+                      <td className="p-2.5">
+                        <div className="font-semibold text-[#18181B]">{s.vehicleTitle || '—'}</div>
+                        <div className="font-mono text-[10px] text-[#71717A]">{s.id}</div>
                       </td>
-                      <td className="p-2">
+                      <td className="p-2.5">
                         {s.vessel?.name ? (
                           <>
-                            <div className="font-medium">{s.vessel.name}</div>
-                            <div className="font-mono text-[10px] text-slate-500">
+                            <div className="font-medium text-[#18181B]">{s.vessel.name}</div>
+                            <div className="font-mono text-[10px] text-[#71717A]">
                               {s.vessel.mmsi ? `MMSI:${s.vessel.mmsi}` : ''} {s.vessel.imo ? `IMO:${s.vessel.imo}` : ''}
                             </div>
                           </>
-                        ) : <span className="text-slate-400">{t('adm_not_assigned_2')}</span>}
+                        ) : <span className="text-[#A1A1AA]">{t('adm_not_assigned_2')}</span>}
                       </td>
-                      <td className="p-2 font-mono text-[10px]">{s.vin || '—'}</td>
-                      <td className="p-2">
+                      <td className="p-2.5 font-mono text-[10px] text-[#18181B]">{s.vin || '—'}</td>
+                      <td className="p-2.5">
                         {s.trackingActive
-                          ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700"><CheckCircle size={10} weight="fill" /> ON</span>
-                          : <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">OFF</span>}
+                          ? <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E4E4E7] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#18181B]"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[#16A34A]" /> ON</span>
+                          : <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E4E4E7] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#71717A]"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[#A1A1AA]" /> OFF</span>}
                       </td>
-                      <td className="p-2 text-[10px]">
+                      <td className="p-2.5 text-[10px]">
                         {r ? (
                           r.ok ? (
-                            <span className="text-emerald-700">✓ {r.data?.source || 'ok'} @{r.at.toLocaleTimeString()}</span>
+                            <span className="text-[#16A34A]">✓ {r.data?.source || 'ok'} @{r.at.toLocaleTimeString()}</span>
                           ) : (
-                            <span className="text-rose-600" title={r.error}>✗ {String(r.error).slice(0, 40)}</span>
+                            <span className="text-[#DC2626]" title={r.error}>✗ {String(r.error).slice(0, 40)}</span>
                           )
-                        ) : <span className="text-slate-400">—</span>}
+                        ) : <span className="text-[#A1A1AA]">—</span>}
                       </td>
-                      <td className="p-2">
+                      <td className="p-2.5">
                         <button
                           onClick={() => tickShipment(s.id)}
                           disabled={tickingId === s.id}
-                          className="rounded bg-indigo-600 px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 inline-flex items-center gap-1"
+                          className="inline-flex items-center gap-1 h-8 px-3 rounded-xl bg-[#18181B] text-[11px] font-medium text-white hover:bg-[#27272A] transition-colors disabled:opacity-40"
                         >
-                          <Target size={10} /> {tickingId === s.id ? t('adm2_fd1567dc80') : 'Tick now'}
+                          <Target size={11} /> {tickingId === s.id ? t('adm2_fd1567dc80') : 'Tick now'}
                         </button>
                       </td>
                     </tr>
@@ -1243,23 +1287,23 @@ export default function VesselFinderSessionPage() {
       </section>
 
       {/* ================ BIND (VIN-centric) ================ */}
-      <section id="bind-card" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section id="bind-card" className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5 md:p-6">
         <div className="flex items-center gap-2 mb-1">
-          <LinkIcon size={18} className="text-slate-700" weight="bold" />
-          <h2 className="text-base font-semibold text-slate-900">{t('vfBindTitle')}</h2>
+          <LinkIcon size={18} className="text-[#18181B]" weight="bold" />
+          <h2 className="text-base font-semibold text-[#18181B]">{t('vfBindTitle')}</h2>
         </div>
-        <p className="text-xs text-slate-500 mb-4">
+        <p className="text-xs text-[#71717A] mb-4 leading-relaxed">
           {t('vfBindIntro1')}<b>VIN</b>{t('vfBindIntro2')}
           {' '}{t('vfBindIntro3')}<b>{t('vfBindIntroBold')}</b>{t('vfBindIntro4')}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <label className="text-xs text-slate-600 font-medium md:col-span-2">
+          <label className="text-xs text-[#18181B] font-medium md:col-span-2">
             {t('adm3_e033ab5ffe')}
             <input
               value={bindVin}
               onChange={(e) => setBindVin(e.target.value.toUpperCase())}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono uppercase"
+              className="mt-1 w-full h-11 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm font-mono uppercase text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
               placeholder={t('adm_wbaja7c52kww12345')}
             />
             {bindShipmentId && bindVin && (
@@ -1268,72 +1312,72 @@ export default function VesselFinderSessionPage() {
               </div>
             )}
           </label>
-          <label className="text-xs text-slate-600 font-medium md:col-span-2">
+          <label className="text-xs text-[#18181B] font-medium md:col-span-2">
             {t('adm3_3d7afec746')}
             <input
               value={bindShipmentId}
               onChange={(e) => setBindShipmentId(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono"
+              className="mt-1 w-full h-11 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm font-mono text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
               placeholder="ship_test_customer_001_1"
             />
           </label>
         </div>
 
         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <label className="text-xs text-slate-600 font-medium">
+          <label className="text-xs text-[#18181B] font-medium">
             {t('adm_vessel_name')}
             <input
               value={bindName}
               onChange={(e) => setBindName(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full h-11 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
               placeholder={t('adm_msc_oscar')}
             />
           </label>
-          <label className="text-xs text-slate-600 font-medium">
+          <label className="text-xs text-[#18181B] font-medium">
             MMSI
             <input
               value={bindMmsi}
               onChange={(e) => setBindMmsi(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono"
+              className="mt-1 w-full h-11 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm font-mono text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
               placeholder="227280290"
             />
           </label>
-          <label className="text-xs text-slate-600 font-medium">
+          <label className="text-xs text-[#18181B] font-medium">
             IMO
             <input
               value={bindImo}
               onChange={(e) => setBindImo(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono"
+              className="mt-1 w-full h-11 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm font-mono text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
               placeholder="9629344"
             />
           </label>
         </div>
 
         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <label className="text-xs text-slate-600 font-medium">
+          <label className="text-xs text-[#18181B] font-medium">
             {t('adm_container_5')}
             <input
               value={bindContainer}
               onChange={(e) => setBindContainer(e.target.value.toUpperCase())}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono"
+              className="mt-1 w-full h-11 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm font-mono text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
               placeholder={t('adm_msku1234567')}
             />
           </label>
-          <label className="text-xs text-slate-600 font-medium">
+          <label className="text-xs text-[#18181B] font-medium">
             {t('containerSeal')}
             <input
               value={bindContainerSeal}
               onChange={(e) => setBindContainerSeal(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono"
+              className="mt-1 w-full h-11 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm font-mono text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
               placeholder={t('adm_seal001')}
             />
           </label>
-          <label className="text-xs text-slate-600 font-medium">
+          <label className="text-xs text-[#18181B] font-medium">
             {t('vfBindNewStageLabel')}
             <input
               value={bindNewStageLabel}
               onChange={(e) => setBindNewStageLabel(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full h-11 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm text-[#18181B] focus:outline-none focus:border-[#18181B] focus-visible:ring-4 focus-visible:ring-black/10 transition-colors"
               placeholder={t('adm_transshipment_in_algeciras')}
             />
           </label>
@@ -1343,7 +1387,8 @@ export default function VesselFinderSessionPage() {
           <button
             onClick={doBind}
             disabled={bindBusy || (!bindShipmentId && !bindVin.trim()) || (!bindMmsi && !bindImo && !bindName)}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"
+            className="inline-flex items-center h-11 px-5 rounded-xl bg-[#18181B] text-sm font-medium text-white hover:bg-[#27272A] transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
+            data-testid="vf-bind-button"
           >
             {bindBusy ? t('vfBindBinding') : t('vfBindAction')}
           </button>
@@ -1351,44 +1396,41 @@ export default function VesselFinderSessionPage() {
           <button
             onClick={doTransferVessel}
             disabled={bindBusy || !bindShipmentId || (!bindMmsi && !bindImo && !bindName)}
-            className="rounded-md border border-amber-400 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-40 inline-flex items-center gap-2"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-[#E4E4E7] bg-white text-sm font-medium text-[#18181B] hover:bg-zinc-50 transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
             title={t('vfBindForceNewStageTitle')}
+            data-testid="vf-transfer-vessel-button"
           >
-            <Warning size={14} weight="fill" /> {t('vfBindForceNewStage')}
+            <Warning size={14} weight="fill" className="text-[#F59E0B]" /> {t('vfBindForceNewStage')}
           </button>
 
-          <label className="inline-flex items-center gap-2 text-xs text-slate-600 ml-auto">
+          <label className="inline-flex items-center gap-2 text-xs text-[#18181B] font-medium ml-auto">
             <input
               type="checkbox"
               checked={bindForceNew}
               onChange={(e) => setBindForceNew(e.target.checked)}
-              className="rounded"
+              className="rounded border-[#E4E4E7] accent-[#18181B]"
             />
             {t('vfBindForceNewStage')}
           </label>
         </div>
 
         {bindResult?.ok && (
-          <div className={`mt-3 rounded-md border px-3 py-2 text-sm flex items-start gap-2 ${
-            bindResult.data?.createdNewStage
-              ? 'bg-amber-50 border-amber-200 text-amber-900'
-              : 'bg-emerald-50 border-emerald-200 text-emerald-900'
-          }`}>
-            <CheckCircle size={16} weight="fill" className="mt-0.5 flex-shrink-0" />
+          <div className="mt-3 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm text-[#18181B] flex items-start gap-2">
+            <CheckCircle size={16} weight="fill" className={`mt-0.5 flex-shrink-0 ${bindResult.data?.createdNewStage ? 'text-[#F59E0B]' : 'text-[#16A34A]'}`} />
             <div className="flex-1">
               <div className="font-medium">
                 {bindResult.data?.createdNewStage
                   ? `${t('vfBindResultNewStage')}${bindResult.data?.newStageId}`
                   : t('vfBindResultUpdated')}
               </div>
-              <div className="text-xs mt-0.5">{t('shipmentAlerts')}<span className="font-mono">{bindResult.data?.shipmentId}</span>{t('vfBindStageCount')}<b>{bindResult.data?.vesselStagesCount}</b>
-                {bindResult.data?.container && <> {t('adm_container_2')} <span className="font-mono">{bindResult.data.container.number}</span></>}
+              <div className="text-xs mt-0.5 text-[#71717A]">{t('shipmentAlerts')}<span className="font-mono text-[#18181B]">{bindResult.data?.shipmentId}</span>{t('vfBindStageCount')}<b className="text-[#18181B]">{bindResult.data?.vesselStagesCount}</b>
+                {bindResult.data?.container && <> {t('adm_container_2')} <span className="font-mono text-[#18181B]">{bindResult.data.container.number}</span></>}
               </div>
             </div>
           </div>
         )}
         {bindResult && !bindResult.ok && (
-          <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 flex items-center gap-2">
+          <div className="mt-3 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-3 py-2.5 text-sm text-[#7F1D1D] flex items-center gap-2">
             <XCircle size={16} weight="fill" /> {bindResult.error}
           </div>
         )}
@@ -1396,27 +1438,29 @@ export default function VesselFinderSessionPage() {
 
       {/* ================ VESSEL HISTORY ================ */}
       {bindShipmentId && (
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Boat size={18} weight="duotone" className="text-sky-600" />
-            <h2 className="text-base font-semibold text-slate-900">{t('adm_shipping_history')}</h2>
-            <span className="text-xs text-slate-500 font-mono">{bindShipmentId}</span>
+        <section className="rounded-2xl border border-[#E4E4E7] bg-white p-4 sm:p-5 md:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Boat size={18} weight="duotone" className="text-[#18181B]" />
+            <h2 className="text-base font-semibold text-[#18181B]">{t('adm_shipping_history')}</h2>
+            <span className="text-xs text-[#71717A] font-mono">{bindShipmentId}</span>
             <button
               onClick={() => loadVesselHistory(bindShipmentId)}
-              className="ml-auto text-xs text-sky-600 hover:text-sky-800 inline-flex items-center gap-1"
+              className="ml-auto inline-flex items-center justify-center h-9 w-9 shrink-0 rounded-xl bg-[#18181B] text-white hover:bg-[#27272A] active:bg-black transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
+              aria-label={t('adm_refresh_2')}
+              title={t('adm_refresh_2')}
             >
-              <ArrowClockwise size={12} /> {t('adm_refresh_2')}
+              <ArrowClockwise size={14} weight="bold" />
             </button>
           </div>
 
           {historyLoading && (
-            <div className="text-sm text-slate-500">{t('adm_loading_5')}</div>
+            <div className="text-sm text-[#71717A]">{t('adm_loading_5')}</div>
           )}
           {vesselHistory?.error && (
-            <div className="text-sm text-rose-600">{vesselHistory.error}</div>
+            <div className="text-sm text-[#DC2626]">{vesselHistory.error}</div>
           )}
           {vesselHistory?.vesselStages?.length === 0 && (
-            <div className="text-sm text-slate-500 italic">
+            <div className="text-sm text-[#71717A] italic">
               {t('vfBindNoStages')}
             </div>
           )}
@@ -1426,16 +1470,16 @@ export default function VesselFinderSessionPage() {
                 const isCurrent = st.isCurrent;
                 const isDone = st.status === 'done';
                 const dot = isCurrent
-                  ? 'bg-blue-500 ring-4 ring-blue-200'
+                  ? 'bg-[#18181B] ring-4 ring-zinc-200'
                   : isDone
-                  ? 'bg-emerald-500'
-                  : 'bg-slate-300';
+                  ? 'bg-[#16A34A]'
+                  : 'bg-[#D4D4D8]';
                 const txt = isCurrent
-                  ? 'text-blue-700'
+                  ? 'text-[#18181B]'
                   : isDone
-                  ? 'text-emerald-700'
-                  : 'text-slate-500';
-                const line = isDone ? 'bg-emerald-300' : 'bg-slate-200';
+                  ? 'text-[#16A34A]'
+                  : 'text-[#71717A]';
+                const line = isDone ? 'bg-[#86EFAC]' : 'bg-[#E4E4E7]';
                 return (
                   <div key={st.stageId} className="flex gap-3">
                     <div className="flex flex-col items-center">
@@ -1451,44 +1495,44 @@ export default function VesselFinderSessionPage() {
                       )}
                     </div>
                     <div className="flex-1 pb-5">
-                      <div className="flex items-baseline gap-2">
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <div className={`font-semibold ${txt}`}>{st.label}</div>
                         {isCurrent && (
-                          <span className="text-[10px] uppercase tracking-wider text-blue-600 font-bold">{t('vfStageActive')}</span>
+                          <span className="text-[10px] uppercase tracking-wider text-[#18181B] font-bold">{t('vfStageActive')}</span>
                         )}
                         {isDone && (
-                          <span className="text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">{t('vfStageDone')}</span>
+                          <span className="text-[10px] uppercase tracking-wider text-[#16A34A] font-semibold">{t('vfStageDone')}</span>
                         )}
                       </div>
                       {(st.from || st.to) && (
-                        <div className="text-xs text-slate-500 mt-0.5">
+                        <div className="text-xs text-[#71717A] mt-1">
                           {st.from} <span className="mx-1">→</span> {st.to}
                         </div>
                       )}
-                      <div className="text-[11px] flex flex-wrap gap-1.5 mt-1">
+                      <div className="text-[11px] flex flex-wrap gap-1.5 mt-2">
                         {st.vessel?.name && (
-                          <span className="font-mono bg-sky-50 text-sky-800 border border-sky-100 px-1.5 py-0.5 rounded">
-                            ⚓ {st.vessel.name}
+                          <span className="inline-flex items-center gap-1 font-mono bg-zinc-50 text-[#18181B] border border-[#E4E4E7] px-2 py-0.5 rounded-lg">
+                            <Anchor size={10} className="text-[#71717A]" /> {st.vessel.name}
                           </span>
                         )}
                         {st.vessel?.mmsi && (
-                          <span className="font-mono bg-slate-50 text-slate-600 border border-slate-100 px-1.5 py-0.5 rounded">
+                          <span className="font-mono bg-zinc-50 text-[#71717A] border border-[#E4E4E7] px-2 py-0.5 rounded-lg">
                             MMSI {st.vessel.mmsi}
                           </span>
                         )}
                         {st.vessel?.imo && (
-                          <span className="font-mono bg-slate-50 text-slate-600 border border-slate-100 px-1.5 py-0.5 rounded">
+                          <span className="font-mono bg-zinc-50 text-[#71717A] border border-[#E4E4E7] px-2 py-0.5 rounded-lg">
                             IMO {st.vessel.imo}
                           </span>
                         )}
                         {st.container?.number && (
-                          <span className="font-mono bg-indigo-50 text-indigo-800 border border-indigo-100 px-1.5 py-0.5 rounded">
-                            📦 {st.container.number}
+                          <span className="font-mono bg-zinc-50 text-[#18181B] border border-[#E4E4E7] px-2 py-0.5 rounded-lg">
+                            {st.container.number}
                           </span>
                         )}
                       </div>
                       {(st.startedAt || st.completedAt) && (
-                        <div className="text-[10px] text-slate-400 mt-1 font-mono">
+                        <div className="text-[10px] text-[#A1A1AA] mt-1.5 font-mono">
                           {st.startedAt && <span>{t('adm3_4454f5463a')} {fmtAgo(st.startedAt)}</span>}
                           {st.completedAt && <span className="ml-3">{t('adm3_a63ec7aa83')} {fmtAgo(st.completedAt)}</span>}
                         </div>

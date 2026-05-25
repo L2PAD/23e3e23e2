@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { CheckCircle, XCircle, Eye, CaretDown, MagnifyingGlass, Funnel, ArrowsClockwise, Car, Upload } from '@phosphor-icons/react';
 import { useAuth } from '../App';
 import { useLang } from '../i18n';
+import WhiteSelect from '../components/ui/WhiteSelect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
@@ -83,10 +84,10 @@ const ModerationPage = () => {
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <Funnel size={18} className="text-zinc-400" />
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="px-3 py-2 border border-zinc-200 rounded-lg bg-white text-sm" data-testid="status-filter">
+          <WhiteSelect value={filter} onChange={(e) => setFilter(e.target.value)} data-testid="status-filter">
             <option value="all">{t('allStatuses')}</option>
             {Object.entries(statusConfig).map(([key, cfg]) => <option key={key} value={key}>{cfg.label}</option>)}
-          </select>
+          </WhiteSelect>
         </div>
         <div className="relative flex-1 max-w-md">
           <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />

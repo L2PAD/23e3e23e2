@@ -102,20 +102,26 @@ export default function MostPopularBrandsBlock() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'transform 180ms ease',
+                    /* Clip any over-spill from the inner image (radial halo
+                       baked into some PNGs + hover scale) so it cannot
+                       cover the adjacent orange separators. */
+                    overflow: 'hidden',
+                    position: 'relative',
+                    zIndex: 1,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                 >
                   <img
                     src={b.src}
                     alt={b.alt}
+                    className="pop-brand-img"
                     style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
+                      maxWidth: '85%',
+                      maxHeight: '85%',
                       width: 'auto',
                       height: 'auto',
                       objectFit: 'contain',
+                      transition: 'transform 180ms ease, filter 180ms ease',
+                      transformOrigin: 'center',
                     }}
                   />
                 </Link>
@@ -128,6 +134,8 @@ export default function MostPopularBrandsBlock() {
                       alignSelf: 'stretch',
                       backgroundColor: '#FEAE00',
                       flexShrink: 0,
+                      position: 'relative',
+                      zIndex: 5,
                     }}
                   />
                 )}
@@ -165,6 +173,17 @@ export default function MostPopularBrandsBlock() {
 
       {/* Responsive tweaks ported from brand-logos1.module.css */}
       <style>{`
+        /* Hover effect applied to the inner image only. Logos are clipped
+           by .pop-brand-link (overflow:hidden) so the scaled image can
+           NEVER cover the adjacent orange separators (which sit at
+           z-index 5 above their flex items). We use a tiny scale + a
+           subtle brightness pop so the logo "lights up" without growing
+           outside its slot. */
+        [data-testid="most-popular-brands"] .pop-brand-link:hover .pop-brand-img,
+        [data-testid="most-popular-brands"] .pop-brand-link:focus-visible .pop-brand-img {
+          transform: scale(1.04);
+          filter: brightness(1.15);
+        }
         @media (max-width: 1350px) {
           [data-testid="most-popular-brands"] .popular-brands-card {
             padding: 61.6px 80px 77.8px 80px !important;
