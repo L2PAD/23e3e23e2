@@ -8343,20 +8343,76 @@ async def public_brands():
                 key = key[:1].upper() + key[1:]
             db_counts[key] = db_counts.get(key, 0) + int(row.get("n") or 0)
 
-        # Merge: every brand from the catalogue + any extras present in the
-        # DB but absent from the catalogue (defensive — keeps the dropdown
-        # complete even for makes we forgot to enumerate).
-        all_names = set(VEHICLE_CATALOG.keys()) | set(db_counts.keys())
-        items = []
-        for name in all_names:
+        # ── PHASE B4: CASE-INSENSITIVE DEDUPLICATION ──────────────────────
+        # Historical bug: `make_canonical` values landed in the DB with
+        # mixed casing ("Audi" and "AUDI" simultaneously), which leaked
+        # into the filter dropdown and rendered the brand twice. The
+        # client-facing list must be ABSOLUTELY UNIQUE by lowercase name.
+        # Strategy:
+        #   1. Build proper-case lookup using VEHICLE_CATALOG as the
+        #      authoritative casing for every known brand.
+        #   2. For any DB key, collapse to its catalog-proper variant if
+        #      it exists; otherwise normalize the casing (Title Case from
+        #      ALL-CAPS, untouched otherwise).
+        #   3. Sum counts across all variants collapsing into the same key.
+        #   4. Emit a single de-duplicated alphabetically sorted list.
+        # ───────────────────────────────────────────────────────────────
+        proper_by_lc: Dict[str, str] = {
+            (n or "").lower(): n for n in VEHICLE_CATALOG.keys() if n
+        }
+
+        def _canon(raw: str) -> str:
+            """Map any case variant of a brand string to its canonical form."""
+            if not raw:
+                return raw
+            lc = raw.lower()
+            # 1) Exact catalog match wins
+            if lc in proper_by_lc:
+                return proper_by_lc[lc]
+            # 2) Manual alias map (chevy → Chevrolet etc.)
+            mapped = _BRAND_CANONICAL.get(lc)
+            if mapped:
+                return mapped
+            # 3) Unknown brand: Title Case if ALL-CAPS, otherwise keep
+            if raw.isupper() and len(raw) > 1:
+                return raw.title()
+            return raw
+
+        # Collapse db_counts case-insensitively
+        collapsed_counts: Dict[str, int] = {}
+        for raw_key, n in db_counts.items():
+            canon = _canon(raw_key)
+            collapsed_counts[canon] = collapsed_counts.get(canon, 0) + int(n or 0)
+
+        # Build final list: every catalog brand + any DB-only collapsed names
+        all_names_set = set(VEHICLE_CATALOG.keys()) | set(collapsed_counts.keys())
+        items_by_lc: Dict[str, dict] = {}
+        for name in all_names_set:
             aliases = BRAND_ALIASES_REVERSE.get(name, [name])
-            count = sum(db_counts.get(a, 0) for a in aliases)
-            items.append({
-                "name": name,
-                "count": count,
-                "available": count > 0,
-            })
-        items.sort(key=lambda x: x["name"].lower())
+            # Count over both the canonical name AND every alias (after
+            # canonicalising the alias too, so "AUDI" / "Audi" both fold)
+            count = 0
+            for a in aliases:
+                count += collapsed_counts.get(_canon(a), 0)
+            count += collapsed_counts.get(name, 0) - (
+                # avoid double-counting when name itself is in aliases
+                collapsed_counts.get(name, 0) if name in (_canon(a) for a in aliases) else 0
+            )
+            lc = name.lower()
+            existing = items_by_lc.get(lc)
+            if existing is None or len(name) > len(existing["name"]):
+                # Prefer the longer/more-canonical-looking variant
+                items_by_lc[lc] = {
+                    "name": name,
+                    "count": max(count, existing["count"] if existing else 0),
+                    "available": (count > 0) or (existing["available"] if existing else False),
+                }
+            else:
+                # Merge counts, keep the one we already have
+                existing["count"] = max(existing["count"], count)
+                existing["available"] = existing["available"] or (count > 0)
+
+        items = sorted(items_by_lc.values(), key=lambda x: x["name"].lower())
         return {"success": True, "data": items}
     except Exception as e:  # pragma: no cover
         logger.warning(f"[public/brands] failed: {e}")
