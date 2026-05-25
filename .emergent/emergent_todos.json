@@ -12,15 +12,19 @@
     "status": "completed"
   },
   {
+    "content": "Install missing @tanstack/react-query dependency",
+    "status": "completed"
+  },
+  {
     "content": "Restart supervisor (backend + frontend)",
     "status": "completed"
   },
   {
-    "content": "Verify compilation + smoke test (welcome, admin login)",
+    "content": "Verify compilation + smoke test (welcome, admin, customer, manager, teamlead)",
     "status": "completed"
   },
   {
     "content": "Run testing agent for full regression verification",
-    "status": "in_progress"
+    "status": "completed"
   }
 ]
