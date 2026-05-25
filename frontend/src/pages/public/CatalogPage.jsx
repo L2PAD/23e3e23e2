@@ -167,6 +167,34 @@ export default function CatalogPage() {
     // Always sync meta (even when result set is empty — that's exactly when
     // we want to surface the honest "X cars hidden by price filter" hint).
     setMeta(lastMeta);
+    //
+    // ── PHASE B5: HONEST EMPTY-STATE ON STRICT FILTER CHANGES ─────────
+    // The two guards above (`if (acc.length)` and `if (lastTotal)`) were
+    // originally added to prevent a brief grid flash between pagination
+    // page swaps. Side-effect: when a NEW filter combination returns
+    // ZERO matches, both branches silently no-op and the previous
+    // (now-stale) cards stay on screen — making it look like the
+    // filter did nothing. User-reported case: pick Audi → set
+    // price_min=50000 → backend honestly returns total=0 +
+    // hidden_by_price_filter=2, but UI kept showing the two priceless
+    // Audi A4s, contradicting the banner. We now check whether the
+    // currently-active query has finished AND produced an explicitly
+    // empty page; if so, we clear the grid + total so the meta-only
+    // empty state renders cleanly. Pagination (page > 1) is exempt so
+    // earlier accumulated pages don't get wiped.
+    if (
+      page === 1
+      && !currentQ.isLoading
+      && !currentQ.isFetching
+      && currentQ.data
+      && Array.isArray(currentQ.data.items)
+      && currentQ.data.items.length === 0
+    ) {
+      if (acc.length === 0) {
+        setItems([]);
+      }
+      setTotal(Number.isFinite(currentQ.data.total) ? currentQ.data.total : 0);
+    }
   }, [page, baseParams, currentQ.data, queryClient]);
 
   // Loading state — only true on the very first page (skeleton), not on
